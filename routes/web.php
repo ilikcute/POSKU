@@ -99,6 +99,142 @@ Route::middleware('shift_required')->group(function () {
         ->name('dashboard')
         ->middleware('check.permission:view_dashboard');
 
+    // Purchase Management Routes
+    Route::middleware('check.permission:view_purchases')->group(function () {
+        Route::get('purchases', [App\Http\Controllers\PurchaseController::class, 'index'])->name('purchases.index');
+        Route::get('purchases/create', [App\Http\Controllers\PurchaseController::class, 'create'])
+            ->name('purchases.create')
+            ->middleware('check.permission:create_purchases');
+        Route::get('purchases/{purchase}', [App\Http\Controllers\PurchaseController::class, 'show'])->name('purchases.show');
+        Route::get('purchases/{purchase}/print', [App\Http\Controllers\PurchaseController::class, 'print'])->name('purchases.print');
+        Route::get('purchases/{purchase}/pdf', [App\Http\Controllers\PurchaseController::class, 'generatePDF'])->name('purchases.pdf');
+    });
+    
+    Route::post('purchases', [App\Http\Controllers\PurchaseController::class, 'store'])
+        ->name('purchases.store')
+        ->middleware('check.permission:create_purchases');
+    Route::get('purchases/{purchase}/edit', [App\Http\Controllers\PurchaseController::class, 'edit'])
+        ->name('purchases.edit')
+        ->middleware('check.permission:edit_purchases');
+    Route::patch('purchases/{purchase}', [App\Http\Controllers\PurchaseController::class, 'update'])
+        ->name('purchases.update')
+        ->middleware('check.permission:edit_purchases');
+    Route::delete('purchases/{purchase}', [App\Http\Controllers\PurchaseController::class, 'destroy'])
+        ->name('purchases.destroy')
+        ->middleware('check.permission:delete_purchases');
+
+    // Purchase Return Management Routes
+    Route::middleware('check.permission:view_purchase_returns')->group(function () {
+        Route::get('purchase-returns', [App\Http\Controllers\PurchaseReturnController::class, 'index'])->name('purchase-returns.index');
+        Route::get('purchase-returns/create', [App\Http\Controllers\PurchaseReturnController::class, 'create'])
+            ->name('purchase-returns.create')
+            ->middleware('check.permission:create_purchase_returns');
+        Route::get('purchase-returns/{purchaseReturn}', [App\Http\Controllers\PurchaseReturnController::class, 'show'])->name('purchase-returns.show');
+        Route::get('purchases/{purchase}/returnable-items', [App\Http\Controllers\PurchaseReturnController::class, 'getReturnableItems'])
+            ->name('purchases.returnable-items');
+    });
+    
+    Route::post('purchase-returns', [App\Http\Controllers\PurchaseReturnController::class, 'store'])
+        ->name('purchase-returns.store')
+        ->middleware('check.permission:create_purchase_returns');
+    Route::get('purchase-returns/{purchaseReturn}/edit', [App\Http\Controllers\PurchaseReturnController::class, 'edit'])
+        ->name('purchase-returns.edit')
+        ->middleware('check.permission:edit_purchase_returns');
+    Route::patch('purchase-returns/{purchaseReturn}', [App\Http\Controllers\PurchaseReturnController::class, 'update'])
+        ->name('purchase-returns.update')
+        ->middleware('check.permission:edit_purchase_returns');
+    Route::delete('purchase-returns/{purchaseReturn}', [App\Http\Controllers\PurchaseReturnController::class, 'destroy'])
+        ->name('purchase-returns.destroy')
+        ->middleware('check.permission:delete_purchase_returns');
+
+    // Sales Management Routes
+    Route::middleware('check.permission:view_sales')->group(function () {
+        Route::get('sales', [App\Http\Controllers\SaleController::class, 'index'])->name('sales.index');
+        Route::get('sales/create', [App\Http\Controllers\SaleController::class, 'create'])
+            ->name('sales.create')
+            ->middleware('check.permission:create_sales');
+        Route::get('sales/{sale}', [App\Http\Controllers\SaleController::class, 'show'])->name('sales.show');
+        Route::get('sales/{sale}/print', [App\Http\Controllers\SaleController::class, 'print'])->name('sales.print');
+        Route::get('sales/{sale}/pdf', [App\Http\Controllers\SaleController::class, 'generatePDF'])->name('sales.pdf');
+        Route::post('sales/{sale}/whatsapp', [App\Http\Controllers\SaleController::class, 'sendWhatsApp'])->name('sales.whatsapp');
+        Route::get('products/{product}/stock', [App\Http\Controllers\SaleController::class, 'getProductStock'])->name('products.stock');
+    });
+    
+    Route::post('sales', [App\Http\Controllers\SaleController::class, 'store'])
+        ->name('sales.store')
+        ->middleware('check.permission:create_sales');
+    Route::get('sales/{sale}/edit', [App\Http\Controllers\SaleController::class, 'edit'])
+        ->name('sales.edit')
+        ->middleware('check.permission:edit_sales');
+    Route::patch('sales/{sale}', [App\Http\Controllers\SaleController::class, 'update'])
+        ->name('sales.update')
+        ->middleware('check.permission:edit_sales');
+    Route::delete('sales/{sale}', [App\Http\Controllers\SaleController::class, 'destroy'])
+        ->name('sales.destroy')
+        ->middleware('check.permission:delete_sales');
+
+    // Sales Return Management Routes
+    Route::middleware('check.permission:view_sales_returns')->group(function () {
+        Route::get('sales-returns', [App\Http\Controllers\SalesReturnController::class, 'index'])->name('sales-returns.index');
+        Route::get('sales-returns/create', [App\Http\Controllers\SalesReturnController::class, 'create'])
+            ->name('sales-returns.create')
+            ->middleware('check.permission:create_sales_returns');
+        Route::get('sales-returns/{salesReturn}', [App\Http\Controllers\SalesReturnController::class, 'show'])->name('sales-returns.show');
+        Route::get('sales/{sale}/returnable-items', [App\Http\Controllers\SalesReturnController::class, 'getReturnableItems'])
+            ->name('sales.returnable-items');
+    });
+    
+    Route::post('sales-returns', [App\Http\Controllers\SalesReturnController::class, 'store'])
+        ->name('sales-returns.store')
+        ->middleware('check.permission:create_sales_returns');
+    Route::get('sales-returns/{salesReturn}/edit', [App\Http\Controllers\SalesReturnController::class, 'edit'])
+        ->name('sales-returns.edit')
+        ->middleware('check.permission:edit_sales_returns');
+    Route::patch('sales-returns/{salesReturn}', [App\Http\Controllers\SalesReturnController::class, 'update'])
+        ->name('sales-returns.update')
+        ->middleware('check.permission:edit_sales_returns');
+    Route::delete('sales-returns/{salesReturn}', [App\Http\Controllers\SalesReturnController::class, 'destroy'])
+        ->name('sales-returns.destroy')
+        ->middleware('check.permission:delete_sales_returns');
+
+    // Stock Management Routes
+    Route::middleware('check.permission:view_stock')->group(function () {
+        Route::get('stock', [App\Http\Controllers\StockController::class, 'index'])->name('stock.index');
+        Route::get('stock/movements', [App\Http\Controllers\StockController::class, 'movements'])->name('stock.movements');
+        Route::get('stock/opname', [App\Http\Controllers\StockController::class, 'opname'])
+            ->name('stock.opname')
+            ->middleware('check.permission:stock_opname');
+        Route::get('stock/{stock}', [App\Http\Controllers\StockController::class, 'show'])->name('stock.show');
+        Route::get('stock/alerts/low-stock', [App\Http\Controllers\StockController::class, 'lowStockAlerts'])->name('stock.low-stock-alerts');
+        Route::get('stock/summary', [App\Http\Controllers\StockController::class, 'summary'])->name('stock.summary');
+        Route::get('stock/export', [App\Http\Controllers\StockController::class, 'export'])
+            ->name('stock.export')
+            ->middleware('check.permission:export_stock');
+    });
+    
+    Route::post('stock/opname', [App\Http\Controllers\StockController::class, 'processOpname'])
+        ->name('stock.opname.process')
+        ->middleware('check.permission:stock_opname');
+    Route::patch('stock/{stock}/adjust', [App\Http\Controllers\StockController::class, 'adjust'])
+        ->name('stock.adjust')
+        ->middleware('check.permission:adjust_stock');
+    Route::post('stock/bulk-adjust', [App\Http\Controllers\StockController::class, 'bulkAdjust'])
+        ->name('stock.bulk-adjust')
+        ->middleware('check.permission:adjust_stock');
+
+    // Reports Routes
+    Route::middleware('check.permission:view_reports')->group(function () {
+        Route::get('reports', [App\Http\Controllers\ReportController::class, 'index'])->name('reports.index');
+        Route::get('reports/sales', [App\Http\Controllers\ReportController::class, 'sales'])->name('reports.sales');
+        Route::get('reports/purchases', [App\Http\Controllers\ReportController::class, 'purchases'])->name('reports.purchases');
+        Route::get('reports/stock', [App\Http\Controllers\ReportController::class, 'stock'])->name('reports.stock');
+        Route::get('reports/stock-movements', [App\Http\Controllers\ReportController::class, 'stockMovements'])->name('reports.stock-movements');
+        Route::get('reports/profit-loss', [App\Http\Controllers\ReportController::class, 'profitLoss'])->name('reports.profit-loss');
+        Route::get('reports/export', [App\Http\Controllers\ReportController::class, 'export'])
+            ->name('reports.export')
+            ->middleware('check.permission:export_reports');
+    });
+
     // Master data routes - Semua memerlukan shift aktif
     Route::prefix('master')->name('master.')->group(function () {
 
