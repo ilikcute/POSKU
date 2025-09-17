@@ -1,0 +1,153 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Exports\ProductsExport;
+use App\Exports\ProductTemplateExport;
+use App\Imports\ProductsImport;
+use App\Models\Product;
+use Illuminate\Http\Request;
+use Inertia\Inertia;
+use Maatwebsite\Excel\Facades\Excel;
+
+class ProductController extends Controller
+{
+    public function index(Request $request)
+    {
+        // Ambil semua produk, tapi siapkan untuk difilter
+        $products = Product::query()
+            // Gunakan 'when' untuk menjalankan query pencarian HANYA JIKA ada input 'search'
+            ->when($request->input('search'), function ($query, $search) {
+                // Cari di kolom 'name' ATAU 'product_code'
+                $query->where('name', 'like', "%{$search}%")
+                    ->orWhere('product_code', 'like', "%{$search}%");
+            })
+            // Urutkan dari yang terbaru, dan paginasi hasilnya
+            ->latest()
+            ->paginate(10)
+            // Penting: agar link pagination tetap membawa query pencarian
+            ->withQueryString();
+
+        // Ambil data relasi untuk dropdown
+        $categories = \App\Models\Category::select('id', 'name')->orderBy('name')->get();
+        $divisions = \App\Models\Division::select('id', 'name')->orderBy('name')->get();
+        $suppliers = \App\Models\Supplier::select('id', 'name')->orderBy('name')->get();
+        $racks = \App\Models\Rack::select('id', 'name')->orderBy('name')->get();
+
+        return Inertia::render('Master/Products/Index', [
+            'products' => $products,
+            'filters' => $request->only(['search']),
+            'categories' => $categories,
+            'divisions' => $divisions,
+            'suppliers' => $suppliers,
+            'racks' => $racks,
+        ]);
+    }
+
+    public function create()
+    {
+        //
+    }
+
+    public function store(Request $request)
+    {
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'product_code' => 'required|string|max:50|unique:products',
+            'purchase_price' => 'required|numeric|min:0',
+            'selling_price' => 'required|numeric|min:0',
+            // Tambahkan validasi untuk field lain jika perlu
+        ]);
+
+        Product::create($validated);
+
+        return redirect()->back()->with('success', 'Produk berhasil ditambahkan.');
+    }
+
+    public function show(Product $product)
+    {
+        //
+    }
+
+    public function edit(Product $product)
+    {
+        //
+    }
+
+    public function update(Request $request, Product $product)
+    {
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'product_code' => 'required|string|max:50|unique:products,product_code,' . $product->id,
+            'purchase_price' => 'required|numeric|min:0',
+            'selling_price' => 'required|numeric|min:0',
+        ]);
+
+        $product->update($validated);
+
+        return redirect()->back()->with('success', 'Produk berhasil diperbarui.');
+    }
+
+    public function destroy(Product $product)
+    {
+        $product->delete();
+
+        return redirect()->back()->with('success', 'Produk berhasil dihapus.');
+    }
+
+    public function export()
+    {
+        return Excel::download(new ProductsExport, 'products.xlsx');
+    }
+
+    public function showImportForm()
+    {
+        return Inertia::render('Master/Products/Import');
+    }
+
+    public function import(Request $request)
+    {
+        $request->validate([
+            'import_file' => 'required|mimes:xlsx,xls',
+        ]);
+
+        try {
+            Excel::import(new ProductsImport, $request->file('import_file'));
+
+            return redirect()->route('master.products.index')
+                ->with('success', 'Data produk berhasil diimpor!');
+        } catch (\Exception $e) {
+            return redirect()->back()
+                ->with('error', 'Gagal mengimpor data: ' . $e->getMessage());
+        }
+
+        // Excel::import(new ProductsImport, $request->file('import_file'));
+
+        // return redirect()->route('master.products.index')->with('success', 'Produk berhasil diimpor.');
+    }
+
+    public function downloadTemplate()
+    {
+        return Excel::download(new ProductTemplateExport, 'template_import_products.xlsx');
+        $headers = [
+            'product_code',
+            'name',
+            'description',
+            'purchase_price',
+            'selling_price',
+        ];
+
+        return Excel::download(function ($excel) use ($headers) {
+            $excel->sheet('Template', function ($sheet) use ($headers) {
+                $sheet->appendRow($headers);
+            });
+        }, 'template_import_products.xlsx');
+        // $path = storage_path('app/public/templates/products_template.xlsx');
+
+        // if (!file_exists($path)) {
+        //     abort(404, 'File template tidak ditemukan.');
+        //  }
+
+        // return response()->download($path);
+    }
+}

@@ -1,0 +1,65 @@
+<?php
+
+namespace App\Http\Controllers\Master;
+
+use App\Http\Controllers\Controller;
+use App\Models\Category;
+use Illuminate\Http\Request;
+use Inertia\Inertia;
+
+class CategoryController extends Controller
+{
+    public function index(Request $request)
+    {
+        $categories = Category::query()
+            ->when($request->input('search'), function ($query, $search) {
+                $query->where('name', 'like', "%{$search}%");
+            })
+            ->latest()
+            ->paginate(10)
+            ->withQueryString();
+
+        return Inertia::render('Master/Categories/Index', [
+            'categories' => $categories,
+            'filters' => $request->only(['search']),
+        ]);
+    }
+
+    public function create()
+    {
+        //
+    }
+
+    public function store(Request $request)
+    {
+        $request->validate(['name' => 'required|string|max:255|unique:categories']);
+        Category::create($request->only('name'));
+
+        return redirect()->back()->with('success', 'Kategori berhasil ditambahkan.');
+    }
+
+    public function update(Request $request, Category $category)
+    {
+        $request->validate(['name' => 'required|string|max:255|unique:categories,name,'.$category->id]);
+        $category->update($request->only('name'));
+
+        return redirect()->back()->with('success', 'Kategori berhasil diperbarui.');
+    }
+
+    public function show(Category $category)
+    {
+        //
+    }
+
+    public function edit(Category $category)
+    {
+        //
+    }
+
+    public function destroy(Category $category)
+    {
+        $category->delete();
+
+        return redirect()->back()->with('success', 'Kategori berhasil dihapus.');
+    }
+}
