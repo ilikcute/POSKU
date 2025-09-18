@@ -5,4 +5,5 @@ import PrimaryButton from '@/Components/PrimaryButton.vue';
 import TextInput from '@/Components/TextInput.vue';
 import { Head, useForm, Link } from '@inertiajs/vue3';
 
-const logoUrl = 'http://googleusercontent.com/image_generation_content/0
+const logoUrl = 'http://googleusercontent.com/image_generation_content/0'
+</script>

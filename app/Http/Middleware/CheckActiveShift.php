@@ -42,6 +42,8 @@ class CheckActiveShift
         // Cek apakah ada shift yang sedang 'open' di toko user ini
         $activeShift = Shift::where('store_id', $user->store_id)
             ->where('status', 'open')
+            ->where('user_id', auth()->id())
+
             ->exists();
 
         // Jika tidak ada shift aktif, redirect ke halaman buka shift
@@ -53,7 +55,6 @@ class CheckActiveShift
                     'redirect' => route('shifts.open.form'),
                 ], 403);
             }
-
             // Redirect ke halaman buka shift dengan pesan
             return redirect()->route('shifts.open.form')
                 ->with('warning', 'Anda perlu membuka shift terlebih dahulu sebelum mengakses halaman ini.');

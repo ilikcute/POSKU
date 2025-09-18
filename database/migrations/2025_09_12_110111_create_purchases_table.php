@@ -6,9 +6,6 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
     public function up(): void
     {
         Schema::create('purchases', function (Blueprint $table) {
@@ -26,6 +23,7 @@ return new class extends Migration
             $table->decimal('change_due', 15, 2)->default(0);
             $table->timestamp('transaction_date');
             $table->text('notes')->nullable();
+            $table->softDeletes();
             $table->timestamps();
         });
     }

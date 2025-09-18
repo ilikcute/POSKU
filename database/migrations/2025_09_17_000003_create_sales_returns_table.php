@@ -20,6 +20,7 @@ return new class extends Migration
             $table->decimal('final_amount', 15, 2);
             $table->text('notes')->nullable();
             $table->timestamp('return_date');
+            $table->softDeletes();
             $table->timestamps();
         });
     }

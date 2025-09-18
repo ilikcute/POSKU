@@ -31,12 +31,11 @@ class HandleInertiaRequests extends Middleware
                 'name' => $store->name,
                 'logo_path' => $store->logo_path,
                 'is_main_store' => $store->is_main_store,
-                // tambahkan field lain yang dibutuhkan
             ] : null,
             'flash' => [
-                'success' => fn () => $request->session()->get('success'),
-                'error' => fn () => $request->session()->get('error'),
-                'message' => fn () => $request->session()->get('message'),
+                'success' => fn() => $request->session()->get('success'),
+                'error' => fn() => $request->session()->get('error'),
+                'message' => fn() => $request->session()->get('message'),
             ],
         ];
     }

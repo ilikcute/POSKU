@@ -10,11 +10,17 @@ const appName = import.meta.env.VITE_APP_NAME || 'Laravel';
 
 createInertiaApp({
     title: (title) => `${title} - ${appName}`,
-    resolve: (name) =>
-        resolvePageComponent(
-            `./Pages/${name}.vue`,
-            import.meta.glob('./Pages/**/*.vue'),
-        ),
+    resolve: (name) => {
+        const pages = import.meta.glob('./Pages/**/*.vue', { eager: true });
+        let page = pages[`./Pages/${name}.vue`];
+        if (typeof page === 'undefined') {
+            // Fallback for case-insensitivity issues
+            const lowerName = name.toLowerCase();
+            const key = Object.keys(pages).find(k => k.toLowerCase() === `./pages/${lowerName}.vue`);
+            page = pages[key];
+        }
+        return page;
+    },
     setup({ el, App, props, plugin }) {
         return createApp({ render: () => h(App, props) })
             .use(plugin)

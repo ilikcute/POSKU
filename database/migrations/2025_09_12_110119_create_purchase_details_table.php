@@ -19,6 +19,7 @@ return new class extends Migration
             $table->decimal('price_at_sale', 15, 2);
             $table->decimal('discount_per_item', 15, 2)->default(0);
             $table->decimal('subtotal', 15, 2);
+            $table->softDeletes();
             $table->timestamps();
         });
     }

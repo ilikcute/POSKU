@@ -11,7 +11,7 @@ class CustomerFactory extends Factory
     {
         return [
             'customer_code' => fake()->unique()->lexify('CUST????'),
-            'member_code' => fake()->optional(0.5)->unique()->lexify('MEMB????'),
+            'member_code' => fake()->unique()->lexify('MEMB????'),
             'name' => fake()->name(),
             'email' => fake()->optional(0.8)->safeEmail(),
             'phone' => fake()->optional(0.9)->phoneNumber(),
