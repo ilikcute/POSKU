@@ -1,136 +1,168 @@
-<template>
-    <div class="min-h-screen flex flex-col bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-500 text-white">
-        <!-- Header -->
-        <header class="w-full backdrop-blur-md bg-white/10 sticky top-0 z-50 shadow-lg animate-fade-in-down">
-            <div class="container mx-auto px-6 py-4 flex justify-between items-center">
-                <div class="flex items-center gap-3">
-                    <img :src="logoUrl" alt="POSKU Logo" class="h-10 w-auto drop-shadow-lg" />
-                    <span
-                        class="font-extrabold text-2xl bg-gradient-to-r from-indigo-300 to-pink-300 bg-clip-text text-transparent tracking-wide">
-                        POSKU
-                    </span>
-                </div>
-                <nav class="flex items-center space-x-4">
-                    <Link :href="route('dashboard')"
-                        class="text-sm font-semibold text-white/80 hover:text-white transition">Dashboard</Link>
-                    <Link :href="route('profile.edit')"
-                        class="text-sm font-semibold text-white/80 hover:text-white transition">Profile</Link>
-                    <form @submit.prevent="logout" method="post">
-                        <button type="submit"
-                            class="text-sm font-semibold text-white/80 hover:text-white transition">Logout</button>
-                    </form>
-                </nav>
-            </div>
-        </header>
+<script setup>
+import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout.vue";
+import { Head } from "@inertiajs/vue3";
+import { ref, onMounted } from "vue";
+import { Chart, registerables } from "chart.js";
 
-        <!-- Dashboard Content -->
-        <main class="flex-grow container mx-auto px-6 py-10 animate-fade-in-up">
-            <h1 class="text-3xl font-bold mb-8 drop-shadow-lg">Dashboard</h1>
+Chart.register(...registerables);
 
-            <!-- Example Stats Cards -->
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
-                <div
-                    class="p-6 bg-white/10 backdrop-blur-lg rounded-2xl shadow-xl hover:scale-105 transform transition">
-                    <h2 class="text-lg font-semibold mb-2">Total Penjualan</h2>
-                    <p class="text-3xl font-extrabold">{{ stats.sales }}</p>
-                </div>
-                <div
-                    class="p-6 bg-white/10 backdrop-blur-lg rounded-2xl shadow-xl hover:scale-105 transform transition">
-                    <h2 class="text-lg font-semibold mb-2">Produk</h2>
-                    <p class="text-3xl font-extrabold">{{ stats.products }}</p>
-                </div>
-                <div
-                    class="p-6 bg-white/10 backdrop-blur-lg rounded-2xl shadow-xl hover:scale-105 transform transition">
-                    <h2 class="text-lg font-semibold mb-2">Pelanggan</h2>
-                    <p class="text-3xl font-extrabold">{{ stats.customers }}</p>
-                </div>
-            </div>
-
-            <!-- Slot for additional dashboard content -->
-            <div class="bg-white/10 backdrop-blur-lg rounded-2xl shadow-xl p-6">
-                <slot />
-            </div>
-        </main>
-
-        <!-- Footer -->
-        <footer class="w-full py-6 bg-white/10 backdrop-blur-md text-center text-sm text-white/70 animate-fade-in">
-            &copy; 2025 <span class="font-bold text-white">POSKU</span>. All Rights Reserved.
-        </footer>
-    </div>
-</template>
-
-<script>
-import { Head, Link, useForm } from "@inertiajs/vue3";
-
-export default {
-    name: "Dashboard",
-    components: {
-        Head,
-        Link,
+const props = defineProps({
+    totalSalesToday: {
+        type: Number,
+        default: 0,
     },
-    props: {
-        stats: Object,
-        logoUrl: {
-            type: String,
-            default: "/images/logo.svg",
-        },
+    transactionCountToday: {
+        type: Number,
+        default: 0,
     },
-    setup() {
-        const form = useForm({});
-
-        function logout() {
-            form.post(route("logout"));
-        }
-
-        return { form, logout };
+    newMembersThisMonth: {
+        type: Number,
+        default: 0,
     },
+    topProduct: {
+        type: String,
+        default: "N/A",
+    },
+    salesChart: {
+        type: Object,
+        default: () => ({ labels: [], data: [] }), // Beri nilai default jika data tidak ada
+    },
+    lowStockProducts: {
+        type: Array,
+        default: () => [],
+    },
+});
+
+const salesChartCanvas = ref(null);
+
+// Fungsi untuk format angka ke Rupiah
+const formatCurrency = (value) => {
+    if (typeof value !== "number") {
+        value = 0;
+    }
+    return new Intl.NumberFormat("id-ID", {
+        style: "currency",
+        currency: "IDR",
+        minimumFractionDigits: 0,
+    }).format(value);
 };
+
+onMounted(() => {
+    // Pastikan data chart dan elemen canvas sudah ada sebelum membuat grafik
+    if (props.salesChart && props.salesChart.labels && salesChartCanvas.value) {
+        new Chart(salesChartCanvas.value, {
+            type: "bar",
+            data: {
+                labels: props.salesChart.labels,
+                datasets: [
+                    {
+                        label: "Penjualan (Rp)",
+                        data: props.salesChart.data,
+                        backgroundColor: "rgba(79, 70, 229, 0.8)",
+                        borderColor: "rgba(79, 70, 229, 1)",
+                        borderWidth: 1,
+                    },
+                ],
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                    },
+                },
+            },
+        });
+    }
+});
 </script>
 
-<style scoped>
-@keyframes fadeInUp {
-    from {
-        opacity: 0;
-        transform: translateY(20px);
-    }
+<template>
 
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
+    <Head title="Dashboard" />
 
-@keyframes fadeInDown {
-    from {
-        opacity: 0;
-        transform: translateY(-20px);
-    }
+    <AuthenticatedLayout>
+        <template #header>
+            <h2 class="font-semibold text-xl text-gray-800 leading-tight">
+                Dashboard
+            </h2>
+        </template>
 
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
+        <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+                <div class="bg-white p-6 rounded-lg shadow-md">
+                    <h3 class="text-sm font-medium text-gray-500">
+                        Penjualan Hari Ini
+                    </h3>
+                    <p class="text-3xl font-bold text-gray-900 mt-2">
+                        {{ formatCurrency(totalSalesToday) }}
+                    </p>
+                </div>
+                <div class="bg-white p-6 rounded-lg shadow-md">
+                    <h3 class="text-sm font-medium text-gray-500">
+                        Transaksi Hari Ini
+                    </h3>
+                    <p class="text-3xl font-bold text-gray-900 mt-2">
+                        {{ transactionCountToday }}
+                    </p>
+                </div>
+                <div class="bg-white p-6 rounded-lg shadow-md">
+                    <h3 class="text-sm font-medium text-gray-500">
+                        Produk Terlaris (Bulan Ini)
+                    </h3>
+                    <p class="text-2xl font-bold text-gray-900 mt-2 truncate">
+                        {{ topProduct }}
+                    </p>
+                </div>
+                <div class="bg-white p-6 rounded-lg shadow-md">
+                    <h3 class="text-sm font-medium text-gray-500">
+                        Member Baru (Bulan Ini)
+                    </h3>
+                    <p class="text-3xl font-bold text-gray-900 mt-2">
+                        {{ newMembersThisMonth }}
+                    </p>
+                </div>
+            </div>
 
-@keyframes fadeIn {
-    from {
-        opacity: 0;
-    }
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div class="lg:col-span-2 bg-white p-6 rounded-lg shadow-md">
+                    <h3 class="text-lg font-semibold text-gray-800 mb-4">
+                        Grafik Penjualan 7 Hari Terakhir
+                    </h3>
+                    <canvas ref="salesChartCanvas"></canvas>
+                </div>
+                <div class="bg-white p-6 rounded-lg shadow-md">
+                    <h3 class="text-lg font-semibold text-gray-800 mb-4">
+                        Stok Segera Habis
+                    </h3>
+                    <div class="space-y-4">
+                        <div v-if="
+                            lowStockProducts && lowStockProducts.length > 0
+                        " v-for="product in lowStockProducts" :key="product.id">
+                            <div class="flex justify-between items-center">
+                                <span class="text-sm font-medium text-gray-700">{{ product.name }}</span>
+                                <span class="text-sm font-bold text-red-500">Sisa: {{ product.quantity }}</span>
+                            </div>
+                            <div class="w-full bg-gray-200 rounded-full h-2.5 mt-1">
+                                <div class="bg-red-500 h-2.5 rounded-full" :style="{
+                                    width:
+                                        (product.quantity /
+                                            (product.min_stock_alert * 2)) *
+                                        100 +
+                                        '%',
+                                }"></div>
+                            </div>
+                        </div>
+                        <div v-else class="text-sm text-gray-500">
+                            Stok aman!
+                        </div>
+                    </div>
+                </div>
+            </div>
 
-    to {
-        opacity: 1;
-    }
-}
-
-.animate-fade-in-up {
-    animation: fadeInUp 0.8s ease forwards;
-}
-
-.animate-fade-in-down {
-    animation: fadeInDown 0.8s ease forwards;
-}
-
-.animate-fade-in {
-    animation: fadeIn 1s ease forwards;
-}
-</style>
+            <footer class="mt-8 text-center text-sm text-gray-500">
+                POSKU &copy; {{ new Date().getFullYear() }}
+            </footer>
+        </div>
+    </AuthenticatedLayout>
+</template>
