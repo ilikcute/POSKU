@@ -44,8 +44,13 @@ const chartData = {
     datasets: [
         {
             label: 'Jumlah Terjual',
-            backgroundColor: '#4A90E2',
+            backgroundColor: 'rgba(74, 144, 226, 0.5)',
+            borderColor: 'rgba(74, 144, 226, 1)',
+            borderWidth: 1,
+            hoverBackgroundColor: 'rgba(74, 144, 226, 0.8)',
+            hoverBorderColor: 'rgba(74, 144, 226, 1)',
             data: topProducts.map(p => p.sold),
+            borderRadius: 4,
         },
     ],
 };
@@ -57,10 +62,29 @@ const chartOptions = {
         legend: {
             display: false,
         },
+        tooltip: {
+            backgroundColor: 'rgba(0, 0, 0, 0.7)',
+            titleColor: '#ffffff',
+            bodyColor: '#ffffff',
+        }
     },
     scales: {
         y: {
             beginAtZero: true,
+            grid: {
+                color: 'rgba(255, 255, 255, 0.1)',
+            },
+            ticks: {
+                color: '#cbd5e1', // slate-300
+            },
+        },
+        x: {
+            grid: {
+                display: false,
+            },
+            ticks: {
+                color: '#cbd5e1', // slate-300
+            },
         },
     },
 };
@@ -72,101 +96,136 @@ const chartOptions = {
 
     <AuthenticatedLayout>
         <template #header>
-            <h2 class="font-semibold text-xl text-gray-800 leading-tight">
+            <h2 class="font-semibold text-xl text-white leading-tight">
                 Dashboard
             </h2>
         </template>
 
-        <div class="py-12">
-            <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
-                <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg p-6 mb-6">
-                    <h3 class="text-lg font-medium text-gray-900">
-                        Selamat Datang Kembali, {{ user.name }}!
-                    </h3>
-                    <p class="mt-1 text-sm text-gray-600">
-                        Berikut adalah ringkasan aktivitas toko Anda hari ini.
-                    </p>
-                </div>
-
-                <!-- Stats Cards -->
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                    <div v-for="(stat, index) in stats" :key="stat.name" 
-                         :class="`bg-gradient-to-br ${cardColors[index % cardColors.length]}`"
-                         class="p-6 rounded-lg shadow-lg text-white">
-                        <div class="flex items-center">
-                            <div class="flex-shrink-0" v-html="icons[stat.icon]"></div>
-                            <div class="ml-4">
-                                <p class="text-sm font-medium truncate">{{ stat.name }}</p>
-                                <p class="text-2xl font-bold">{{ stat.value }}</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Quick Actions -->
-                <div class="mt-8 bg-white overflow-hidden shadow-sm sm:rounded-lg">
-                    <div class="p-6 border-b border-gray-200">
-                        <h3 class="text-lg font-medium text-gray-900">Aksi Cepat</h3>
-                    </div>
-                    <div class="p-6 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-                        <a :href="route('sales.create')" class="flex flex-col items-center justify-center p-4 bg-gray-50 hover:bg-blue-100 rounded-lg transition">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 text-blue-500 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 3h2.25l1.5 12h12.75l1.5-12H21M6.75 3l1.5 12m0 0l2.25 3.75M6.75 15h6.75m0 0l-2.25 3.75m2.25-3.75h3.75l2.25 3.75M9 18.75h6" /></svg>
-                            <span class="text-sm font-medium text-gray-700">POS Baru</span>
-                        </a>
-                        <a :href="route('master.products.create')" class="flex flex-col items-center justify-center p-4 bg-gray-50 hover:bg-green-100 rounded-lg transition">
-                             <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 text-green-500 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" /></svg>
-                            <span class="text-sm font-medium text-gray-700">Tambah Produk</span>
-                        </a>
-                         <a :href="route('purchases.create')" class="flex flex-col items-center justify-center p-4 bg-gray-50 hover:bg-yellow-100 rounded-lg transition">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 text-yellow-500 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 6.75h12M8.25 12h12m-12 5.25h12M3.75 6.75h.007v.008H3.75V6.75zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zM3.75 12h.007v.008H3.75V12zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zM3.75 17.25h.007v.008H3.75v-.008zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" /></svg>
-                            <span class="text-sm font-medium text-gray-700">Tambah Pembelian</span>
-                        </a>
-                        <a :href="route('reports.sales')" class="flex flex-col items-center justify-center p-4 bg-gray-50 hover:bg-purple-100 rounded-lg transition">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 text-purple-500 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 3v11.25A2.25 2.25 0 006 16.5h2.25M3.75 3h-1.5m1.5 0h16.5m0 0h1.5m-1.5 0v11.25A2.25 2.25 0 0118 16.5h-2.25m-7.5 0h7.5m-7.5 0l-1 3m1-3l1 3m-9-3v4.5A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75v-4.5m-15 0h15" /></svg>
-                            <span class="text-sm font-medium text-gray-700">Laporan Penjualan</span>
-                        </a>
-                    </div>
-                </div>
-
-                <!-- Top Selling Products -->
-                <div class="mt-8 grid grid-cols-1 lg:grid-cols-3 gap-8">
-                    <!-- Chart -->
-                    <div class="lg:col-span-2 bg-white overflow-hidden shadow-sm sm:rounded-lg">
-                        <div class="p-6 border-b border-gray-200">
-                            <h3 class="text-lg font-medium text-gray-900">5 Produk Terlaris Bulan Ini</h3>
-                        </div>
-                        <div class="p-6 h-96">
-                            <Bar :data="chartData" :options="chartOptions" />
-                        </div>
-                    </div>
-
-                    <!-- Table -->
-                    <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
-                        <div class="p-6 border-b border-gray-200">
-                            <h3 class="text-lg font-medium text-gray-900">Peringkat Produk</h3>
-                        </div>
-                        <div class="p-6">
-                            <table class="w-full">
-                                <thead>
-                                    <tr class="text-left text-sm font-semibold text-gray-600">
-                                        <th class="py-2">#</th>
-                                        <th class="py-2">Nama Produk</th>
-                                        <th class="py-2 text-right">Terjual</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <tr v-for="(product, index) in topProducts" :key="product.name" class="border-t">
-                                        <td class="py-3">{{ index + 1 }}</td>
-                                        <td class="py-3 font-medium text-gray-800">{{ product.name }}</td>
-                                        <td class="py-3 text-right">{{ product.sold }}</td>
-                                    </tr>
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
-
+        <div class="space-y-6 animate-fade-in-up">
+            <div class="bg-white/10 backdrop-blur-md border border-white/10 rounded-2xl shadow-lg p-6">
+                <h3 class="text-xl font-bold text-white">
+                    Selamat Datang Kembali, {{ user.name }}!
+                </h3>
+                <p class="mt-2 text-sm text-gray-300">
+                    Berikut adalah ringkasan aktivitas toko Anda hari ini. Semoga harimu menyenangkan!
+                </p>
             </div>
+
+            <!-- Stats Cards -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                <div v-for="(stat, index) in stats" :key="stat.name"
+                    :class="`bg-gradient-to-br ${cardColors[index % cardColors.length]}`"
+                    class="p-6 rounded-2xl shadow-lg text-white transition-all duration-300 hover:scale-105 hover:shadow-2xl">
+                    <div class="flex items-center">
+                        <div
+                            class="flex-shrink-0 bg-white/20 rounded-full p-3 transform group-hover:rotate-12 transition-transform duration-300">
+                            <div v-html="icons[stat.icon]"></div>
+                        </div>
+                        <div class="ml-4">
+                            <p class="text-sm font-medium truncate">{{ stat.name }}</p>
+                            <p class="text-2xl font-bold">{{ stat.value }}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quick Actions -->
+            <div class="bg-white/10 backdrop-blur-md border border-white/10 rounded-2xl shadow-lg">
+                <div class="p-6 border-b border-white/10">
+                    <h3 class="text-lg font-bold text-white">Aksi Cepat</h3>
+                </div>
+                <div class="p-6 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+                    <a :href="route('sales.create')"
+                        class="flex flex-col items-center justify-center p-4 bg-white/5 hover:bg-blue-500/20 rounded-xl transition-all duration-300 group transform hover:-translate-y-1">
+                        <div
+                            class="p-3 bg-blue-500/10 rounded-full mb-2 border border-blue-500/30 group-hover:bg-blue-500/20 transition-colors">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-blue-400" fill="none"
+                                viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round"
+                                    d="M3 3h2.25l1.5 12h12.75l1.5-12H21M6.75 3l1.5 12m0 0l2.25 3.75M6.75 15h6.75m0 0l-2.25 3.75m2.25-3.75h3.75l2.25 3.75M9 18.75h6" />
+                            </svg>
+                        </div>
+                        <span class="text-sm font-medium text-gray-200 group-hover:text-white">POS Baru</span>
+                    </a>
+                    <a :href="route('master.products.create')"
+                        class="flex flex-col items-center justify-center p-4 bg-white/5 hover:bg-green-500/20 rounded-xl transition-all duration-300 group transform hover:-translate-y-1">
+                        <div
+                            class="p-3 bg-green-500/10 rounded-full mb-2 border border-green-500/30 group-hover:bg-green-500/20 transition-colors">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-green-400" fill="none"
+                                viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round"
+                                    d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                            </svg>
+                        </div>
+                        <span class="text-sm font-medium text-gray-200 group-hover:text-white">Tambah Produk</span>
+                    </a>
+                    <a :href="route('purchases.create')"
+                        class="flex flex-col items-center justify-center p-4 bg-white/5 hover:bg-yellow-500/20 rounded-xl transition-all duration-300 group transform hover:-translate-y-1">
+                        <div
+                            class="p-3 bg-yellow-500/10 rounded-full mb-2 border border-yellow-500/30 group-hover:bg-yellow-500/20 transition-colors">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-yellow-400" fill="none"
+                                viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round"
+                                    d="M8.25 6.75h12M8.25 12h12m-12 5.25h12M3.75 6.75h.007v.008H3.75V6.75zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zM3.75 12h.007v.008H3.75V12zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zM3.75 17.25h.007v.008H3.75v-.008zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" />
+                            </svg>
+                        </div>
+                        <span class="text-sm font-medium text-gray-200 group-hover:text-white">Tambah Pembelian</span>
+                    </a>
+                    <a :href="route('reports.sales')"
+                        class="flex flex-col items-center justify-center p-4 bg-white/5 hover:bg-purple-500/20 rounded-xl transition-all duration-300 group transform hover:-translate-y-1">
+                        <div
+                            class="p-3 bg-purple-500/10 rounded-full mb-2 border border-purple-500/30 group-hover:bg-purple-500/20 transition-colors">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-purple-400" fill="none"
+                                viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round"
+                                    d="M3.75 3v11.25A2.25 2.25 0 006 16.5h2.25M3.75 3h-1.5m1.5 0h16.5m0 0h1.5m-1.5 0v11.25A2.25 2.25 0 0118 16.5h-2.25m-7.5 0h7.5m-7.5 0l-1 3m1-3l1 3m-9-3v4.5A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75v-4.5m-15 0h15" />
+                            </svg>
+                        </div>
+                        <span class="text-sm font-medium text-gray-200 group-hover:text-white">Laporan Penjualan</span>
+                    </a>
+                </div>
+            </div>
+
+            <!-- Top Selling Products -->
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <!-- Chart -->
+                <div
+                    class="lg:col-span-2 bg-white/10 backdrop-blur-md border border-white/10 rounded-2xl shadow-lg">
+                    <div class="p-6 border-b border-white/10">
+                        <h3 class="text-lg font-bold text-white">5 Produk Terlaris Bulan Ini</h3>
+                    </div>
+                    <div class="p-6 h-96">
+                        <Bar :data="chartData" :options="chartOptions" />
+                    </div>
+                </div>
+
+                <!-- Table -->
+                <div class="bg-white/10 backdrop-blur-md border border-white/10 rounded-2xl shadow-lg">
+                    <div class="p-6 border-b border-white/10">
+                        <h3 class="text-lg font-bold text-white">Peringkat Produk</h3>
+                    </div>
+                    <div class="p-6">
+                        <table class="w-full text-white">
+                            <thead>
+                                <tr class="text-left text-sm font-semibold text-gray-300 border-b border-white/10">
+                                    <th class="py-3">#</th>
+                                    <th class="py-3">Nama Produk</th>
+                                    <th class="py-3 text-right">Terjual</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr v-for="(product, index) in topProducts" :key="product.name"
+                                    class="border-t border-white/10">
+                                    <td class="py-3 text-gray-300">{{ index + 1 }}</td>
+                                    <td class="py-3 font-medium">{{ product.name }}</td>
+                                    <td class="py-3 text-right font-semibold">{{ product.sold }}</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
         </div>
     </AuthenticatedLayout>
 </template>
