@@ -222,6 +222,10 @@ Route::middleware('shift_required')->group(function () {
         ->name('stock.bulk-adjust')
         ->middleware('check.permission:adjust_stock');
 
+    // Stock Entry & Adjustment Routes
+    Route::resource('stock-entries', \App\Http\Controllers\StockEntryController::class)->only(['index', 'create', 'store', 'show'])->middleware('check.permission:view_stock_entries');
+    Route::resource('stock-adjustments', \App\Http\Controllers\StockAdjustmentController::class)->only(['index', 'create', 'store', 'show'])->middleware('check.permission:view_stock_adjustments');
+
     // Reports Routes
     Route::middleware('check.permission:view_reports')->group(function () {
         Route::get('reports', [App\Http\Controllers\ReportController::class, 'index'])->name('reports.index');
@@ -251,6 +255,8 @@ Route::middleware('shift_required')->group(function () {
                 ->name('products.import.template')
                 ->middleware('check.permission:import_products');
         });
+
+        Route::get('products/create', [ProductController::class, 'create'])->name('products.create')->middleware('check.permission:create_products');
 
         Route::post('products', [ProductController::class, 'store'])
             ->name('products.store')
