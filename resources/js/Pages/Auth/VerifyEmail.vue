@@ -1,109 +1,138 @@
-<script setup>
-import { computed } from "vue";
-import PrimaryButton from "@/Components/PrimaryButton.vue";
-import { Head, Link, useForm } from "@inertiajs/vue3";
-
-const props = defineProps({
-    status: String,
-});
-
-const logoUrl = "http://googleusercontent.com/image_generation_content/0";
-
-const form = useForm({});
-
-const submit = () => {
-    form.post(route("verification.send"));
-};
-
-const verificationLinkHasBeenSent = computed(
-    () => props.status === "verification-link-sent"
-);
-</script>
-
 <template>
-    <Head title="Verifikasi Email" />
-
     <div
-        class="relative min-h-screen w-full flex items-center justify-center p-6 overflow-hidden"
-    >
-        <div
-            class="absolute inset-0 bg-gradient-to-br from-sky-200 via-rose-200 to-amber-200 -z-20"
-        ></div>
-        <div
-            class="absolute -top-1/4 -right-1/4 w-1/2 h-1/2 bg-white/20 rounded-full filter blur-3xl opacity-50 -z-10"
-        ></div>
-        <div
-            class="absolute -bottom-1/4 -left-1/4 w-1/2 h-1/2 bg-white/20 rounded-full filter blur-3xl opacity-50 -z-10"
-        ></div>
+        class="relative min-h-screen flex flex-col justify-center items-center bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-500 text-white overflow-hidden">
+        <!-- Decorative Gradient Blobs -->
+        <div class="absolute -top-24 -left-24 w-72 h-72 rounded-full bg-indigo-400/30 blur-3xl"></div>
+        <div class="absolute -bottom-20 -right-20 w-80 h-80 rounded-full bg-pink-400/25 blur-3xl"></div>
 
+        <!-- Verify Email Card -->
         <div
-            class="w-full max-w-md bg-white/70 backdrop-blur-xl rounded-2xl shadow-xl p-8 space-y-6 text-center"
-        >
-            <div>
-                <div class="flex justify-center">
-                <Link href="/">
-                    <div class="flex items-center">
-                            <img 
-                                v-if="store && store.logo_path" 
-                                :src="`/storage/${store.logo_path}`" 
-                                :alt="store.name"
-                                class="h-8 w-8 rounded object-contain mr-2"/>
-                            <span class="font-semibold text-lg">
-                                {{ store && store.name ? store.name : 'POSKU' }}
-                            </span>
-                        </div>
-                </Link>
-            </div>
-                <h2 class="text-2xl font-bold text-gray-800">
-                    Verifikasi Email Anda
-                </h2>
+            class="relative z-10 w-full max-w-md bg-white/10 backdrop-blur-lg rounded-2xl shadow-2xl p-8 animate-fade-in-up">
+            <!-- Logo and Title -->
+            <div class="flex flex-col items-center mb-8">
+                <img :src="logoUrl" alt="POSKU Logo" class="h-14 w-auto drop-shadow-lg mb-4" />
+                <h1
+                    class="text-3xl font-extrabold bg-gradient-to-r from-indigo-300 to-pink-300 bg-clip-text text-transparent">
+                    Verifikasi Email
+                </h1>
+                <p class="text-white/80 mt-2 text-center">
+                    Terima kasih telah mendaftar! Sebelum memulai, silakan verifikasi email Anda dengan mengklik link
+                    yang sudah kami kirimkan.
+                </p>
             </div>
 
-            <div class="mb-4 text-sm text-gray-600">
-                Terima kasih telah mendaftar! Sebelum memulai, silakan
-                verifikasi alamat email Anda dengan mengklik link yang baru saja
-                kami kirimkan. Jika Anda tidak menerima email, kami akan
-                mengirimkannya kembali.
-            </div>
-
-            <div
-                v-if="verificationLinkHasBeenSent"
-                class="mb-4 font-medium text-sm text-green-600 bg-green-100 p-3 rounded-md"
-            >
-                Link verifikasi baru telah dikirim ke alamat email yang Anda
-                berikan saat pendaftaran.
-            </div>
-
-            <form @submit.prevent="submit">
-                <div class="mt-4 flex items-center justify-between">
-                    <button
-                        type="submit"
-                        class="inline-flex items-center justify-center w-10 h-10 rounded-full bg-indigo-100 hover:bg-indigo-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition disabled:opacity-25"
-                        :disabled="form.processing"
-                        :class="{ 'opacity-25': form.processing }"
-                        title="Kirim Ulang Email Verifikasi"
-                    >
-                        <svg class="w-6 h-6 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="M16 12H8m8 0l-4-4m4 4l-4 4M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                    </button>
-                    <!-- <PrimaryButton
-                        :class="{ 'opacity-25': form.processing }"
-                        :disabled="form.processing"
-                    >
-                        Kirim Ulang Email Verifikasi
-                    </PrimaryButton> -->
-
-                    <Link
-                        :href="route('logout')"
-                        method="post"
-                        as="button"
-                        class="underline text-sm text-gray-600 hover:text-gray-900 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-                        >Log Out</Link
-                    >
+            <!-- Toast Notification -->
+            <transition name="fade">
+                <div v-if="toast.message"
+                    :class="['mb-4 p-3 rounded-xl text-center font-medium', toast.type === 'success' ? 'bg-green-500/80 text-white' : 'bg-red-500/80 text-white']">
+                    {{ toast.message }}
                 </div>
-            </form>
+            </transition>
+
+            <!-- Message if resent -->
+            <div v-if="status === 'verification-link-sent'" class="mb-4 text-sm font-medium text-green-300 text-center">
+                Link verifikasi baru telah dikirim ke email Anda.
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="space-y-4">
+                <form @submit.prevent="resend" class="flex items-center">
+                    <button type="submit"
+                        class="inline-flex items-center px-6 py-3 text-sm font-bold rounded-xl bg-gradient-to-r from-indigo-500 to-pink-500 text-white shadow-lg hover:from-indigo-600 hover:to-pink-600 transition-transform duration-200 w-full justify-center h-12 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-pink-400"
+                        :class="{ 'opacity-25': form.processing }" :disabled="form.processing">
+                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9H4m0 0V4m0 5a8.003 8.003 0 0015.938 2H20" />
+                        </svg>
+                        Kirim Ulang Email Verifikasi
+                    </button>
+                </form>
+
+                <form method="POST" @submit.prevent="logout">
+                    <button type="submit"
+                        class="inline-flex items-center px-6 py-3 text-sm font-bold rounded-xl bg-white text-indigo-600 shadow-lg hover:bg-gray-100 transition-transform duration-200 w-full justify-center h-12 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                        Logout
+                    </button>
+                </form>
+            </div>
         </div>
+
+        <!-- Footer -->
+        <footer class="relative z-10 mt-8 text-center text-sm text-white/70 animate-fade-in-up delay-300">
+            &copy; 2025 <span class="font-bold text-white">POSKU</span>. All Rights Reserved.
+        </footer>
     </div>
 </template>
+
+<script>
+import { Head, useForm } from "@inertiajs/vue3";
+
+export default {
+    name: "VerifyEmail",
+    components: {
+        Head,
+    },
+    props: {
+        status: String,
+        logoUrl: {
+            type: String,
+            default: "/images/logo.svg",
+        },
+    },
+    setup() {
+        const form = useForm({});
+        const toast = Vue.reactive({ message: "", type: "success" });
+
+        function showToast(message, type = "success") {
+            toast.message = message;
+            toast.type = type;
+            setTimeout(() => (toast.message = ""), 4000);
+        }
+
+        function resend() {
+            form.post(route("verification.send"), {
+                onSuccess: () => showToast("Link verifikasi baru telah dikirim ke email Anda.", "success"),
+                onError: () => showToast("Gagal mengirim ulang link verifikasi.", "error"),
+            });
+        }
+
+        function logout() {
+            form.post(route("logout"));
+        }
+
+        return { form, resend, logout, toast };
+    },
+};
+</script>
+
+<style scoped>
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.animate-fade-in-up {
+    animation: fadeInUp 0.8s ease forwards;
+}
+
+.delay-300 {
+    animation-delay: 0.3s;
+}
+
+.fade-enter-active,
+.fade-leave-active {
+    transition: opacity 0.5s;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+    opacity: 0;
+}
+</style>
