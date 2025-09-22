@@ -1,133 +1,120 @@
-<script setup>
-import InputError from "@/Components/InputError.vue";
-import InputLabel from "@/Components/InputLabel.vue";
-import PrimaryButton from "@/Components/PrimaryButton.vue";
-import TextInput from "@/Components/TextInput.vue";
-import { Head, useForm } from "@inertiajs/vue3";
+<template>
+    <div
+        class="relative min-h-screen flex flex-col justify-center items-center bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-500 text-white overflow-hidden">
+        <!-- Decorative Gradient Blobs -->
+        <div class="absolute -top-24 -left-24 w-72 h-72 rounded-full bg-indigo-400/30 blur-3xl"></div>
+        <div class="absolute -bottom-20 -right-20 w-80 h-80 rounded-full bg-pink-400/25 blur-3xl"></div>
 
-const props = defineProps({
-    email: String,
-    token: String,
-});
+        <!-- Reset Password Card -->
+        <div
+            class="relative z-10 w-full max-w-md bg-white/10 backdrop-blur-lg rounded-2xl shadow-2xl p-8 animate-fade-in-up">
+            <!-- Logo and Title -->
+            <div class="flex flex-col items-center mb-8">
+                <img :src="logoUrl" alt="POSKU Logo" class="h-14 w-auto drop-shadow-lg mb-4" />
+                <h1
+                    class="text-3xl font-extrabold bg-gradient-to-r from-indigo-300 to-pink-300 bg-clip-text text-transparent">
+                    Reset Password
+                </h1>
+                <p class="text-white/80 mt-2 text-center">Masukkan password baru Anda untuk akun POSKU</p>
+            </div>
 
-const logoUrl = "http://googleusercontent.com/image_generation_content/0";
+            <!-- Reset Password Form -->
+            <form @submit.prevent="submit" class="space-y-6">
+                <div>
+                    <label for="email" class="block text-sm font-medium text-white/90">Email</label>
+                    <input id="email" v-model="form.email" type="email" required autofocus
+                        class="mt-1 block w-full px-4 py-3 rounded-xl border border-white/20 bg-white/20 text-white placeholder-white/70 focus:ring-2 focus:ring-pink-400 focus:outline-none"
+                        placeholder="contoh@email.com" />
+                </div>
 
-const form = useForm({
-    token: props.token,
-    email: props.email,
-    password: "",
-    password_confirmation: "",
-});
+                <div>
+                    <label for="password" class="block text-sm font-medium text-white/90">Password Baru</label>
+                    <input id="password" v-model="form.password" type="password" required
+                        class="mt-1 block w-full px-4 py-3 rounded-xl border border-white/20 bg-white/20 text-white placeholder-white/70 focus:ring-2 focus:ring-pink-400 focus:outline-none"
+                        placeholder="********" />
+                </div>
 
-const submit = () => {
-    form.post(route("password.store"), {
-        onFinish: () => form.reset("password", "password_confirmation"),
-    });
+                <div>
+                    <label for="password_confirmation" class="block text-sm font-medium text-white/90">Konfirmasi
+                        Password</label>
+                    <input id="password_confirmation" v-model="form.password_confirmation" type="password" required
+                        class="mt-1 block w-full px-4 py-3 rounded-xl border border-white/20 bg-white/20 text-white placeholder-white/70 focus:ring-2 focus:ring-pink-400 focus:outline-none"
+                        placeholder="********" />
+                </div>
+
+                <button type="submit"
+                    class="w-full bg-gradient-to-r from-indigo-500 to-pink-500 text-white font-bold py-3 px-6 rounded-xl shadow-lg hover:scale-105 hover:from-indigo-600 hover:to-pink-600 transition-transform duration-200">
+                    Reset Password
+                </button>
+            </form>
+
+            <!-- Back to Login CTA -->
+            <p class="mt-6 text-center text-white/80">
+                Ingat password Anda?
+                <Link :href="route('login')" class="font-semibold text-pink-200 hover:text-pink-100 transition">Masuk
+                </Link>
+            </p>
+        </div>
+
+        <!-- Footer -->
+        <footer class="relative z-10 mt-8 text-center text-sm text-white/70 animate-fade-in-up delay-300">
+            &copy; 2025 <span class="font-bold text-white">POSKU</span>. All Rights Reserved.
+        </footer>
+    </div>
+</template>
+
+<script>
+import { Head, Link, useForm } from "@inertiajs/vue3";
+
+export default {
+    name: "ResetPassword",
+    components: {
+        Head,
+        Link,
+    },
+    props: {
+        email: String,
+        token: String,
+        logoUrl: {
+            type: String,
+            default: "/images/logo.svg",
+        },
+    },
+    setup(props) {
+        const form = useForm({
+            token: props.token,
+            email: props.email || "",
+            password: "",
+            password_confirmation: "",
+        });
+
+        function submit() {
+            form.post(route("password.update"));
+        }
+
+        return { form, submit };
+    },
 };
 </script>
 
-<template>
-    <Head title="Reset Password" />
+<style scoped>
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
 
-    <div
-        class="relative min-h-screen w-full flex items-center justify-center p-6 overflow-hidden"
-    >
-        <div
-            class="absolute inset-0 bg-gradient-to-br from-sky-200 via-rose-200 to-amber-200 -z-20"
-        ></div>
-        <div
-            class="absolute -top-1/4 -right-1/4 w-1/2 h-1/2 bg-white/20 rounded-full filter blur-3xl opacity-50 -z-10"
-        ></div>
-        <div
-            class="absolute -bottom-1/4 -left-1/4 w-1/2 h-1/2 bg-white/20 rounded-full filter blur-3xl opacity-50 -z-10"
-        ></div>
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
 
-        <div
-            class="w-full max-w-md bg-white/70 backdrop-blur-xl rounded-2xl shadow-xl p-8 space-y-6"
-        >
-            <div class="flex justify-center">
-                <Link href="/">
-                    <div class="flex items-center">
-                            <img 
-                                v-if="store && store.logo_path" 
-                                :src="`/storage/${store.logo_path}`" 
-                                :alt="store.name"
-                                class="h-8 w-8 rounded object-contain mr-2"/>
-                            <span class="font-semibold text-lg">
-                                {{ store && store.name ? store.name : 'POSKU' }}
-                            </span>
-                        </div>
-                </Link>
-            </div>
+.animate-fade-in-up {
+    animation: fadeInUp 0.8s ease forwards;
+}
 
-            <form @submit.prevent="submit" class="space-y-4">
-                <div>
-                    <InputLabel for="email" value="Email" />
-                    <TextInput
-                        id="email"
-                        type="email"
-                        class="mt-1 block w-full bg-gray-200"
-                        v-model="form.email"
-                        required
-                        autofocus
-                        autocomplete="username"
-                        readonly
-                    />
-                    <InputError class="mt-2" :message="form.errors.email" />
-                </div>
-
-                <div>
-                    <InputLabel for="password" value="Password Baru" />
-                    <TextInput
-                        id="password"
-                        type="password"
-                        class="mt-1 block w-full"
-                        v-model="form.password"
-                        required
-                        autocomplete="new-password"
-                    />
-                    <InputError class="mt-2" :message="form.errors.password" />
-                </div>
-
-                <div>
-                    <InputLabel
-                        for="password_confirmation"
-                        value="Konfirmasi Password Baru"
-                    />
-                    <TextInput
-                        id="password_confirmation"
-                        type="password"
-                        class="mt-1 block w-full"
-                        v-model="form.password_confirmation"
-                        required
-                        autocomplete="new-password"
-                    />
-                    <InputError
-                        class="mt-2"
-                        :message="form.errors.password_confirmation"
-                    />
-                </div>
-
-                <div class="flex items-center justify-end pt-2">
-                    <button
-                        type="submit"
-                        class="inline-flex items-center px-4 py-2 border border-indigo-300 text-sm font-medium rounded text-indigo-600 bg-white hover:bg-indigo-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 w-full justify-center h-10"
-                        :class="{ 'opacity-25': form.processing }"
-                        :disabled="form.processing"
-                    >
-                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v-3m0 0V9m0 3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                        Reset Password
-                    </button>
-                    <!-- <PrimaryButton
-                        :class="{ 'opacity-25': form.processing }"
-                        :disabled="form.processing"
-                    >
-                        Reset Password
-                    </PrimaryButton> -->
-                </div>
-            </form>
-        </div>
-    </div>
-</template>
+.delay-300 {
+    animation-delay: 0.3s;
+}
+</style>
