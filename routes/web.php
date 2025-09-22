@@ -25,8 +25,13 @@ Route::get('/', function () {
     ]);
 });
 
-// Routes yang membutuhkan authentication tapi tidak memerlukan shift
+// Routes yang membutuhkan authentication dan email verified tapi tidak memerlukan shift 
 Route::middleware(['auth', 'verified'])->group(function () {
+
+    // Dashboard - Requires active shift
+    Route::get('/dashboard', [DashboardController::class, 'index'])
+        ->name('dashboard')
+        ->middleware('check.permission:view_dashboard');
 
     // Store Profile routes - Tidak perlu shift aktif
     Route::get('/store/profile', [StoreProfileController::class, 'edit'])->name('store.profile.edit');
@@ -92,10 +97,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
 // Routes yang membutuhkan authentication + shift aktif
 Route::middleware('shift_required')->group(function () {
 
-    // Dashboard - Requires active shift
-    Route::get('/dashboard', [DashboardController::class, 'index'])
-        ->name('dashboard')
-        ->middleware('check.permission:view_dashboard');
+
 
     // Purchase Management Routes
     Route::middleware('check.permission:view_purchases')->group(function () {
