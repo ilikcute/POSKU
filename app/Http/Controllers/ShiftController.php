@@ -19,7 +19,11 @@ class ShiftController extends Controller
      */
     public function index()
     {
-        //
+        $shifts = Shift::with('user', 'store')->latest()->paginate(10);
+
+        return Inertia::render('Shifts/Index', [
+            'shifts' => $shifts,
+        ]);
     }
 
     /**

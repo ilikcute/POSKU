@@ -55,6 +55,7 @@ const menuItems = [
         can: canAccessShiftsMenu, isOpen: isShiftsMenuOpen, isActive: isShiftsMenuActive, toggle: () => isShiftsMenuOpen.value = !isShiftsMenuOpen.value, name: 'Shifts', icon: '<svg class="h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-12v12a2 2 0 01-2 2H6a2 2 0 01-2-2V6a2 2 0 012-2h12a2 2 0 012 2z" /></svg>', sub: [
             { route: 'shifts.open.form', label: 'Buka Shift' },
             { route: 'shifts.close.form', label: 'Tutup Shift' },
+            { route: 'shifts.index', label: 'Shift History' },
         ]
     },
     {
@@ -248,7 +249,8 @@ const menuItems = [
                         </template>
                         <template #content>
                             <div class="bg-white/10 backdrop-blur-md border border-white/20 rounded-lg">
-                                <DropdownLink :href="route('profile.edit')" class="text-white hover:bg-white/10 focus:bg-white/10">
+                                <DropdownLink :href="route('profile.edit')"
+                                    class="text-white hover:bg-white/10 focus:bg-white/10">
                                     Profile </DropdownLink>
                                 <DropdownLink :href="route('logout')" method="post" as="button"
                                     class="text-white hover:bg-white/10 focus:bg-white/10"> Log Out </DropdownLink>

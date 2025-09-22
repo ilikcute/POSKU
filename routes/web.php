@@ -77,6 +77,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->name('shifts.close.store')
         ->middleware('check.permission:close_shifts');
 
+    Route::get('/shifts', [ShiftController::class, 'index'])
+        ->name('shifts.index')
+        ->middleware('check.permission:view_shifts');
+
     // Customer Types Routes
     Route::resource('customer-types', CustomerTypeController::class);
 
