@@ -21,9 +21,7 @@ use Inertia\Inertia;
 Route::get('/', function () {
     return Inertia::render('Welcome', [
         'canLogin' => Route::has('login'),
-        'canRegister' => Route::has('register'),
-        'laravelVersion' => Application::VERSION,
-        'phpVersion' => PHP_VERSION,
+        'canRegister' => Route::has('register')
     ]);
 });
 
@@ -109,7 +107,7 @@ Route::middleware('shift_required')->group(function () {
         Route::get('purchases/{purchase}/print', [App\Http\Controllers\PurchaseController::class, 'print'])->name('purchases.print');
         Route::get('purchases/{purchase}/pdf', [App\Http\Controllers\PurchaseController::class, 'generatePDF'])->name('purchases.pdf');
     });
-    
+
     Route::post('purchases', [App\Http\Controllers\PurchaseController::class, 'store'])
         ->name('purchases.store')
         ->middleware('check.permission:create_purchases');
@@ -133,7 +131,7 @@ Route::middleware('shift_required')->group(function () {
         Route::get('purchases/{purchase}/returnable-items', [App\Http\Controllers\PurchaseReturnController::class, 'getReturnableItems'])
             ->name('purchases.returnable-items');
     });
-    
+
     Route::post('purchase-returns', [App\Http\Controllers\PurchaseReturnController::class, 'store'])
         ->name('purchase-returns.store')
         ->middleware('check.permission:create_purchase_returns');
@@ -159,7 +157,7 @@ Route::middleware('shift_required')->group(function () {
         Route::post('sales/{sale}/whatsapp', [App\Http\Controllers\SaleController::class, 'sendWhatsApp'])->name('sales.whatsapp');
         Route::get('products/{product}/stock', [App\Http\Controllers\SaleController::class, 'getProductStock'])->name('products.stock');
     });
-    
+
     Route::post('sales', [App\Http\Controllers\SaleController::class, 'store'])
         ->name('sales.store')
         ->middleware('check.permission:create_sales');
@@ -183,7 +181,7 @@ Route::middleware('shift_required')->group(function () {
         Route::get('sales/{sale}/returnable-items', [App\Http\Controllers\SalesReturnController::class, 'getReturnableItems'])
             ->name('sales.returnable-items');
     });
-    
+
     Route::post('sales-returns', [App\Http\Controllers\SalesReturnController::class, 'store'])
         ->name('sales-returns.store')
         ->middleware('check.permission:create_sales_returns');
@@ -211,7 +209,7 @@ Route::middleware('shift_required')->group(function () {
             ->name('stock.export')
             ->middleware('check.permission:export_stock');
     });
-    
+
     Route::post('stock/opname', [App\Http\Controllers\StockController::class, 'processOpname'])
         ->name('stock.opname.process')
         ->middleware('check.permission:stock_opname');
