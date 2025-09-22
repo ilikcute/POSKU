@@ -1,24 +1,45 @@
 <?php
 
-use App\Http\Controllers\CustomerController;
-use App\Http\Controllers\CustomerTypeController;
-use App\Http\Controllers\DashboardController;
-use App\Http\Controllers\Master\CategoryController;
-use App\Http\Controllers\Master\DivisionController;
-use App\Http\Controllers\Master\RackController;
-use App\Http\Controllers\Master\SalesmanController;
-use App\Http\Controllers\Master\SupplierController;
+use carbon\Carbon;
+use Inertia\Inertia;
+use App\Models\Shift;
+use Illuminate\Support\Facades\Route;
+use Illuminate\Foundation\Application;
+use App\Http\Controllers\SaleController;
+use App\Http\Controllers\UserController;
 use App\Http\Controllers\PriceController;
+use App\Http\Controllers\ShiftController;
+use App\Http\Controllers\StockController;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\CustomerController;
+use App\Http\Controllers\PurchaseController;
+use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\PromotionController;
-use App\Http\Controllers\ShiftController;
+use App\Http\Controllers\Master\RackController;
+use App\Http\Controllers\SalesReturnController;
+use App\Http\Controllers\CustomerTypeController;
 use App\Http\Controllers\StoreProfileController;
-use Illuminate\Foundation\Application;
-use Illuminate\Support\Facades\Route;
-use Inertia\Inertia;
+use App\Http\Controllers\PurchaseReturnController;
+use App\Http\Controllers\Master\CategoryController;
+use App\Http\Controllers\Master\DivisionController;
+use App\Http\Controllers\Master\SalesmanController;
+use App\Http\Controllers\Master\SupplierController;
+use App\Http\Controllers\Admin\RolePermissionController;
+
 
 Route::get('/', function () {
+    // Cek apakah ada shift dengan status open dari hari sebelumnya
+    $unclosedShift = \App\Models\Shift::where('status', 'open')
+        ->whereDate('start_time', '<', \Carbon\Carbon::today())
+        ->first();
+
+    // Jika ada, redirect ke halaman tutup shift
+    if ($unclosedShift) {
+        // Tambahkan pesan flash untuk memberitahu pengguna
+        return redirect()->route('shifts.close.form')->with('warning', 'Anda memiliki shift yang belum ditutup dari hari sebelumnya. Silakan tutup shift terlebih dahulu.');
+    }
+
     return Inertia::render('Welcome', [
         'canLogin' => Route::has('login'),
         'canRegister' => Route::has('register')
@@ -96,8 +117,6 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
 // Routes yang membutuhkan authentication + shift aktif
 Route::middleware('shift_required')->group(function () {
-
-
 
     // Purchase Management Routes
     Route::middleware('check.permission:view_purchases')->group(function () {
