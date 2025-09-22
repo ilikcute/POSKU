@@ -1,83 +1,127 @@
-<script setup>
-import { Head, Link } from "@inertiajs/vue3";
-
-defineProps({
-    canLogin: Boolean,
-    canRegister: Boolean,
-});
-
-// URL Aset Gambar (Logo & Hero Ilustrasi)
-const logoUrl = "/logo-posku.svg";
-const heroImageUrl = "/hero-modern-pos.svg";
-</script>
-
 <template>
-    <Head title="Selamat Datang di POSKU" />
-    <div class="relative min-h-screen w-full overflow-hidden bg-gradient-to-br from-indigo-100 via-pink-100 to-yellow-100">
-        <!-- Decorative Blobs -->
-        <div class="absolute top-0 left-0 w-72 h-72 bg-indigo-300 rounded-full opacity-30 blur-3xl -z-10 animate-pulse"></div>
-        <div class="absolute bottom-0 right-0 w-96 h-96 bg-pink-300 rounded-full opacity-30 blur-3xl -z-10 animate-pulse"></div>
-
-        <div class="relative min-h-screen flex flex-col z-10">
-            <header class="w-full">
-                <div class="container mx-auto px-6 py-6 flex justify-between items-center">
-                    <div class="flex items-center gap-2">
-                        <img :src="logoUrl" alt="POSKU Logo" class="h-12 w-auto drop-shadow-lg" />
-                        <span class="font-extrabold text-2xl text-indigo-700 tracking-wide">POSKU</span>
-                    </div>
-                    <nav v-if="canLogin">
-                        <Link v-if="$page.props.auth.user" :href="route('dashboard')" class="text-base font-semibold text-gray-700 hover:text-indigo-700 transition">Dashboard</Link>
-                        <template v-else>
-                            <Link :href="route('login')" class="text-base font-semibold text-gray-700 hover:text-indigo-700 transition">Log in</Link>
-                            <Link v-if="canRegister" :href="route('register')" class="ml-4 inline-block bg-indigo-600 text-white font-semibold py-2 px-6 rounded-xl shadow-md hover:bg-indigo-700 transition">Register</Link>
-                        </template>
-                    </nav>
+    <div
+        class="relative min-h-screen flex flex-col bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-500 text-white">
+        <!-- Header -->
+        <header class="w-full animate-fade-in-down backdrop-blur-sm bg-white/10 sticky top-0 z-50">
+            <div class="container mx-auto px-6 py-4 flex justify-between items-center">
+                <div class="flex items-center gap-3">
+                    <img :src="logoUrl" alt="POSKU Logo" class="h-10 w-auto drop-shadow-lg" />
+                    <span
+                        class="font-extrabold text-2xl bg-gradient-to-r from-indigo-300 to-pink-300 bg-clip-text text-transparent tracking-wide">
+                        POSKU
+                    </span>
                 </div>
-            </header>
-
-            <main class="flex-grow flex items-center">
-                <div class="container mx-auto px-6 grid md:grid-cols-2 gap-16 items-center">
-                    <div class="flex flex-col justify-center items-start animate-fadeIn">
-                        <h1 class="text-5xl md:text-6xl font-extrabold leading-tight text-indigo-900 mb-6 drop-shadow-lg">
-                            Solusi Kasir Modern
-                        </h1>
-                        <p class="text-xl text-gray-700 mb-8 max-w-lg">
-                            Kelola penjualan, stok, dan pelanggan dengan mudah dalam satu aplikasi web yang cepat, aman, dan intuitif. POSKU mendukung pertumbuhan bisnis retail Anda dengan teknologi terkini.
-                        </p>
-                        <Link :href="route('login')" class="inline-block bg-gradient-to-r from-indigo-500 to-pink-500 text-white font-bold py-3 px-10 rounded-full text-xl shadow-xl hover:scale-105 hover:from-indigo-600 hover:to-pink-600 transition-transform duration-200">
-                            Mulai Sekarang
+                <nav v-if="canLogin" class="flex items-center space-x-4">
+                    <Link v-if="$page.props.auth.user" :href="route('dashboard')"
+                        class="text-base font-semibold text-white/90 hover:text-white transition">
+                    Dashboard
+                    </Link>
+                    <template v-else>
+                        <Link :href="route('login')"
+                            class="text-base font-semibold text-white/90 hover:text-white transition">
+                        Log in
                         </Link>
-                    </div>
-                    <div class="flex justify-center animate-fadeIn delay-200">
-                        <img :src="heroImageUrl" alt="Modern Retail POS" class="max-w-full h-auto rounded-2xl shadow-2xl border-4 border-white" />
-                    </div>
-                </div>
-            </main>
+                        <Link v-if="canRegister" :href="route('register')"
+                            class="ml-2 inline-block bg-white text-indigo-700 font-semibold py-2 px-5 rounded-xl shadow-md hover:bg-gray-100 transition">
+                        Register
+                        </Link>
+                    </template>
+                </nav>
+            </div>
+        </header>
 
-            <footer class="w-full py-8">
-                <div class="container mx-auto text-center text-base text-gray-600">
-                    &copy; 2025 <span class="font-bold text-indigo-600">POSKU</span>. All Rights Reserved.
+        <!-- Hero Section -->
+        <main class="flex-grow flex items-center relative overflow-hidden">
+            <div class="container mx-auto px-6 py-16 grid md:grid-cols-2 gap-16 items-center">
+                <!-- Text Content -->
+                <div class="flex flex-col justify-center items-start animate-fade-in-up space-y-6">
+                    <h1 class="text-5xl md:text-6xl font-extrabold leading-tight drop-shadow-2xl">
+                        Solusi Kasir <span class="text-yellow-300">Modern</span>
+                    </h1>
+                    <p class="text-lg md:text-xl text-white/90 max-w-lg leading-relaxed">
+                        Kelola penjualan, stok, dan pelanggan dengan mudah dalam satu aplikasi web yang cepat, aman, dan
+                        intuitif. POSKU mendukung pertumbuhan bisnis retail Anda dengan teknologi terkini.
+                    </p>
+                    <Link :href="route('login')"
+                        class="inline-block bg-gradient-to-r from-indigo-400 to-pink-400 text-white font-bold py-3 px-10 rounded-full text-lg shadow-xl hover:scale-105 hover:from-indigo-500 hover:to-pink-500 transition-transform duration-200">
+                    Mulai Sekarang
+                    </Link>
                 </div>
-            </footer>
-        </div>
+
+                <!-- Image Content -->
+                <div class="flex justify-center animate-fade-in-up delay-200 relative">
+                    <div class="absolute -top-10 -right-10 w-72 h-72 bg-pink-400/40 rounded-full blur-3xl"></div>
+                    <img :src="heroImageUrl" alt="Modern Retail POS"
+                        class="relative max-w-full h-auto rounded-3xl shadow-2xl border-4 border-white/50" />
+                </div>
+            </div>
+        </main>
+
+        <!-- Footer -->
+        <footer class="w-full py-6 animate-fade-in-up delay-500 bg-white/10 backdrop-blur-md">
+            <div class="container mx-auto text-center text-sm text-white/80">
+                &copy; 2025 <span class="font-bold text-white">POSKU</span>. All Rights Reserved.
+            </div>
+        </footer>
     </div>
 </template>
 
-<style scoped>
-@keyframes fadeIn {
+<script>
+import { Head, Link } from "@inertiajs/vue3";
+
+export default {
+    name: "Welcome",
+    components: {
+        Head,
+        Link,
+    },
+    props: {
+        canLogin: Boolean,
+        canRegister: Boolean,
+        logoUrl: String,
+        heroImageUrl: String,
+    },
+};
+</script>
+
+<style>
+@keyframes fadeInUp {
     from {
         opacity: 0;
-        transform: translateY(40px);
+        transform: translateY(20px);
     }
+
     to {
         opacity: 1;
         transform: translateY(0);
     }
 }
-.animate-fadeIn {
-    animation: fadeIn 1s cubic-bezier(.4,0,.2,1) forwards;
+
+@keyframes fadeInDown {
+    from {
+        opacity: 0;
+        transform: translateY(-20px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
+
+.animate-fade-in-up {
+    animation: fadeInUp 0.8s ease forwards;
+}
+
+.animate-fade-in-down {
+    animation: fadeInDown 0.8s ease forwards;
+}
+
 .delay-200 {
     animation-delay: 0.2s;
+}
+
+.delay-500 {
+    animation-delay: 0.5s;
 }
 </style>
