@@ -226,7 +226,7 @@ const menuItems = [
                     </div>
                 </div>
                 <div class="hidden sm:ms-6 sm:flex sm:items-center">
-                    <Dropdown align="right" width="48">
+                    <Dropdown align="right" width="48" content-classes="bg-transparent">
                         <template #trigger>
                             <span class="inline-flex rounded-md">
                                 <button type="button"
@@ -248,10 +248,10 @@ const menuItems = [
                         </template>
                         <template #content>
                             <div class="bg-white/10 backdrop-blur-md border border-white/20 rounded-lg">
-                                <DropdownLink :href="route('profile.edit')" class="text-white hover:bg-white/10">
+                                <DropdownLink :href="route('profile.edit')" class="text-white hover:bg-white/10 focus:bg-white/10">
                                     Profile </DropdownLink>
                                 <DropdownLink :href="route('logout')" method="post" as="button"
-                                    class="text-white hover:bg-white/10"> Log Out </DropdownLink>
+                                    class="text-white hover:bg-white/10 focus:bg-white/10"> Log Out </DropdownLink>
                             </div>
                         </template>
                     </Dropdown>
