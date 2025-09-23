@@ -119,6 +119,12 @@ class DatabaseSeeder extends Seeder
                 'store_id' => $mainStore->id,
             ]);
             $kasirUser->assignRole($kasirRole);
+            $superadminUser = User::factory()->create([
+                'name' => 'Superadmin User',
+                'email' => 'superadmin@example.com',
+                'store_id' => $mainStore->id,
+            ]);
+            $superadminUser->assignRole($supervisorRole);
         }
 
         // Buat data dummy produk

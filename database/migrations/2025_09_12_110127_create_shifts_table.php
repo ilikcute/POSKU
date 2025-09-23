@@ -29,6 +29,7 @@ return new class extends Migration
             $table->decimal('variance', 15, 2)->nullable();
             $table->enum('status', ['open', 'closed'])->default('open');
             $table->timestamps();
+            $table->softDeletes();
         });
     }
 
