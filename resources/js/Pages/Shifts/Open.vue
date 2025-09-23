@@ -22,8 +22,12 @@ const submit = () => {
 <template>
 
     <Head title="Buka Shift" />
-
     <AuthenticatedLayout>
+        <template #header>
+            <h2 class="font-semibold text-xl text-white leading-tight">
+                Buka Shift
+            </h2>
+        </template>
         <div
             class="mx-auto max-w-md bg-white/10 backdrop-blur-md border border-white/10 rounded-2xl shadow-lg p-8 space-y-6">
             <div class="text-center">

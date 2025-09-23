@@ -51,16 +51,13 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])
         ->name('dashboard')
         ->middleware('check.permission:view_dashboard');
-
     // Store Profile routes - Tidak perlu shift aktif
     Route::get('/store/profile', [StoreProfileController::class, 'edit'])->name('store.profile.edit');
     Route::patch('/store/profile', [StoreProfileController::class, 'update'])->name('store.profile.update');
-
     // Profile routes - Tidak perlu shift aktif
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
-
     // Shift management routes - Tidak perlu shift aktif (karena untuk membuka/tutup shift)
     Route::get('/shifts/open', [ShiftController::class, 'showOpenShiftForm'])
         ->name('shifts.open.form')
@@ -78,19 +75,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->name('shifts.index')
         ->middleware('check.permission:view_shifts');
 
-    // Customer Types Routes
-    Route::resource('customer-types', CustomerTypeController::class);
 
-    // Customers Routes
-    Route::resource('customers', CustomerController::class);
-
-    // Promotions Routes
-    Route::resource('promotions', PromotionController::class);
-    Route::get('promotions-active', [PromotionController::class, 'activePromotions']);
-
-    // Pricing Routes
-    Route::post('price/check', [PriceController::class, 'getProductPrice']);
-    Route::post('price/bulk-check', [PriceController::class, 'bulkPriceCheck']);
 
     // User Management routes - Tidak perlu shift aktif
     Route::middleware('check.permission:view_users,manage_roles')->prefix('admin')->name('admin.')->group(function () {
@@ -110,7 +95,6 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::post('users/{user}/revoke-role', [App\Http\Controllers\UserController::class, 'revokeRole'])
             ->name('users.revoke-role')
             ->middleware('check.permission:manage_roles');
-
         // Role & Permission Management
         Route::resource('roles', App\Http\Controllers\Admin\RolePermissionController::class)->except(['show', 'edit', 'create']);
     });
@@ -258,6 +242,18 @@ Route::middleware('shift_required')->group(function () {
             ->name('reports.export')
             ->middleware('check.permission:export_reports');
     });
+
+    // Customer Types Routes
+    Route::resource('customer-types', CustomerTypeController::class);
+    Route::resource('customers', CustomerController::class);
+
+    // Promotions Routes
+    Route::resource('promotions', PromotionController::class);
+    Route::get('promotions-active', [PromotionController::class, 'activePromotions']);
+
+    // Pricing Routes
+    Route::post('price/check', [PriceController::class, 'getProductPrice']);
+    Route::post('price/bulk-check', [PriceController::class, 'bulkPriceCheck']);
 
     // Master data routes - Semua memerlukan shift aktif
     Route::prefix('master')->name('master.')->group(function () {

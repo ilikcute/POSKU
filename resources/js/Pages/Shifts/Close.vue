@@ -43,24 +43,24 @@ const submit = () => {
 </script>
 
 <template>
+
     <Head title="Tutup Shift" />
 
     <AuthenticatedLayout>
         <template #header>
-            <h2 class="font-semibold text-xl text-gray-800 leading-tight">
+            <h2 class="font-semibold text-xl text-white leading-tight">
                 Tutup Shift
             </h2>
         </template>
 
-        <div class="max-w-2xl mx-auto sm:px-6 lg:px-8 py-8">
-            <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg p-6">
-                <h3
-                    class="text-lg font-medium text-gray-900 mb-4 border-b pb-4"
-                >
+        <div
+            class="mx-auto max-w-2xl bg-white/10 backdrop-blur-md border border-white/10 rounded-2xl shadow-lg p-8 space-y-6">
+            <div class="backdrop-blur-md border border-white/10 rounded-2xl shadow-lg p-8 space-y-6">
+                <h3 class="font-medium text-l text-white leading-tight mb-4 border-b pb-4">
                     Ringkasan Shift Aktif
                 </h3>
 
-                <div class="grid grid-cols-2 gap-4 text-sm mb-6">
+                <div class="grid grid-cols-2 gap-4 text-sm text-white mb-6">
                     <div>
                         <strong>Kasir:</strong> {{ $page.props.auth.user.name }}
                     </div>
@@ -82,82 +82,52 @@ const submit = () => {
                     </div>
                 </div>
 
-                <form @submit.prevent="submit">
-                    <div class="space-y-4">
+                <form @submit.prevent="submit" class="space-y-6">
+                    <div class="space-y-4 text-wht">
                         <div>
-                            <InputLabel
-                                for="final_cash"
-                                value="Uang Tunai Akhir di Laci (Rp)"
-                            />
-                            <TextInput
-                                id="final_cash"
-                                type="number"
-                                class="mt-1 block w-full"
-                                v-model="form.final_cash"
-                                required
-                            />
-                            <InputError
-                                class="mt-2"
-                                :message="form.errors.final_cash"
-                            />
+                            <InputLabel for="final_cash" value="Uang Tunai Akhir di Laci (Rp)" class="text-white" />
+                            <TextInput id="final_cash" type="number"
+                                class="mt-1 block w-full bg-white/5 border-white/20 focus:ring-blue-500 focus:border-blue-500 rounded-lg"
+                                v-model="form.final_cash" required />
+                            <InputError class="mt-2" :message="form.errors.final_cash" />
                         </div>
 
-                        <div
-                            class="p-4 rounded-md"
-                            :class="
-                                variance === 0
-                                    ? 'bg-gray-100'
-                                    : variance > 0
+                        <div class="flex justity-between items-center font-bold border-white/10 focus:border-blue-500 focus-ring-blue-500 rounded-xl text-center p-2"
+                            :class="variance === 0
+                                ? 'bg-gray-100'
+                                : variance > 0
                                     ? 'bg-green-100'
                                     : 'bg-red-100'
-                            "
-                        >
+                                ">
                             <div
-                                class="flex justify-between items-center font-bold"
-                            >
-                                <span
-                                    >Selisih (Uang di Laci - (Modal +
-                                    Penjualan))</span
-                                >
-                                <span
-                                    :class="
-                                        variance === 0
-                                            ? 'text-gray-800'
-                                            : variance > 0
-                                            ? 'text-green-600'
-                                            : 'text-red-600'
-                                    "
-                                >
+                                class="mt-1 block w-full bg-white/5 border-white/20 focus:ring-blue-500 focus:border-blue-500 rounded-lg">
+                                <span>Selisih (Uang di Laci - (Modal +
+                                    Penjualan)) </span>
+                                <span :class="variance === 0
+                                    ? 'text-gray-800'
+                                    : variance > 0
+                                        ? 'text-green-600'
+                                        : 'text-red-600'
+                                    ">
                                     {{ formatCurrency(variance) }}
                                 </span>
                             </div>
                         </div>
 
                         <div>
-                            <InputLabel
-                                for="authorization_password"
-                                value="Password Verifikasi (Default: 123456)"
-                            />
-                            <TextInput
-                                id="authorization_password"
-                                type="password"
-                                class="mt-1 block w-full"
-                                v-model="form.authorization_password"
-                                required
-                            />
-                            <InputError
-                                class="mt-2"
-                                :message="form.errors.authorization_password"
-                            />
+                            <InputLabel for="authorization_password" value="Password Verifikasi (Default: 123456)"
+                                class="text-white" />
+                            <TextInput id="authorization_password" type="password"
+                                class="mt-1 block w-full bg-white/5 border-white/20 focus:ring-blue-500 focus:border-blue-500 rounded-lg"
+                                v-model="form.authorization_password" required />
+                            <InputError class="mt-2" :message="form.errors.authorization_password" />
                         </div>
                     </div>
                     <div class="mt-6 flex justify-end">
-                        <PrimaryButton
-                            :class="{ 'opacity-25': form.processing }"
-                            :disabled="form.processing"
-                        >
+                        <button type="submit" :disabled="form.processing"
+                            class="inline-block bg-gradient-to-r from-indigo-400 to-pink-400 text-white font-bold py-3 px-10 rounded-full text-lg shadow-xl hover:scale-105 hover:from-indigo-500 hover:to-pink-500 transition-transform duration-200">
                             Verifikasi dan Tutup Shift
-                        </PrimaryButton>
+                        </button>
                     </div>
                 </form>
             </div>
