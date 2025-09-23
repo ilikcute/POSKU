@@ -33,13 +33,11 @@ Route::get('/', function () {
     $unclosedShift = \App\Models\Shift::where('status', 'open')
         ->whereDate('start_time', '<', \Carbon\Carbon::today())
         ->first();
-
     // Jika ada, redirect ke halaman tutup shift
     if ($unclosedShift) {
         // Tambahkan pesan flash untuk memberitahu pengguna
         return redirect()->route('shifts.close.form')->with('warning', 'Anda memiliki shift yang belum ditutup dari hari sebelumnya. Silakan tutup shift terlebih dahulu.');
     }
-
     return Inertia::render('Welcome', [
         'canLogin' => Route::has('login'),
         'canRegister' => Route::has('register')
