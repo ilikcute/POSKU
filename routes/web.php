@@ -76,27 +76,36 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->middleware('check.permission:view_shifts');
 
 
+    Route::prefix('admin')->name('admin.')->group(function () {
+        Route::get('users', [UserController::class, 'index'])
+            ->middleware('check.permission:view_users')
+            ->name('users.index');
 
-    // User Management routes - Tidak perlu shift aktif
-    Route::middleware('check.permission:view_users,manage_roles')->prefix('admin')->name('admin.')->group(function () {
-        Route::get('users', [App\Http\Controllers\UserController::class, 'index'])->name('users.index');
-        Route::post('users', [App\Http\Controllers\UserController::class, 'store'])
-            ->name('users.store')
-            ->middleware('check.permission:create_users');
-        Route::patch('users/{user}', [App\Http\Controllers\UserController::class, 'update'])
-            ->name('users.update')
-            ->middleware('check.permission:edit_users');
-        Route::delete('users/{user}', [App\Http\Controllers\UserController::class, 'destroy'])
-            ->name('users.destroy')
-            ->middleware('check.permission:delete_users');
-        Route::post('users/{user}/assign-role', [App\Http\Controllers\UserController::class, 'assignRole'])
-            ->name('users.assign-role')
+        Route::post('users', [UserController::class, 'store'])
+            ->middleware('check.permission:create_users')
+            ->name('users.store');
+
+        Route::patch('users/{user}', [UserController::class, 'update'])
+            ->middleware('check.permission:edit_users')
+            ->name('users.update');
+
+        Route::delete('users/{user}', [UserController::class, 'destroy'])
+            ->middleware('check.permission:delete_users')
+            ->name('users.destroy');
+
+        Route::post('users/{user}/assign-role', [UserController::class, 'assignRole'])
+            ->middleware('check.permission:manage_roles')
+            ->name('users.assign-role');
+
+        Route::post('users/{user}/revoke-role', [UserController::class, 'revokeRole'])
+            ->middleware('check.permission:manage_roles')
+            ->name('users.revoke-role');
+
+        // Jika RolePermissionController harus diakses oleh admin, beri izin yang sesuai,
+        // misalnya 'manage_roles'
+        Route::resource('roles', App\Http\Controllers\Admin\RolePermissionController::class)
+            ->except(['show', 'edit', 'create'])
             ->middleware('check.permission:manage_roles');
-        Route::post('users/{user}/revoke-role', [App\Http\Controllers\UserController::class, 'revokeRole'])
-            ->name('users.revoke-role')
-            ->middleware('check.permission:manage_roles');
-        // Role & Permission Management
-        Route::resource('roles', App\Http\Controllers\Admin\RolePermissionController::class)->except(['show', 'edit', 'create']);
     });
 });
 
