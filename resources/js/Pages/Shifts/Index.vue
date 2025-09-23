@@ -45,7 +45,7 @@ const formatCurrency = (value) => {
         </template>
 
         <div class="py-12">
-            <div class="max-w-5xl mx-auto sm:px-6 lg:px-8">
+            <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
                 <!-- Container untuk efek blur dan border -->
                 <div class="backdrop-blur-md border border-white/10 rounded-2xl shadow-lg overflow-hidden">
                     <!-- Table wrapper agar bisa di-scroll horizontal pada layar kecil -->
@@ -54,15 +54,15 @@ const formatCurrency = (value) => {
                             <!-- Header -->
                             <thead class="bg-gray-800/70">
                                 <tr>
-                                    <th class="px-2 py-2 text-left text-xs uppercase tracking-wider">User</th>
-                                    <th class="px-2 py-2 text-left text-xs uppercase tracking-wider">Kasir</th>
-                                    <th class="px-2 py-2 text-left text-xs uppercase tracking-wider">Mulai</th>
-                                    <th class="px-2 py-2 text-left text-xs uppercase tracking-wider">Selesai</th>
-                                    <th class="px-2 py-2 text-left text-xs uppercase tracking-wider">Modal Awal</th>
-                                    <th class="px-2 py-2 text-left text-xs uppercase tracking-wider">Modal Akhir</th>
-                                    <th class="px-2 py-2 text-left text-xs uppercase tracking-wider">Total Jual</th>
-                                    <th class="px-2 py-2 text-left text-xs uppercase tracking-wider">Selisih</th>
-                                    <th class="px-2 py-2 text-left text-xs uppercase tracking-wider">Status</th>
+                                    <th class="px-4 py-3 text-left text-xs uppercase tracking-wider">User</th>
+                                    <th class="px-4 py-3 text-left text-xs uppercase tracking-wider">Kasir</th>
+                                    <th class="px-4 py-3 text-left text-xs uppercase tracking-wider">Mulai</th>
+                                    <th class="px-4 py-3 text-left text-xs uppercase tracking-wider">Selesai</th>
+                                    <th class="px-4 py-3 text-left text-xs uppercase tracking-wider">Modal Awal</th>
+                                    <th class="px-4 py-3 text-left text-xs uppercase tracking-wider">Modal Akhir</th>
+                                    <th class="px-4 py-3 text-left text-xs uppercase tracking-wider">Total Jual</th>
+                                    <th class="px-4 py-3 text-left text-xs uppercase tracking-wider">Selisih</th>
+                                    <th class="px-4 py-3 text-left text-xs uppercase tracking-wider">Status</th>
                                 </tr>
                             </thead>
                             <!-- Isi tabel -->
