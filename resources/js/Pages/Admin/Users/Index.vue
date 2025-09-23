@@ -2,9 +2,6 @@
 import { ref, computed, watch } from 'vue'
 import { Head, router, usePage } from '@inertiajs/vue3'
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue'
-import PrimaryButton from '@/Components/PrimaryButton.vue'
-import DangerButton from '@/Components/DangerButton.vue'
-import SecondaryButton from '@/Components/SecondaryButton.vue'
 import Modal from '@/Components/Modal.vue'
 import TextInput from '@/Components/TextInput.vue'
 import InputLabel from '@/Components/InputLabel.vue'
@@ -209,112 +206,85 @@ const toggleRole = (roleName) => {
             </h2>
         </template>
 
-        <div class="mx-auto bg-white/10 backdrop-blur-md border-white/10 rounded-2xl shadow-lg p-4 space-y-6">
-            <div class="mx-auto max-w bg-white/2 backdrop-blur-md overflow-hidden shadow-lg sm:rounded-lg">
-                <div class="p-6 text-gray-900">
+        <div class="py-12">
+            <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
+                <!-- Header dengan tombol Create User -->
+                <div class="mb-6 flex justify-between items-center">
+                    <h3 class="text-lg font-medium text-white">Daftar User</h3>
+                    <button v-if="can.create_users" @click="openCreateModal"
+                        class="inline-block bg-gradient-to-r from-green-400 to-emerald-400 text-white font-bold py-3 px-10 rounded-full text-lg shadow-xl hover:scale-105 hover:from-green-500 hover:to-emerald-500 transition-transform duration-200">
+                        <svg class="w-4 h-4 mr-2 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                        </svg>
+                        Tambah User
+                    </button>
+                </div>
 
-                    <!-- Header Actions -->
-                    <div class="flex justify-between items-center mb-6">
-                        <div class="flex items-center space-x-4">
-                            <button @click="openCreateModal" v-if="can.create_users"
-                                class="inline-flex items-center px-4 py-2 border border-indigo-300 text-xs font-medium rounded text-indigo-600 bg-white hover:bg-indigo-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
-                                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                        d="M12 4v16m8-8H4" />
-                                </svg>
-                                Tambah User
-                            </button>
-                        </div>
-                        <div class="relative">
-                            <TextInput v-model="search" type="text" placeholder="Cari user..."
-                                class="pl-10 pr-4 py-2 w-64 px-4 border border-gray-300 rounded text-xs font-medium focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500" />
-                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor"
-                                    viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                        d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
-                                </svg>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Table -->
-                    <div class="py-12">
-                        <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
-                            <!-- Container efek blur dan border -->
-                            <div class="backdrop-blur-md border border-white/10 rounded-2xl shadow-lg overflow-hidden">
-                                <!-- Wrapper supaya bisa scroll horizontal di layar kecil -->
-                                <div class="overflow-x-auto">
-                                    <table class="min-w-full text-sm text-gray-200 divide-y divide-gray-600">
-                                        <thead class="bg-gray-800/70">
-                                            <tr>
-                                                <th class="px-4 py-2 text-left uppercase tracking-wider">Nama</th>
-                                                <th class="px-4 py-2 text-left uppercase tracking-wider">Email</th>
-                                                <th class="px-4 py-2 text-left uppercase tracking-wider">Roles</th>
-                                                <th class="px-4 py-2 text-left uppercase tracking-wider">Aksi</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody class="divide-y divide-gray-700">
-                                            <!-- Pesan jika data kosong -->
-                                            <tr v-if="usersData.length === 0"
-                                                class="hover:bg-gray-700/50 transition-colors duration-150">
-                                                <td class="px-4 py-3 whitespace-nowrap" colspan="4">
-                                                    Tidak ada data user
-                                                </td>
-                                            </tr>
-                                            <!-- Baris data -->
-                                            <tr v-for="user in usersData" :key="user.id"
-                                                class="hover:bg-gray-700/50 transition-colors duration-150">
-                                                <td class="px-4 py-2 whitespace-nowrap">{{ user.name }}</td>
-                                                <td class="px-4 py-2 whitespace-nowrap">{{ user.email }}</td>
-                                                <td class="px-4 py-2 whitespace-nowrap">
-                                                    <div class="flex flex-wrap gap-1">
-                                                        <span v-for="role in user.roles" :key="role.id"
-                                                            class="px-2 py-0.5 text-xs rounded" :class="{
-                                                                'bg-red-700/30 text-red-200': role.name === 'Super Admin',
-                                                                'bg-blue-700/30 text-blue-200': role.name === 'Admin',
-                                                                'bg-green-700/30 text-green-200': role.name === 'Manager',
-                                                                'bg-yellow-700/30 text-yellow-200': role.name === 'Cashier',
-                                                                'bg-purple-700/30 text-purple-200': role.name === 'Inventory Staff'
-                                                            }">
-                                                            {{ role.name }}
-                                                        </span>
-                                                    </div>
-                                                </td>
-                                                <td class="px-4 py-2 whitespace-nowrap">
-                                                    <div class="flex justify-end space-x-2">
-                                                        <button @click="openEditModal(user)"
-                                                            class="inline-flex items-center px-2 py-1 border border-indigo-500/50 text-xs rounded text-indigo-200 bg-indigo-500/10 hover:bg-indigo-500/20 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
-                                                            <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor"
-                                                                viewBox="0 0 24 24">
-                                                                <path stroke-linecap="round" stroke-linejoin="round"
-                                                                    stroke-width="2"
-                                                                    d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z">
-                                                                </path>
-                                                            </svg>
-                                                            Edit
-                                                        </button>
-                                                        <button
-                                                            v-if="can.delete_users && user.id !== $page.props.auth.user.id"
-                                                            @click="openDeleteModal(user)"
-                                                            class="inline-flex items-center px-2 py-1 border border-red-500/50 text-xs rounded text-red-200 bg-red-500/10 hover:bg-red-500/20 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
-                                                            <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor"
-                                                                viewBox="0 0 24 24">
-                                                                <path stroke-linecap="round" stroke-linejoin="round"
-                                                                    stroke-width="2"
-                                                                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16">
-                                                                </path>
-                                                            </svg>
-                                                            Hapus
-                                                        </button>
-                                                    </div>
-                                                </td>
-                                            </tr>
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </div>
-                        </div>
+                <!-- Container untuk efek blur dan border -->
+                <div class="backdrop-blur-md border border-white/10 rounded-2xl shadow-lg overflow-hidden">
+                    <!-- Table wrapper agar bisa di-scroll horizontal pada layar kecil -->
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full text-sm text-gray-200 divide-y divide-gray-600">
+                            <!-- Header -->
+                            <thead class="bg-gray-800/70">
+                                <tr>
+                                    <th class="px-4 py-2 text-left uppercase tracking-wider">Nama</th>
+                                    <th class="px-4 py-2 text-left uppercase tracking-wider">Email</th>
+                                    <th class="px-4 py-2 text-left uppercase tracking-wider">Roles</th>
+                                    <th class="px-4 py-2 text-left uppercase tracking-wider">Aksi</th>
+                                </tr>
+                            </thead>
+                            <!-- Isi tabel -->
+                            <tbody class="divide-y divide-gray-700">
+                                <tr v-for="user in usersData" :key="user.id"
+                                    class="hover:bg-gray-700/50 transition-colors duration-150">
+                                    <td class="px-4 py-2 whitespace-nowrap">{{ user.name }}</td>
+                                    <td class="px-4 py-2 whitespace-nowrap">{{ user.email }}</td>
+                                    <td class="px-4 py-2 whitespace-nowrap">
+                                        <div class="flex flex-wrap gap-1">
+                                            <span v-for="role in user.roles" :key="role.id"
+                                                class="px-2 py-0.5 text-xs rounded" :class="{
+                                                    'bg-red-700/30 text-red-200': role.name === 'Super Admin',
+                                                    'bg-blue-700/30 text-blue-200': role.name === 'Admin',
+                                                    'bg-green-700/30 text-green-200': role.name === 'Manager',
+                                                    'bg-yellow-700/30 text-yellow-200': role.name === 'Cashier',
+                                                    'bg-purple-700/30 text-purple-200': role.name === 'Inventory Staff'
+                                                }">
+                                                {{ role.name }}
+                                            </span>
+                                        </div>
+                                    </td>
+                                    <td class="px-4 py-2 whitespace-nowrap">
+                                        <div class="flex justify-end space-x-2">
+                                            <button @click="openEditModal(user)"
+                                                class="inline-block bg-gradient-to-r from-blue-400 to-blue-500 text-white font-bold py-2 px-4 rounded-full text-xs shadow-lg hover:scale-105 hover:from-blue-500 hover:to-blue-600 transition-transform duration-200">
+                                                <svg class="w-3 h-3 mr-1 inline" fill="none" stroke="currentColor"
+                                                    viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                                        stroke-width="2"
+                                                        d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z">
+                                                    </path>
+                                                </svg>
+                                                Edit
+                                            </button>
+                                            <button v-if="can.delete_users && user.id !== $page.props.auth.user.id"
+                                                @click="openDeleteModal(user)"
+                                                class="inline-block bg-gradient-to-r from-red-400 to-red-500 text-white font-bold py-2 px-4 rounded-full text-xs shadow-lg hover:scale-105 hover:from-red-500 hover:to-red-600 transition-transform duration-200">
+                                                <svg class="w-3 h-3 mr-1 inline" fill="none" stroke="currentColor"
+                                                    viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                                        stroke-width="2"
+                                                        d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16">
+                                                    </path>
+                                                </svg>
+                                                Hapus
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
                     </div>
                 </div>
             </div>
@@ -363,7 +333,7 @@ const toggleRole = (roleName) => {
                             <label v-for="role in roles" :key="role.id" class="flex items-center">
                                 <input type="checkbox" :value="role.name" :checked="form.roles.includes(role.name)"
                                     @change="toggleRole(role.name)"
-                                    class="rounded border-gray-600 text-indigo-400 bg-gray-800 focus:border-indigo-400 focus:ring-indigo-200 focus:ring-opacity-50" />
+                                    class="rounded border-gray-600 text-blue-400 bg-gray-800 focus:border-blue-400 focus:ring-blue-200 focus:ring-opacity-50" />
                                 <span class="ml-2 text-sm text-gray-300">{{ role.name }}</span>
                             </label>
                         </div>
@@ -371,18 +341,18 @@ const toggleRole = (roleName) => {
 
                     <div class="flex justify-end space-x-3 pt-4">
                         <button type="button" @click="closeModals"
-                            class="inline-flex items-center px-3 py-1 border border-indigo-500/50 text-xs font-medium rounded text-indigo-200 bg-indigo-500/10 hover:bg-indigo-500/20 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
-                            <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            class="inline-block bg-gradient-to-r from-blue-400 to-blue-500 text-white font-bold py-2 px-6 rounded-full text-sm shadow-lg hover:scale-105 hover:from-blue-500 hover:to-blue-600 transition-transform duration-200">
+                            <svg class="w-3 h-3 mr-1 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                     d="M6 18L18 6M6 6l12 12" />
                             </svg>
                             Batal
                         </button>
                         <button type="submit" :disabled="processing"
-                            class="inline-flex items-center px-3 py-1 border border-green-500/50 text-xs font-medium rounded text-green-200 bg-green-500/10 hover:bg-green-500/20 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-25">
-                            <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            class="inline-block bg-gradient-to-r from-green-400 to-emerald-400 text-white font-bold py-2 px-6 rounded-full text-sm shadow-lg hover:scale-105 hover:from-green-500 hover:to-emerald-500 transition-transform duration-200 disabled:opacity-25">
+                            <svg class="w-3 h-3 mr-1 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                    d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                    d="M5 13l4 4L19 7" />
                             </svg>
                             Simpan
                         </button>
@@ -438,25 +408,25 @@ const toggleRole = (roleName) => {
                             <label v-for="role in roles" :key="role.id" class="flex items-center">
                                 <input type="checkbox" :value="role.name" :checked="form.roles.includes(role.name)"
                                     @change="toggleRole(role.name)"
-                                    class="rounded border-gray-600 text-indigo-400 bg-gray-800 focus:border-indigo-400 focus:ring-indigo-200 focus:ring-opacity-50" />
+                                    class="rounded border-gray-600 text-blue-400 bg-gray-800 focus:border-blue-400 focus:ring-blue-200 focus:ring-opacity-50" />
                                 <span class="ml-2 text-sm text-gray-300">{{ role.name }}</span>
                             </label>
                         </div>
                     </div>
                     <div class="flex justify-end space-x-3 pt-4">
                         <button type="button" @click="closeModals"
-                            class="inline-flex items-center px-3 py-1 border border-indigo-500/50 text-xs font-medium rounded text-indigo-200 bg-indigo-500/10 hover:bg-indigo-500/20 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
-                            <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            class="inline-block bg-gradient-to-r from-blue-400 to-blue-500 text-white font-bold py-2 px-6 rounded-full text-sm shadow-lg hover:scale-105 hover:from-blue-500 hover:to-blue-600 transition-transform duration-200">
+                            <svg class="w-3 h-3 mr-1 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                     d="M6 18L18 6M6 6l12 12" />
                             </svg>
                             Batal
                         </button>
                         <button type="submit" :disabled="processing"
-                            class="inline-flex items-center px-3 py-1 border border-green-500/50 text-xs font-medium rounded text-green-200 bg-green-500/10 hover:bg-green-500/20 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-25">
-                            <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            class="inline-block bg-gradient-to-r from-green-400 to-emerald-400 text-white font-bold py-2 px-6 rounded-full text-sm shadow-lg hover:scale-105 hover:from-green-500 hover:to-emerald-500 transition-transform duration-200 disabled:opacity-25">
+                            <svg class="w-3 h-3 mr-1 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                    d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                    d="M5 13l4 4L19 7" />
                             </svg>
                             Update
                         </button>
@@ -471,16 +441,17 @@ const toggleRole = (roleName) => {
                 class="p-8 bg-gray-900/70 backdrop-blur-md border border-white/10 rounded-2xl shadow-lg max-w-lg mx-auto space-y-6 text-white">
                 <h2 class="text-lg font-semibold">Hapus User</h2>
                 <p class="text-sm text-gray-300 mb-4">
-                    Apakah Anda yakin ingin menghapus user <strong>{{ deletingUser?.name }}</strong>? Tindakan ini tidak
+                    Apakah Anda yakin ingin menghapus user <strong>{{ deletingUser?.name }}</strong>? Tindakan ini
+                    tidak
                     dapat dibatalkan.
                 </p>
                 <div class="flex justify-end space-x-3">
                     <button type="button" @click="closeModals"
-                        class="inline-flex items-center px-3 py-1 border border-indigo-500/50 text-xs font-medium rounded text-indigo-200 bg-indigo-500/10 hover:bg-indigo-500/20 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                        class="inline-block bg-gradient-to-r from-blue-400 to-blue-500 text-white font-bold py-2 px-6 rounded-full text-sm shadow-lg hover:scale-105 hover:from-blue-500 hover:to-blue-600 transition-transform duration-200">
                         Batal
                     </button>
                     <button @click="deleteUser" :disabled="processing"
-                        class="inline-flex items-center px-3 py-1 border border-red-500/50 text-xs font-medium rounded text-red-200 bg-red-500/10 hover:bg-red-500/20 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-25">
+                        class="inline-block bg-gradient-to-r from-red-400 to-red-500 text-white font-bold py-2 px-6 rounded-full text-sm shadow-lg hover:scale-105 hover:from-red-500 hover:to-red-600 transition-transform duration-200 disabled:opacity-25">
                         Hapus
                     </button>
                 </div>
