@@ -55,6 +55,16 @@ class ShiftController extends Controller
 
     public function showOpenShiftForm()
     {
+        $user = Auth::user();
+        $openShiftToday = Shift::where('store_id', $user->store_id)
+            ->whereDate('start_time', Carbon::today())
+            ->where('status', 'open')
+            ->first();
+
+        if ($openShiftToday) {
+            return redirect()->route('shifts.close.form')
+                ->with('warning', 'Anda sudah memiliki shift terbuka hari ini. Silakan tutup shift terlebih dahulu.');
+        }
         return Inertia::render('Shifts/Open');
     }
 
