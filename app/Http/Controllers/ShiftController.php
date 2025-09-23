@@ -87,12 +87,28 @@ class ShiftController extends Controller
         ]);
 
         $user = Auth::user();
+        $todayCount = Shift::where('store_id', $user->store_id)
+            ->whereDate('start_time', Carbon::today())
+            ->count();
+        $count = $todayCount + 1;
+        $nextNumber = ($count % 10) + 1;
+        $shiftCode  = 'SHIFT-' . $nextNumber;
 
         Shift::create([
             'user_id' => $user->id,
+            'shift_code' => $shiftCode,
+            'name' => $request->name,
             'store_id' => $user->store_id,
             'start_time' => Carbon::now(),
+            'end_time' => null,
+            'total_struk' => 0,
             'initial_cash' => $request->initial_cash,
+            'final_cash' => 0,
+            'total_sales' => 0,
+            'total_discount' => 0,
+            'total_tax' => 0,
+            'total_purchase' => 0,
+            'variance' => 0,
             'status' => 'open',
         ]);
 
