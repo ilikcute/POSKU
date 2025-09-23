@@ -76,7 +76,6 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('/shifts/close', [ShiftController::class, 'storeCloseShift'])
         ->name('shifts.close.store')
         ->middleware('check.permission:close_shifts');
-
     Route::get('/shifts', [ShiftController::class, 'index'])
         ->name('shifts.index')
         ->middleware('check.permission:view_shifts');

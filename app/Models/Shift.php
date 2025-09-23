@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Shift extends Model
 {
-    /** @use HasFactory<\Database\Factories\ShiftFactory> */
+
     use HasFactory, SoftDeletes;
 
     protected $fillable = [
@@ -29,5 +29,13 @@ class Shift extends Model
         'status',
     ];
 
-    public $timestamps = false;
+    public function user()
+    {
+        return $this->belongsTo(User::class);
+    }
+
+    public function store()
+    {
+        return $this->belongsTo(Store::class);
+    }
 }
