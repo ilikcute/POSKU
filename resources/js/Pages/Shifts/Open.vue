@@ -19,30 +19,26 @@ const submit = () => {
 <template>
     <Head title="Buka Shift" />
 
-    <div
-        class="min-h-screen flex flex-col sm:justify-center items-center pt-6 sm:pt-0 bg-gray-100"
-    >
-        <div
-            class="w-full sm:max-w-md mt-6 px-6 py-8 bg-white shadow-md overflow-hidden sm:rounded-lg"
-        >
-            <div class="text-center mb-6">
-                <h1 class="text-2xl font-bold text-gray-800">
+    <div class="min-h-screen flex flex-col justify-center items-center p-4 bg-gray-900 text-white">
+        <div class="max-w-md w-full bg-white/10 backdrop-blur-md border border-white/10 rounded-2xl shadow-lg p-8 space-y-6">
+            <div class="text-center">
+                <h1 class="text-3xl font-bold text-white">
                     Buka Shift Baru
                 </h1>
-                <p class="text-gray-600">Selamat datang, {{ user.name }}!</p>
-                <p class="text-sm text-gray-500 mt-2">
+                <p class="mt-2 text-gray-300">Selamat datang, {{ user.name }}!</p>
+                <p class="text-sm text-gray-400 mt-2">
                     Tidak ada shift yang sedang aktif. Silakan masukkan modal
                     awal untuk memulai.
                 </p>
             </div>
 
-            <form @submit.prevent="submit">
+            <form @submit.prevent="submit" class="space-y-6">
                 <div>
-                    <InputLabel for="initial_cash" value="Modal Awal (Rp)" />
+                    <InputLabel for="initial_cash" value="Modal Awal (Rp)" class="text-gray-300" />
                     <TextInput
                         id="initial_cash"
                         type="number"
-                        class="mt-1 block w-full"
+                        class="mt-1 block w-full bg-white/5 border-white/20 focus:ring-blue-500 focus:border-blue-500 rounded-lg"
                         v-model="form.initial_cash"
                         required
                         autofocus
@@ -53,18 +49,16 @@ const submit = () => {
                     />
                 </div>
 
-                <div class="flex items-center justify-end mt-6">
-                    <Link
+                <div class="flex items-center justify-between mt-6">
+                     <Link
                         :href="route('logout')"
                         method="post"
                         as="button"
-                        class="text-sm text-gray-600 hover:text-gray-900"
+                        class="text-sm text-gray-400 hover:text-white transition-colors duration-300"
                     >
                         Log Out
                     </Link>
-
                     <PrimaryButton
-                        class="ms-4"
                         :class="{ 'opacity-25': form.processing }"
                         :disabled="form.processing"
                     >
