@@ -23,7 +23,7 @@ return new class extends Migration
             $table->decimal('initial_cash', 15, 2);
             $table->decimal('final_cash', 15, 2)->nullable();
             $table->decimal('total_sales', 15, 2)->nullable();
-            $table->decimal('total_dicount', 15, 2)->nullable();
+            $table->decimal('total_discount', 15, 2)->nullable();
             $table->decimal('total_tax', 15, 2)->nullable();
             $table->decimal('total_purchase', 15, 2)->nullable();
             $table->decimal('variance', 15, 2)->nullable();
