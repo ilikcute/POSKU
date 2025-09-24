@@ -41,13 +41,15 @@ const formatCurrency = (value) => {
 
     <AuthenticatedLayout>
         <template #header>
-            <h2 class="font-semibold text-xl text-white leading-tight">Shift History</h2>
+            <h2 class="font-semibold text-xl text-white leading-tight">
+                Shift History
+            </h2>
         </template>
 
         <div class="py-12">
             <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
                 <!-- Container untuk efek blur dan border -->
-                <div class="backdrop-blur-md border border-white/10 rounded-2xl shadow-lg overflow-hidden">
+                <div class="backdrop-blur-md bg-white/10 border border-white/10 rounded-2xl shadow-lg overflow-hidden">
                     <!-- Table wrapper agar bisa di-scroll horizontal pada layar kecil -->
                     <div class="overflow-x-auto">
                         <table class="min-w-full text-sm text-gray-200 divide-y divide-gray-600">

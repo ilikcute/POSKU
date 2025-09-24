@@ -29,9 +29,9 @@ const submit = () => {
                 Buka Shift
             </h2>
         </template>
-        
+
         <div
-            class="mx-auto max-w-md bg-white/10 backdrop-blur-md border border-white/10 rounded-2xl shadow-lg p-8 space-y-6">
+            class="mx-auto max-w-lg bg-white/10 backdrop-blur-md border border-white/10 rounded-2xl shadow-lg p-8 space-y-6">
             <div class="text-center">
                 <h1 class="text-3xl font-bold text-white">Buka Shift Baru</h1>
                 <p class="mt-2 text-gray-300">Selamat datang, {{ user.name }}!</p>

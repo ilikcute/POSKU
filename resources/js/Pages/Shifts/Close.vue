@@ -2,7 +2,6 @@
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout.vue";
 import { Head, useForm } from "@inertiajs/vue3";
 import { computed } from "vue";
-import PrimaryButton from "@/Components/PrimaryButton.vue";
 import InputLabel from "@/Components/InputLabel.vue";
 import TextInput from "@/Components/TextInput.vue";
 import InputError from "@/Components/InputError.vue";
@@ -54,8 +53,9 @@ const submit = () => {
         </template>
 
         <div
-            class="mx-auto max-w-2xl bg-white/10 backdrop-blur-md border border-white/10 rounded-2xl shadow-lg p-8 space-y-6">
-            <div class="backdrop-blur-md border border-white/10 rounded-2xl shadow-lg p-8 space-y-6">
+            class="mx-auto max-w-lg bg-white/10 backdrop-blur-md border border-white/10 rounded-2xl shadow-lg p-8 space-y-6">
+            <div class="text-center">
+                <h1 class="text-3xl font-bold text-white">Tutup Shift</h1>
                 <h3 class="font-medium text-l text-white leading-tight mb-4 border-b pb-4">
                     Ringkasan Shift Aktif
                 </h3>

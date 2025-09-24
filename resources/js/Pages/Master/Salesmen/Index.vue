@@ -99,7 +99,7 @@ const resetForm = () => {
 
 const createSalesman = () => {
     processing.value = true
-    
+
     router.post(route('master.salesmen.store'), form.value, {
         onSuccess: () => {
             closeModals()
@@ -115,9 +115,9 @@ const createSalesman = () => {
 
 const updateSalesman = () => {
     if (!editingItem.value) return
-    
+
     processing.value = true
-    
+
     router.patch(route('master.salesmen.update', editingItem.value.id), form.value, {
         onSuccess: () => {
             closeModals()
@@ -133,9 +133,9 @@ const updateSalesman = () => {
 
 const deleteSalesman = () => {
     if (!deletingItem.value) return
-    
+
     processing.value = true
-    
+
     router.delete(route('master.salesmen.destroy', deletingItem.value.id), {
         onSuccess: () => {
             closeModals()
@@ -169,101 +169,93 @@ console.log('Salesmen data:', salesmenData.value)
 </script>
 
 <template>
+
     <Head title="Master Salesman" />
 
     <AuthenticatedLayout>
         <template #header>
-            <h2 class="font-semibold text-xl text-gray-800 leading-tight">
+            <h2 class="font-semibold text-xl text-white leading-tight">
                 Master Salesman
             </h2>
         </template>
 
         <div class="py-12">
             <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
-                <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
-                    <div class="p-6 text-gray-900">
-                        
+                <div class="bg-white/10 backdrop-blur-md border border-white/10 rounded-2xl shadow-lg overflow-hidden">
+                    <div class="p-6 text-gray-200">
+
                         <!-- Header Actions -->
                         <div class="flex justify-between items-center mb-6">
-                            <div class="flex items-center space-x-4">
-                                <button
-                                    @click="openCreateModal"
-                                    v-if="can.create_salesman !== false"
-                                    class="inline-flex items-center px-4 py-2 border border-indigo-300 text-xs font-medium rounded text-indigo-600 bg-white hover:bg-indigo-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-                                >
+                            <div class="flex items-center">
+                                <button @click="openCreateModal" v-if="can.create_salesman !== false"
+                                    class="inline-block bg-gradient-to-r from-green-400 to-emerald-400 text-white font-bold py-3 px-10 rounded-full text-sm md:text-base shadow-xl hover:scale-105 hover:from-green-500 hover:to-emerald-500 transition-transform duration-200">
                                     <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M12 4v16m8-8H4" />
                                     </svg>
                                     Tambah Salesman
                                 </button>
                             </div>
-                            <div class="relative">
-                                <TextInput
-                                    v-model="search"
-                                    type="text"
-                                    placeholder="Cari salesman..."
-                                    class="pl-10 pr-4 py-2 w-64 px-4 border border-gray-300 rounded text-xs font-medium focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-                                />
-                                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                    <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
-                                    </svg>
-                                </div>
+                            <div class="flex items-center">
+                                <TextInput v-model="search" type="text" placeholder="Cari salesman..."
+                                    class="w-full max-w-xs bg-white/5 border-white/20 rounded-lg text-gray-200 focus:ring-blue-500 focus:border-blue-500" />
                             </div>
                         </div>
 
                         <!-- Table -->
                         <div class="overflow-x-auto">
-                            <table class="min-w-full divide-y divide-gray-200">
-                                <thead class="bg-gray-50">
+                            <table class="min-w-full text-sm text-left text-gray-200 divide-y divide-gray-700">
+                                <thead class="bg-white/5">
                                     <tr>
-                                        <th class="px-6 py-3 text-left text-sm font-bold text-gray-700 uppercase tracking-wide" style="font-family: 'Poppins', sans-serif;">Kode</th>
-                                        <th class="px-6 py-3 text-left text-sm font-bold text-gray-700 uppercase tracking-wide" style="font-family: 'Poppins', sans-serif;">Nama</th>
-                                        <th class="px-6 py-3 text-left text-sm font-bold text-gray-700 uppercase tracking-wide" style="font-family: 'Poppins', sans-serif;">Telepon</th>
-                                        <th class="px-6 py-3 text-left text-sm font-bold text-gray-700 uppercase tracking-wide" style="font-family: 'Poppins', sans-serif;">Email</th>
-                                        <th class="px-6 py-3 text-center text-sm font-bold text-gray-700 uppercase tracking-wide" style="font-family: 'Poppins', sans-serif;">Aksi</th>
+                                        <th class="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider">Kode</th>
+                                        <th class="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider">Nama</th>
+                                        <th class="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider">Telepon</th>
+                                        <th class="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider">Email</th>
+                                        <th class="px-4 py-3 text-right text-xs font-bold uppercase tracking-wider">Aksi</th>
                                     </tr>
                                 </thead>
-                                <tbody class="bg-white divide-y divide-gray-200">
+                                <tbody class="divide-y divide-gray-800">
                                     <tr v-if="salesmenData.length === 0">
-                                        <td colspan="5" class="px-6 py-4 text-center text-gray-500">
+                                        <td colspan="5" class="px-4 py-3 text-center">
                                             Tidak ada data salesman
                                         </td>
                                     </tr>
-                                    <tr v-for="salesman in salesmenData" :key="salesman.id" class="hover:bg-gray-50">
-                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                    <tr v-for="salesman in salesmenData" :key="salesman.id" class="hover:bg-white/5 transition-colors duration-150">
+                                        <td class="px-4 py-3 whitespace-nowrap font-mono text-sm">
                                             {{ salesman.salesman_code }}
                                         </td>
-                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                        <td class="px-4 py-3 whitespace-nowrap">
                                             {{ salesman.name }}
                                         </td>
-                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                        <td class="px-4 py-3 whitespace-nowrap">
                                             {{ salesman.phone || '-' }}
                                         </td>
-                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                        <td class="px-4 py-3 whitespace-nowrap">
                                             {{ salesman.email || '-' }}
                                         </td>
-                                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
+                                        <td class="px-4 py-3 whitespace-nowrap text-right text-sm font-medium">
                                             <div class="flex justify-end space-x-2">
-                                                <button
-                                                    @click="openEditModal(salesman)"
-                                                    v-if="can.edit_salesmen"
-                                                    class="inline-flex items-center px-2 py-1 border border-gray-300 text-xs font-medium rounded text-indigo-600 bg-white hover:bg-indigo-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-                                                >
-                                                    <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                                                <button @click="openEditModal(salesman)" v-if="can.edit_salesmen"
+                                                    class="inline-flex items-center gap-2 bg-gradient-to-r from-blue-400 to-sky-400 text-white font-bold py-2 px-4 rounded-full text-xs shadow-lg hover:scale-105 hover:from-blue-500 hover:to-sky-500 transition-transform duration-200">
+                                                    <svg class="w-3 h-3" fill="none" stroke="currentColor"
+                                                        viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round"
+                                                            stroke-width="2"
+                                                            d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z">
+                                                        </path>
                                                     </svg>
-                                                    Edit
+                                                    <span>Edit</span>
                                                 </button>
-                                                <button
-                                                    @click="openDeleteModal(salesman)"
-                                                    v-if="can.delete_salesmen"
-                                                    class="inline-flex items-center px-2 py-1 border border-red-300 text-xs font-medium rounded text-red-600 bg-white hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
-                                                >
-                                                    <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                                                <button @click="openDeleteModal(salesman)" v-if="can.delete_salesmen"
+                                                    class="inline-flex items-center gap-2 bg-gradient-to-r from-red-500 to-rose-500 text-white font-bold py-2 px-4 rounded-full text-xs shadow-lg hover:scale-105 hover:from-red-600 hover:to-rose-600 transition-transform duration-200">
+                                                    <svg class="w-3 h-3" fill="none" stroke="currentColor"
+                                                        viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round"
+                                                            stroke-width="2"
+                                                            d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16">
+                                                        </path>
                                                     </svg>
-                                                    Hapus
+                                                    <span>Hapus</span>
                                                 </button>
                                             </div>
                                         </td>
@@ -273,29 +265,23 @@ console.log('Salesmen data:', salesmenData.value)
                         </div>
 
                         <!-- Pagination -->
-                        <div v-if="salesmen.links && salesmen.links.length > 3" class="mt-6 flex justify-between items-center">
-                            <div class="text-sm text-gray-700">
-                                Showing {{ salesmen.meta?.from || 0 }} to {{ salesmen.meta?.to || 0 }} 
+                        <div v-if="salesmen.links && salesmen.links.length > 3"
+                            class="mt-6 flex justify-between items-center">
+                            <div class="text-sm text-gray-400">
+                                Showing {{ salesmen.meta?.from || 0 }} to {{ salesmen.meta?.to || 0 }}
                                 of {{ salesmen.meta?.total || 0 }} results
                             </div>
                             <div class="flex space-x-1">
-                                <template v-for="link in salesmen.links" :key="link.label">
-                                    <button
-                                        v-if="link.url"
-                                        @click="router.get(link.url)"
-                                        :class="[
-                                            'px-3 py-2 text-sm border rounded',
-                                            link.active 
-                                                ? 'bg-blue-500 text-white border-blue-500' 
-                                                : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
-                                        ]"
-                                        v-html="link.label"
-                                    ></button>
-                                    <span
-                                        v-else
-                                        class="px-3 py-2 text-sm text-gray-400"
-                                        v-html="link.label"
-                                    ></span>
+                                <template v-for="(link, index) in salesmen.links" :key="index">
+                                    <button @click="router.get(link.url)"
+                                            v-if="link.url"
+                                            :class="[
+                                                'px-3 py-2 text-sm border rounded-lg transition-colors duration-150',
+                                                link.active
+                                                    ? 'bg-blue-500 text-white border-blue-500/80'
+                                                    : 'bg-white/5 text-gray-300 border-white/10 hover:bg-white/10'
+                                            ]" v-html="link.label"></button>
+                                    <span v-else class="px-3 py-2 text-sm text-gray-500" v-html="link.label"></span>
                                 </template>
                             </div>
                         </div>
@@ -307,65 +293,46 @@ console.log('Salesmen data:', salesmenData.value)
 
         <!-- Create Modal -->
         <Modal :show="showCreateModal" @close="closeModals">
-            <div class="p-6">
-                <h2 class="text-lg font-medium text-gray-900 mb-4">
+            <div class="p-6 bg-gray-800 text-white rounded-lg">
+                <h2 class="text-lg font-medium text-white mb-4">
                     Tambah Salesman Baru
                 </h2>
 
                 <form @submit.prevent="createSalesman" class="space-y-4">
                     <div>
-                        <InputLabel for="salesman_code" value="Kode Salesman" />
-                        <TextInput
-                            id="salesman_code"
-                            v-model="form.salesman_code"
-                            type="text"
-                            class="mt-1 block w-full"
-                            required
-                        />
+                        <InputLabel for="salesman_code" value="Kode Salesman" class="text-gray-300"/>
+                        <TextInput id="salesman_code" v-model="form.salesman_code" type="text" class="mt-1 block w-full bg-gray-700 border-gray-600 text-white"
+                            required />
                         <InputError :message="page.props.errors?.salesman_code" class="mt-2" />
                     </div>
 
                     <div>
-                        <InputLabel for="name" value="Nama" />
-                        <TextInput
-                            id="name"
-                            v-model="form.name"
-                            type="text"
-                            class="mt-1 block w-full"
-                            required
-                        />
+                        <InputLabel for="name" value="Nama" class="text-gray-300"/>
+                        <TextInput id="name" v-model="form.name" type="text" class="mt-1 block w-full bg-gray-700 border-gray-600 text-white" required />
                         <InputError :message="page.props.errors?.name" class="mt-2" />
                     </div>
 
                     <div>
-                        <InputLabel for="phone" value="Phone" />
-                        <TextInput
-                            id="phone"
-                            v-model="form.phone"
-                            type="text"
-                            class="mt-1 block w-full"
-                        />
+                        <InputLabel for="phone" value="Phone" class="text-gray-300"/>
+                        <TextInput id="phone" v-model="form.phone" type="text" class="mt-1 block w-full bg-gray-700 border-gray-600 text-white" />
                         <InputError :message="page.props.errors?.phone" class="mt-2" />
                     </div>
 
                     <div>
-                        <InputLabel for="email" value="Email" />
-                        <TextInput
-                            id="email"
-                            v-model="form.email"
-                            type="email"
-                            class="mt-1 block w-full"
-                        />
+                        <InputLabel for="email" value="Email" class="text-gray-300"/>
+                        <TextInput id="email" v-model="form.email" type="email" class="mt-1 block w-full bg-gray-700 border-gray-600 text-white" />
                         <InputError :message="page.props.errors?.email" class="mt-2" />
                     </div>
 
                     <div class="flex justify-end space-x-3 pt-4">
-                        <SecondaryButton @click="closeModals">
+                        <button type="button" @click="closeModals"
+                            class="inline-flex items-center gap-2 bg-white/10 border border-white/20 text-white font-bold py-2 px-4 rounded-full text-xs shadow-lg hover:scale-105 hover:bg-white/20 transition-transform duration-200">
                             Batal
-                        </SecondaryButton>
-                        <PrimaryButton type="submit" :disabled="processing">
+                        </button>
+                        <button type="submit" :disabled="processing"
+                            class="inline-flex items-center gap-2 bg-gradient-to-r from-blue-400 to-sky-400 text-white font-bold py-2 px-4 rounded-full text-xs shadow-lg hover:scale-105 hover:from-blue-500 hover:to-sky-500 transition-transform duration-200">
                             Simpan
-                        </PrimaryButton>
+                        </button>
                     </div>
                 </form>
             </div>
@@ -373,71 +340,44 @@ console.log('Salesmen data:', salesmenData.value)
 
         <!-- Edit Modal -->
         <Modal :show="showEditModal" @close="closeModals">
-            <div class="p-6">
-                <h2 class="text-lg font-medium text-gray-900 mb-4">
+            <div class="p-6 bg-gray-800 text-white rounded-lg">
+                <h2 class="text-lg font-medium text-white mb-4">
                     Edit Salesman
                 </h2>
 
                 <form @submit.prevent="updateSalesman" class="space-y-4">
                     <div>
-                        <InputLabel for="edit_salesman_code" value="Kode Salesman" />
-                        <TextInput
-                            id="edit_salesman_code"
-                            v-model="form.salesman_code"
-                            type="text"
-                            class="mt-1 block w-full"
-                            required
-                        />
+                        <InputLabel for="edit_salesman_code" value="Kode Salesman" class="text-gray-300"/>
+                        <TextInput id="edit_salesman_code" v-model="form.salesman_code" type="text"
+                            class="mt-1 block w-full bg-gray-700 border-gray-600 text-white" required />
                         <InputError :message="page.props.errors?.salesman_code" class="mt-2" />
                     </div>
 
                     <div>
-                        <InputLabel for="edit_name" value="Nama" />
-                        <TextInput
-                            id="edit_name"
-                            v-model="form.name"
-                            type="text"
-                            class="mt-1 block w-full"
-                            required
-                        />
+                        <InputLabel for="edit_name" value="Nama" class="text-gray-300"/>
+                        <TextInput id="edit_name" v-model="form.name" type="text" class="mt-1 block w-full bg-gray-700 border-gray-600 text-white" required />
                         <InputError :message="page.props.errors?.name" class="mt-2" />
                     </div>
 
                     <div>
-                        <InputLabel for="edit_phone" value="Phone" />
-                        <TextInput
-                            id="edit_phone"
-                            v-model="form.phone"
-                            type="text"
-                            class="mt-1 block w-full"
-                        />
+                        <InputLabel for="edit_phone" value="Phone" class="text-gray-300"/>
+                        <TextInput id="edit_phone" v-model="form.phone" type="text" class="mt-1 block w-full bg-gray-700 border-gray-600 text-white" />
                         <InputError :message="page.props.errors?.phone" class="mt-2" />
                     </div>
 
                     <div>
-                        <InputLabel for="edit_email" value="Email" />
-                        <TextInput
-                            id="edit_email"
-                            v-model="form.email"
-                            type="email"
-                            class="mt-1 block w-full"
-                        />
+                        <InputLabel for="edit_email" value="Email" class="text-gray-300"/>
+                        <TextInput id="edit_email" v-model="form.email" type="email" class="mt-1 block w-full bg-gray-700 border-gray-600 text-white" />
                         <InputError :message="page.props.errors?.email" class="mt-2" />
                     </div>
 
                     <div class="flex justify-end space-x-3 pt-4">
                         <button type="button" @click="closeModals"
-                            class="inline-flex items-center px-2 py-1 border border-gray-300 text-xs font-medium rounded text-indigo-600 bg-white hover:bg-indigo-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
-                            <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                            </svg>
+                            class="inline-flex items-center gap-2 bg-white/10 border border-white/20 text-white font-bold py-2 px-4 rounded-full text-xs shadow-lg hover:scale-105 hover:bg-white/20 transition-transform duration-200">
                             Batal
                         </button>
-                        <button type="submit" :disabled="form.processing"
-                            class="ms-3 inline-flex items-center px-2 py-1 border border-indigo-300 text-xs font-medium rounded text-indigo-600 bg-white hover:bg-indigo-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
-                            <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                            </svg>
+                        <button type="submit" :disabled="processing"
+                            class="inline-flex items-center gap-2 bg-gradient-to-r from-blue-400 to-sky-400 text-white font-bold py-2 px-4 rounded-full text-xs shadow-lg hover:scale-105 hover:from-blue-500 hover:to-sky-500 transition-transform duration-200">
                             Simpan
                         </button>
                     </div>
@@ -447,24 +387,26 @@ console.log('Salesmen data:', salesmenData.value)
 
         <!-- Delete Modal -->
         <Modal :show="showDeleteModal" @close="closeModals">
-            <div class="p-6">
-                <h2 class="text-lg font-medium text-gray-900 mb-4">
+            <div class="p-6 bg-gray-800 text-white rounded-lg">
+                <h2 class="text-lg font-medium text-white mb-4">
                     Hapus Salesman
                 </h2>
 
-                <p class="text-sm text-gray-600 mb-4">
-                    Apakah Anda yakin ingin menghapus salesman 
+                <p class="text-sm text-gray-400 mb-4">
+                    Apakah Anda yakin ingin menghapus salesman
                     <strong>{{ deletingItem?.name }}</strong>?
                     Tindakan ini tidak dapat dibatalkan.
                 </p>
 
                 <div class="flex justify-end space-x-3">
-                    <SecondaryButton @click="closeModals">
+                    <button type="button" @click="closeModals"
+                        class="inline-flex items-center gap-2 bg-white/10 border border-white/20 text-white font-bold py-2 px-4 rounded-full text-xs shadow-lg hover:scale-105 hover:bg-white/20 transition-transform duration-200">
                         Batal
-                    </SecondaryButton>
-                    <DangerButton @click="deleteSalesman" :disabled="processing">
+                    </button>
+                    <button @click="deleteSalesman" :disabled="processing"
+                        class="inline-flex items-center gap-2 bg-gradient-to-r from-red-500 to-rose-500 text-white font-bold py-2 px-4 rounded-full text-xs shadow-lg hover:scale-105 hover:from-red-600 hover:to-rose-600 transition-transform duration-200">
                         Hapus
-                    </DangerButton>
+                    </button>
                 </div>
             </div>
         </Modal>

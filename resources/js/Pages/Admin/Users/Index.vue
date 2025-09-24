@@ -222,7 +222,7 @@ const toggleRole = (roleName) => {
                 </div>
 
                 <!-- Container untuk efek blur dan border -->
-                <div class="backdrop-blur-md border border-white/10 rounded-2xl shadow-lg overflow-hidden">
+                <div class="bg-white/10 backdrop-blur-md border border-white/10 rounded-2xl shadow-lg overflow-hidden">
                     <!-- Table wrapper agar bisa di-scroll horizontal pada layar kecil -->
                     <div class="overflow-x-auto">
                         <table class="min-w-full text-sm text-gray-200 divide-y divide-gray-600">
