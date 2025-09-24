@@ -2,6 +2,7 @@
 import { ref, computed, watch } from 'vue'
 import { Head, router, usePage } from '@inertiajs/vue3'
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue'
+import Pagination from '@/Components/Pagination.vue'
 import Modal from '@/Components/Modal.vue'
 import TextInput from '@/Components/TextInput.vue'
 import InputLabel from '@/Components/InputLabel.vue'
@@ -475,6 +476,7 @@ const getRoleBadgeClass = (roleName) => {
                 <p class="text-gray-400">Data user akan muncul di sini setelah ditambahkan.</p>
             </div>
         </div>
+        <Pagination :links="props.users.links" />
 
         <!-- Create Modal -->
         <Modal :show="showCreateModal" @close="closeModals">
@@ -626,7 +628,7 @@ const getRoleBadgeClass = (roleName) => {
                     <h2 class="text-lg font-semibold mb-2">Hapus User</h2>
                     <p class="text-sm text-gray-300 mb-6">
                         Apakah Anda yakin ingin menghapus user <strong class="text-white">{{ deletingUser?.name
-                            }}</strong>?
+                        }}</strong>?
                         <br>Tindakan ini tidak dapat dibatalkan.
                     </p>
                 </div>

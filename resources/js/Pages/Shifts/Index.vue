@@ -1,5 +1,6 @@
 <script setup>
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
+import Pagination from '@/Components/Pagination.vue';
 import { Head } from '@inertiajs/vue3';
 import { usePage } from '@inertiajs/vue3';
 import { ref } from 'vue';
@@ -291,6 +292,8 @@ const getVarianceColor = (variance) => {
                     </div>
                 </div>
             </div>
+
+            <Pagination :links="props.shifts.links" />
 
             <!-- Empty State -->
             <div v-if="!props.shifts.data.length"
