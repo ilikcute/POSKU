@@ -18,9 +18,23 @@ return new class extends Migration
             $table->string('email')->nullable();
             $table->string('phone', 20)->nullable();
             $table->text('address')->nullable();
+            $table->string('city')->nullable();
+            $table->string('state')->nullable();
+            $table->string('country')->nullable();
+            $table->string('zip_code')->nullable();
             $table->foreignId('customer_type_id')->nullable()->constrained()->nullOnDelete();
-            $table->boolean('is_active')->default(true);
+            $table->foreignId('store_id')->default('1')->constrained();
+            $table->enum('status', ['active', 'inactive'])->default('active');
+            $table->timestamp('joined_at')->nullable();
+            $table->integer('points')->default(0);
+            $table->string('photo')->nullable();
             $table->timestamps();
+            $table->softDeletes();
+
+            $table->index(['store_id', 'customer_code']);
+            $table->index(['store_id', 'status']);
+            $table->index('name');
+            $table->index('phone');
         });
     }
 

@@ -16,7 +16,7 @@ return new class extends Migration
             $table->string('invoice_number', 100)->unique();
             $table->foreignId('user_id')->constrained();
             $table->foreignId('store_id')->constrained();
-            $table->foreignId('member_id')->nullable()->constrained();
+            $table->foreignId('customer_id')->nullable()->constrained();
             $table->decimal('total_amount', 15, 2);
             $table->decimal('discount', 15, 2)->default(0);
             $table->decimal('tax', 15, 2)->default(0);

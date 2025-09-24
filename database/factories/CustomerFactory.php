@@ -11,24 +11,20 @@ class CustomerFactory extends Factory
     {
         return [
             'customer_code' => fake()->unique()->lexify('CUST????'),
-                        'member_code' => fake()->boolean(50) ? fake()->unique()->bothify('MEMB????') : null,
             'name' => fake()->name(),
             'email' => fake()->optional(0.8)->safeEmail(),
             'phone' => fake()->optional(0.9)->phoneNumber(),
             'address' => fake()->optional(0.7)->address(),
+            'city' => fake()->optional(0.7)->city(),
+            'state' => fake()->optional(0.7)->state(),
+            'country' => fake()->optional(0.7)->country(),
+            'zip_code' => fake()->optional(0.7)->postcode(),
             'customer_type_id' => CustomerType::factory(),
-            'is_active' => fake()->boolean(95),
             'store_id' => 1,
-            'points' => fake()->numberBetween(0, 1000),
-            'photo' => null,
             'status' => 'active',
             'joined_at' => fake()->dateTimeBetween('-1 years', 'now'),
+            'points' => fake()->numberBetween(0, 1000),
         ];
-    }
-
-    public function active()
-    {
-        return $this->state(['is_active' => true]);
     }
 
     public function withType($customerTypeId)
