@@ -25,95 +25,57 @@ const form = useForm({
 <template>
     <section>
         <header>
-            <h2 class="text-lg font-medium text-gray-900">
+            <h2 class="text-lg font-medium text-white">
                 Informasi Profil
             </h2>
 
-            <p class="mt-1 text-sm text-gray-600">
+            <p class="mt-1 text-sm text-gray-300">
                 Perbarui informasi profil dan alamat email akun Anda.
             </p>
         </header>
 
-        <form
-            @submit.prevent="form.patch(route('profile.update'))"
-            class="mt-6 space-y-6"
-        >
+        <form @submit.prevent="form.patch(route('profile.update'))" class="mt-6 space-y-6">
             <div>
-                <InputLabel for="name" value="Nama" />
+                <InputLabel for="name" value="Nama" class="text-white" />
 
-                <TextInput
-                    id="name"
-                    type="text"
-                    class="mt-1 block w-full"
-                    v-model="form.name"
-                    required
-                    autofocus
-                    autocomplete="name"
-                />
+                <TextInput id="name" type="text" class="mt-1 block w-full bg-gray-700 border-gray-600 text-white"
+                    v-model="form.name" required autofocus autocomplete="name" />
 
                 <InputError class="mt-2" :message="form.errors.name" />
             </div>
 
             <div>
-                <InputLabel for="email" value="Email" />
+                <InputLabel for="email" value="Email" class="text-white" />
 
-                <TextInput
-                    id="email"
-                    type="email"
-                    class="mt-1 block w-full"
-                    v-model="form.email"
-                    required
-                    autocomplete="username"
-                />
+                <TextInput id="email" type="email" class="mt-1 block w-full bg-gray-700 border-gray-600 text-white"
+                    v-model="form.email" required autocomplete="username" />
 
                 <InputError class="mt-2" :message="form.errors.email" />
             </div>
 
             <div v-if="mustVerifyEmail && user.email_verified_at === null">
-                <p class="mt-2 text-sm text-gray-800">
+                <p class="mt-2 text-sm text-gray-200">
                     Your email address is unverified.
-                    <Link
-                        :href="route('verification.send')"
-                        method="post"
-                        as="button"
-                        class="rounded-md text-sm text-gray-600 underline hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
-                    >
-                        Click here to re-send the verification email.
+                    <Link :href="route('verification.send')" method="post" as="button"
+                        class="underline text-sm text-gray-400 hover:text-white rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                    Click here to re-send the verification email.
                     </Link>
                 </p>
 
-                <div
-                    v-show="status === 'verification-link-sent'"
-                    class="mt-2 text-sm font-medium text-green-600"
-                >
+                <div v-show="status === 'verification-link-sent'" class="mt-2 font-medium text-sm text-green-400">
                     A new verification link has been sent to your email address.
                 </div>
             </div>
 
             <div class="flex items-center gap-4">
-                <button
-                    type="submit"
-                    class="inline-flex items-center px-4 py-2 border border-indigo-300 text-sm font-medium rounded text-indigo-600 bg-white hover:bg-indigo-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 w-full justify-center h-10"
-                    :class="{ 'opacity-25': form.processing }"
-                    :disabled="form.processing"
-                >
-                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <rect x="4" y="4" width="16" height="16" rx="3" stroke-width="2" />
-                        <path d="M8 12h8M8 16h5" stroke-width="2" stroke-linecap="round" />
-                        <path d="M8 8h8" stroke-width="2" stroke-linecap="round" />
-                    </svg>
+                <button type="submit"
+                    class="inline-flex items-center gap-2 bg-gradient-to-r from-blue-400 to-sky-400 text-white font-bold py-2 px-4 rounded-full text-xs shadow-lg hover:scale-105 hover:from-blue-500 hover:to-sky-500 transition-transform duration-200"
+                    :class="{ 'opacity-25': form.processing }" :disabled="form.processing">
                     Simpan
                 </button>
-                <Transition
-                    enter-active-class="transition ease-in-out"
-                    enter-from-class="opacity-0"
-                    leave-active-class="transition ease-in-out"
-                    leave-to-class="opacity-0"
-                >
-                    <p
-                        v-if="form.recentlySuccessful"
-                        class="text-sm text-gray-600"
-                    >
+                <Transition enter-active-class="transition ease-in-out" enter-from-class="opacity-0"
+                    leave-active-class="transition ease-in-out" leave-to-class="opacity-0">
+                    <p v-if="form.recentlySuccessful" class="text-sm text-gray-300">
                         Tersimpan.
                     </p>
                 </Transition>
