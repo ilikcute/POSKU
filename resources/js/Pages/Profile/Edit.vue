@@ -26,7 +26,7 @@ defineProps({
             </h2>
         </template>
 
-        <div class="py-12">
+        <!-- <div class="py-12"> -->
             <div
                 class="mx-auto max-w-lg bg-white/10 backdrop-blur-md border border-white/10 rounded-2xl shadow-lg p-8 space-y-6">
                 <div class="bg-white/10 backdrop-blur-md border border-white/10 rounded-2xl shadow-lg p-6 sm:p-8">
@@ -42,6 +42,6 @@ defineProps({
                     <DeleteUserForm class="max-w-xl" />
                 </div>
             </div>
-        </div>
+        <!-- </div> -->
     </AuthenticatedLayout>
 </template>

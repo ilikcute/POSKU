@@ -179,7 +179,7 @@ console.log('Salesmen data:', salesmenData.value)
             </h2>
         </template>
 
-        <div class="py-12">
+        <!-- <div class="py-12"> -->
             <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
                 <div class="bg-white/10 backdrop-blur-md border border-white/10 rounded-2xl shadow-lg overflow-hidden">
                     <div class="p-6 text-gray-200">
@@ -289,7 +289,7 @@ console.log('Salesmen data:', salesmenData.value)
                     </div>
                 </div>
             </div>
-        </div>
+        <!-- </div> -->
 
         <!-- Create Modal -->
         <Modal :show="showCreateModal" @close="closeModals">

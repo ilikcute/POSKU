@@ -8,7 +8,7 @@
                 Master Produk
             </h2>
         </template>
-        <div class="py-12">
+        <!-- <div class="py-12"> -->
             <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
                 <div class="bg-white/10 backdrop-blur-md border border-white/10 rounded-2xl shadow-lg overflow-hidden">
                     <div class="flex items-center justify-between px-4 py-4 border-b border-gray-600/60">
@@ -127,7 +127,7 @@
                     <Pagination :links="products.links" />
                 </div>
             </div>
-        </div>
+        <!-- </div> -->
 
 
         <Modal :show="isModalOpen" @close="closeModal">
