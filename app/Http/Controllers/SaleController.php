@@ -9,6 +9,7 @@ use App\Models\Store;
 use App\Models\Stock;
 use App\Models\Customer;
 use App\Models\Promotion;
+use App\Models\Shift;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
@@ -79,10 +80,17 @@ class SaleController extends Controller
 
         $customers = Customer::orderBy('name')->get();
 
+        // Get active shift for current user and store
+        $activeShift = Shift::where('user_id', auth()->id())
+            ->where('store_id', $storeId)
+            ->where('status', 'open')
+            ->first();
+
         return Inertia::render('Sales/Create', [
             'products' => $products,
             'promotions' => $promotions,
             'customers' => $customers,
+            'activeShift' => $activeShift,
             'auth' => [
                 'user' => auth()->user(),
             ],
@@ -212,7 +220,7 @@ class SaleController extends Controller
             }
         });
 
-        return redirect()->route('sales.index')
+        return redirect()->route('sales.create')
             ->with('success', 'Sale created successfully.');
     }
 

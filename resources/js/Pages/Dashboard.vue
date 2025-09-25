@@ -3,18 +3,53 @@ import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import { Head, usePage } from '@inertiajs/vue3';
 import { Bar } from 'vue-chartjs';
 import { Chart as ChartJS, Title, Tooltip, Legend, BarElement, CategoryScale, LinearScale } from 'chart.js';
+import { computed } from 'vue';
 
 ChartJS.register(Title, Tooltip, Legend, BarElement, CategoryScale, LinearScale);
 
+const props = defineProps({
+    totalSalesToday: Number,
+    transactionCountToday: Number,
+    newCustomersThisMonth: Number,
+    topProducts: Array,
+    salesChart: Object,
+    lowStockProducts: Array,
+});
+
 const user = usePage().props.auth.user;
 
-// Placeholder data for dashboard stats
-const stats = [
-    { name: 'Total Penjualan Hari Ini', value: 'Rp 1.250.000', icon: 'cash' },
-    { name: 'Total Transaksi', value: '15', icon: 'receipt' },
-    { name: 'Produk Terlaris', value: 'Kopi Susu', icon: 'star' },
-    { name: 'Stok Menipis', value: '5 Produk', icon: 'warning' },
-];
+// Format currency
+const formatCurrency = (amount) => {
+    return new Intl.NumberFormat('id-ID', {
+        style: 'currency',
+        currency: 'IDR',
+        minimumFractionDigits: 0,
+    }).format(amount);
+};
+
+// Dynamic stats from database
+const stats = computed(() => [
+    {
+        name: 'Total Penjualan Hari Ini',
+        value: formatCurrency(props.totalSalesToday || 0),
+        icon: 'cash'
+    },
+    {
+        name: 'Total Transaksi',
+        value: props.transactionCountToday?.toString() || '0',
+        icon: 'receipt'
+    },
+    {
+        name: 'Produk Terlaris',
+        value: props.topProducts?.length > 0 ? props.topProducts[0].name : 'Belum ada data',
+        icon: 'star'
+    },
+    {
+        name: 'Stok Menipis',
+        value: `${props.lowStockProducts?.length || 0} Produk`,
+        icon: 'warning'
+    },
+]);
 
 const icons = {
     cash: `<svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" /></svg>`,
@@ -30,17 +65,14 @@ const cardColors = [
     'from-red-500 to-red-600',
 ];
 
-// Placeholder data for top selling products
-const topProducts = [
-    { name: 'Kopi Susu Gula Aren', sold: 120 },
-    { name: 'Croissant Coklat', sold: 95 },
-    { name: 'Teh Melati', sold: 80 },
-    { name: 'Donat Gula', sold: 65 },
-    { name: 'Roti Bakar Keju', sold: 50 },
-];
+// Get top 5 products data from database
+const topProducts = computed(() => {
+    return props.topProducts || [];
+});
 
-const chartData = {
-    labels: topProducts.map(p => p.name),
+// Chart data for top products
+const chartData = computed(() => ({
+    labels: topProducts.value.map(p => p.name),
     datasets: [
         {
             label: 'Jumlah Terjual',
@@ -49,11 +81,11 @@ const chartData = {
             borderWidth: 1,
             hoverBackgroundColor: 'rgba(74, 144, 226, 0.8)',
             hoverBorderColor: 'rgba(74, 144, 226, 1)',
-            data: topProducts.map(p => p.sold),
+            data: topProducts.value.map(p => p.total_quantity),
             borderRadius: 4,
         },
     ],
-};
+}));
 
 const chartOptions = {
     responsive: true,
@@ -66,6 +98,11 @@ const chartOptions = {
             backgroundColor: 'rgba(0, 0, 0, 0.7)',
             titleColor: '#ffffff',
             bodyColor: '#ffffff',
+            callbacks: {
+                label: function (context) {
+                    return context.parsed.y + ' unit terjual';
+                }
+            }
         }
     },
     scales: {
@@ -75,7 +112,8 @@ const chartOptions = {
                 color: 'rgba(255, 255, 255, 0.1)',
             },
             ticks: {
-                color: '#cbd5e1', // slate-300
+                color: '#cbd5e1',
+                stepSize: 1,
             },
         },
         x: {
@@ -83,7 +121,9 @@ const chartOptions = {
                 display: false,
             },
             ticks: {
-                color: '#cbd5e1', // slate-300
+                color: '#cbd5e1',
+                maxRotation: 45,
+                minRotation: 45,
             },
         },
     },
@@ -92,6 +132,7 @@ const chartOptions = {
 </script>
 
 <template>
+
     <Head title="Dashboard" />
 
     <AuthenticatedLayout>
@@ -189,8 +230,7 @@ const chartOptions = {
             <!-- Top Selling Products -->
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 <!-- Chart -->
-                <div
-                    class="lg:col-span-2 bg-white/10 backdrop-blur-md border border-white/10 rounded-2xl shadow-lg">
+                <div class="lg:col-span-2 bg-white/10 backdrop-blur-md border border-white/10 rounded-2xl shadow-lg">
                     <div class="p-6 border-b border-white/10">
                         <h3 class="text-lg font-bold text-white">5 Produk Terlaris Bulan Ini</h3>
                     </div>

@@ -7,6 +7,7 @@ import Modal from '@/Components/Modal.vue';
 const props = defineProps({
     products: Array,
     customers: Array,
+    activeShift: Object,
 });
 
 const form = useForm({
@@ -33,8 +34,21 @@ const barcodeInput = ref('');
 const barcodeRef = ref(null);
 
 const addProductToCart = (product) => {
+    // Check if product has stock
+    const stockQuantity = product.stocks?.[0]?.quantity ?? 0;
+    if (stockQuantity < 1) {
+        // Show notification for insufficient stock
+        alert(`Produk "${product.name}" tidak dapat dijual karena stok kurang dari 1. Stok tersedia: ${stockQuantity}`);
+        return;
+    }
+
     const existing = cart.value.find(item => item.id === product.id);
     if (existing) {
+        // Check if adding one more would exceed stock
+        if (existing.quantity + 1 > stockQuantity) {
+            alert(`Tidak dapat menambah jumlah produk "${product.name}". Stok maksimal: ${stockQuantity}`);
+            return;
+        }
         existing.quantity++;
     } else {
         // Calculate promotion discount for this product
@@ -117,6 +131,13 @@ const updateQuantity = (id, quantity) => {
     const item = cart.value.find(item => item.id === id);
     if (item) {
         const newQuantity = Math.max(1, parseInt(quantity));
+        const stockQuantity = item.stocks?.[0]?.quantity ?? 0;
+
+        // Check stock limit
+        if (newQuantity > stockQuantity) {
+            alert(`Jumlah tidak boleh melebihi stok tersedia. Stok maksimal: ${stockQuantity}`);
+            return;
+        }
 
         // If quantity changed, recalculate promotion
         if (newQuantity !== item.quantity) {
@@ -321,14 +342,21 @@ const updateDateTime = () => {
         day: 'numeric'
     });
 
-    // Determine shift based on hour
-    const hour = now.getHours();
-    if (hour >= 6 && hour < 14) {
-        currentShift.value = 'Pagi';
-    } else if (hour >= 14 && hour < 22) {
-        currentShift.value = 'Siang';
+    // Use shift data from database if available
+    if (props.activeShift) {
+        currentShift.value = props.activeShift.shift_code;
+        cashierName.value = props.activeShift.name;
     } else {
-        currentShift.value = 'Malam';
+        // Fallback to time-based shift if no active shift
+        const hour = now.getHours();
+        if (hour >= 6 && hour < 14) {
+            currentShift.value = 'Pagi';
+        } else if (hour >= 14 && hour < 22) {
+            currentShift.value = 'Siang';
+        } else {
+            currentShift.value = 'Malam';
+        }
+        cashierName.value = props.auth?.user?.name || 'Kasir';
     }
 };
 
@@ -485,7 +513,8 @@ const customerExists = (customer) => {
 
                 <!-- Kolom Kanan: Keranjang & Pembayaran -->
                 <div class="w-2/5 bg-white/5 backdrop-blur-md border-l border-white/10 flex flex-col">
-                    <div class="p-6 flex-grow flex flex-col">
+                    <!-- Fixed Header Section -->
+                    <div class="p-6 border-b border-white/10">
                         <!-- Customer Selection -->
                         <div class="mb-4">
                             <label class="block text-sm font-medium text-gray-300 mb-2">Pelanggan</label>
@@ -502,9 +531,12 @@ const customerExists = (customer) => {
                                 Pelanggan belum terdaftar dalam sistem
                             </p>
                         </div>
+                    </div>
 
+                    <!-- Scrollable Cart Section -->
+                    <div class="flex-1 overflow-y-auto px-6">
                         <!-- Cart Items -->
-                        <div class="flex-grow overflow-y-auto mb-4">
+                        <div class="py-4">
                             <div v-if="cart.length === 0" class="text-center text-gray-400 mt-10">
                                 <svg class="mx-auto h-12 w-12 text-gray-500 mb-4" fill="none" viewBox="0 0 24 24"
                                     stroke="currentColor">
@@ -561,7 +593,10 @@ const customerExists = (customer) => {
                                 </div>
                             </div>
                         </div>
+                    </div>
 
+                    <!-- Fixed Footer Section -->
+                    <div class="p-6 border-t border-white/10 bg-white/5">
                         <!-- Summary & Payment -->
                         <div class="space-y-3">
                             <div class="flex justify-between text-sm text-gray-300">
@@ -649,7 +684,7 @@ const customerExists = (customer) => {
                     <span>Total: {{ formatCurrency(calculateTotal) }}</span>
                     <span class="text-green-400">Kembali: {{ formatCurrency(Math.max(0, form.amount_paid -
                         calculateTotal))
-                    }}</span>
+                        }}</span>
                 </div>
 
                 <div class="flex gap-3">
