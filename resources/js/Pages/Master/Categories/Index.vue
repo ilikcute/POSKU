@@ -1,8 +1,8 @@
 <template>
+
+    <Head title="Master Kategori" />
+
     <AuthenticatedLayout>
-
-        <Head title="Master Kategori" />
-
         <template #header>
             <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <div>
