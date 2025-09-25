@@ -13,6 +13,7 @@ class PromotionController extends Controller
         $search = $request->get('search');
 
         $promotions = Promotion::query()
+            ->select('name', 'start_date', 'end_date', 'promotion_type', 'id')
             ->when($search, function ($query, $search) {
                 return $query->where('name', 'like', '%' . $search . '%');
             })

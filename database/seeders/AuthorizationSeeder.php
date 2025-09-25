@@ -15,11 +15,17 @@ class AuthorizationSeeder extends Seeder
         $mainStore = Store::where('is_main_store', true)->first();
 
         if ($mainStore) {
-            Authorization::create([
-                'name' => 'Tutup Shift',
-                'password' => Hash::make('123456'), // Password default adalah 123456
-                'store_id' => $mainStore->id,
-            ]);
+            $authorizations = [
+                ['name' => 'Buka Shift', 'password' => Hash::make('123456'), 'store_id' => $mainStore->id],
+                ['name' => 'Tutup Shift', 'password' => Hash::make('123456'), 'store_id' => $mainStore->id],
+            ];
+
+            foreach ($authorizations as $auth) {
+                $exists = Authorization::where('name', $auth['name'])->exists();
+                if (!$exists) {
+                    Authorization::create($auth);
+                }
+            }
         }
     }
 }

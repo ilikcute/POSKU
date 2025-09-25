@@ -74,6 +74,7 @@ const menuItems = [
             { route: 'master.suppliers.index', label: 'Supplier', can: hasPermission('view_suppliers') },
             { route: 'master.members.index', label: 'Master Member', can: hasPermission('view_members') },
             { route: 'master.salesmen.index', label: 'Master Salesman', can: hasPermission('view_salesmen') },
+            { route: 'promotions.index', label: 'Promosi', can: hasPermission('view_promotions') },
             { route: 'store.profile.edit', label: 'Profil Toko' },
         ]
     },

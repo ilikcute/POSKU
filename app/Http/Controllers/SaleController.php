@@ -72,10 +72,16 @@ class SaleController extends Controller
                 return $product;
             });
 
+        $promotions = Promotion::where('start_date', '<=', now())
+            ->where('end_date', '>=', now())
+            ->orderBy('name')
+            ->get();
+
         $customers = Customer::orderBy('name')->get();
 
         return Inertia::render('Sales/Create', [
             'products' => $products,
+            'promotions' => $promotions,
             'customers' => $customers,
             'auth' => [
                 'user' => auth()->user(),

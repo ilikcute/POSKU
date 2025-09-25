@@ -57,6 +57,10 @@ class DatabaseSeeder extends Seeder
             'create_salesmen',
             'edit_salesmen',
             'delete_salesmen',
+            'view_promotions',
+            'create_promotions',
+            'edit_promotions',
+            'delete_promotions',
         ];
 
         foreach ($permissions as $permission) {
@@ -106,22 +110,29 @@ class DatabaseSeeder extends Seeder
         ])->first();
         $mainStore = \App\Models\Store::where('is_main_store', true)->first();
         if ($mainStore) {
-            $adminUser = User::factory()->create([
-                'name' => 'Admin User',
+            $adminUser = User::firstOrCreate([
                 'email' => 'admin@example.com',
+            ], [
+                'name' => 'Admin User',
+                'password' => bcrypt('password'),
                 'store_id' => $mainStore->id,
             ]);
             $adminUser->assignRole($adminRole);
 
-            $kasirUser = User::factory()->create([
-                'name' => 'Kasir User',
+            $kasirUser = User::firstOrCreate([
                 'email' => 'kasir@example.com',
+            ], [
+                'name' => 'Kasir User',
+                'password' => bcrypt('password'),
                 'store_id' => $mainStore->id,
             ]);
             $kasirUser->assignRole($kasirRole);
-            $superadminUser = User::factory()->create([
-                'name' => 'Superadmin User',
+
+            $superadminUser = User::firstOrCreate([
                 'email' => 'superadmin@example.com',
+            ], [
+                'name' => 'Superadmin User',
+                'password' => bcrypt('password'),
                 'store_id' => $mainStore->id,
             ]);
             $superadminUser->assignRole($supervisorRole);
