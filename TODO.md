@@ -1,0 +1,8 @@
+- [x] Update the main container to include px-4 for better page width on small screens
+- [x] Enhance the header template with description and view mode toggle (table/cards)
+- [x] Move the search input to a separate backdrop-blur div above the table
+- [x] Update the table structure with gradient header, responsive design (desktop/mobile tables), and improved styling
+- [x] Add cards view for mobile display
+- [x] Update the empty state to match the new design
+- [x] Update modal buttons to include icons and better styling
+- [x] Ensure all variable names and routes are adapted for racks

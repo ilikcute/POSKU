@@ -134,6 +134,8 @@ onMounted(() => {
 @media print {
     body * {
         visibility: hidden;
+        margin: 0;
+        padding: 0;
     }
     
     #customer-card, #customer-card * {
@@ -144,10 +146,31 @@ onMounted(() => {
         position: absolute;
         left: 0;
         top: 0;
+        width: 100%;
+        height: auto !important;
+        max-height: 100vh !important;
+        margin: 0;
+        padding: 0;
+        overflow: visible;
+        box-shadow: none !important;
+        background: white !important;
+        -webkit-print-color-adjust: exact;
+        page-break-inside: avoid;
+        page-break-after: auto;
+        page-break-before: auto;
+        -webkit-transform: scale(0.95);
+        -webkit-transform-origin: top left;
+        transform: scale(0.95);
+        transform-origin: top left;
     }
     
     .customer-card-container {
         page-break-after: always;
+        width: 100%;
+        height: auto !important;
+        max-height: 100vh !important;
+        margin: 0;
+        padding: 0;
     }
 }
 
