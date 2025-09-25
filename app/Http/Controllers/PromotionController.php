@@ -27,7 +27,7 @@ class PromotionController extends Controller
         }
 
         // Untuk Inertia request (web interface)
-        return Inertia::render('Master/Promotions/Index', [
+        return Inertia::render('Promotions/Index', [
             'promotions' => $promotions,
             'filters' => [
                 'search' => $search,
@@ -40,9 +40,9 @@ class PromotionController extends Controller
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'description' => 'nullable|string',
-            'promotion_type' => 'nullable|in:product_discount,buy_get,cashback,shipping_discount',
-            'discount_type' => 'required|in:percentage,fixed_amount',
-            'discount_value' => 'required|numeric|min:0',
+            'promotion_type' => 'nullable|in:product_discount,buy_get,cashback,shipping_discount,tiered_pricing,bundling',
+            'discount_type' => 'required_unless:promotion_type,tiered_pricing,bundling|in:percentage,fixed_amount',
+            'discount_value' => 'required_unless:promotion_type,tiered_pricing,bundling|numeric|min:0',
             'min_purchase_amount' => 'nullable|numeric|min:0',
             'max_discount_amount' => 'nullable|numeric|min:0',
             'min_quantity' => 'nullable|integer|min:1',
@@ -55,6 +55,16 @@ class PromotionController extends Controller
             'product_ids.*' => 'exists:products,id',
             'customer_type_ids' => 'nullable|array',
             'customer_type_ids.*' => 'exists:customer_types,id',
+            'tiers' => 'required_if:promotion_type,tiered_pricing|array',
+            'tiers.*.min_quantity' => 'required_with:tiers|integer|min:1',
+            'tiers.*.discount_type' => 'required_with:tiers|in:percentage,fixed_amount',
+            'tiers.*.discount_value' => 'required_with:tiers|numeric|min:0',
+            'bundles' => 'required_if:promotion_type,bundling|array',
+            'bundles.*.buy_product_id' => 'required_with:bundles|exists:products,id',
+            'bundles.*.buy_quantity' => 'required_with:bundles|integer|min:1',
+            'bundles.*.get_product_id' => 'required_with:bundles|exists:products,id',
+            'bundles.*.get_quantity' => 'required_with:bundles|integer|min:1',
+            'bundles.*.get_price' => 'nullable|numeric|min:0',
         ]);
 
         // Set default values
@@ -74,6 +84,22 @@ class PromotionController extends Controller
             $promotion->customerTypes()->sync($validated['customer_type_ids']);
         }
 
+        // Sync tiers if any
+        if (isset($validated['tiers'])) {
+            $promotion->tiers()->delete();
+            foreach ($validated['tiers'] as $tier) {
+                $promotion->tiers()->create($tier);
+            }
+        }
+
+        // Sync bundles if any
+        if (isset($validated['bundles'])) {
+            $promotion->bundles()->delete();
+            foreach ($validated['bundles'] as $bundle) {
+                $promotion->bundles()->create($bundle);
+            }
+        }
+
         // Cek apakah ini request API (bukan Inertia)
         if ($request->expectsJson() && !$request->header('X-Inertia')) {
             return response()->json($promotion->load(['products', 'customerTypes']), 201);
@@ -86,7 +112,7 @@ class PromotionController extends Controller
     public function show(Promotion $promotion)
     {
         $promotionData = method_exists($promotion, 'products') && method_exists($promotion, 'customerTypes')
-            ? $promotion->load(['products', 'customerTypes'])
+            ? $promotion->load(['products', 'customerTypes', 'tiers', 'bundles'])
             : $promotion;
 
         // Cek apakah ini request API (bukan Inertia)
@@ -98,14 +124,43 @@ class PromotionController extends Controller
         return redirect()->route('promotions.index');
     }
 
+    public function create()
+    {
+        $products = \App\Models\Product::select('id', 'name')->orderBy('name')->get();
+        $customerTypes = \App\Models\CustomerType::select('id', 'name')->orderBy('name')->get();
+
+        // Untuk Inertia request (web interface)
+        return Inertia::render('Promotions/Create', [
+            'products' => $products,
+            'customerTypes' => $customerTypes,
+        ]);
+    }
+
+    public function edit(Promotion $promotion)
+    {
+        $promotionData = method_exists($promotion, 'products') && method_exists($promotion, 'customerTypes')
+            ? $promotion->load(['products', 'customerTypes', 'tiers', 'bundles'])
+            : $promotion;
+
+        $products = \App\Models\Product::select('id', 'name')->orderBy('name')->get();
+        $customerTypes = \App\Models\CustomerType::select('id', 'name')->orderBy('name')->get();
+
+        // Untuk Inertia request (web interface)
+        return Inertia::render('Promotions/Edit', [
+            'promotion' => $promotionData,
+            'products' => $products,
+            'customerTypes' => $customerTypes,
+        ]);
+    }
+
     public function update(Request $request, Promotion $promotion)
     {
         $validated = $request->validate([
             'name' => 'nullable|string|max:255',
             'description' => 'nullable|string',
-            'promotion_type' => 'nullable|in:product_discount,buy_get,cashback,shipping_discount',
-            'discount_type' => 'nullable|in:percentage,fixed_amount',
-            'discount_value' => 'nullable|numeric|min:0',
+            'promotion_type' => 'nullable|in:product_discount,buy_get,cashback,shipping_discount,tiered_pricing,bundling',
+            'discount_type' => 'nullable_unless:promotion_type,tiered_pricing,bundling|in:percentage,fixed_amount',
+            'discount_value' => 'nullable_unless:promotion_type,tiered_pricing,bundling|numeric|min:0',
             'min_purchase_amount' => 'nullable|numeric|min:0',
             'max_discount_amount' => 'nullable|numeric|min:0',
             'min_quantity' => 'nullable|integer|min:1',
@@ -118,6 +173,16 @@ class PromotionController extends Controller
             'product_ids.*' => 'exists:products,id',
             'customer_type_ids' => 'nullable|array',
             'customer_type_ids.*' => 'exists:customer_types,id',
+            'tiers' => 'nullable|array',
+            'tiers.*.min_quantity' => 'required_with:tiers|integer|min:1',
+            'tiers.*.discount_type' => 'required_with:tiers|in:percentage,fixed_amount',
+            'tiers.*.discount_value' => 'required_with:tiers|numeric|min:0',
+            'bundles' => 'nullable|array',
+            'bundles.*.buy_product_id' => 'required_with:bundles|exists:products,id',
+            'bundles.*.buy_quantity' => 'required_with:bundles|integer|min:1',
+            'bundles.*.get_product_id' => 'required_with:bundles|exists:products,id',
+            'bundles.*.get_quantity' => 'required_with:bundles|integer|min:1',
+            'bundles.*.get_price' => 'nullable|numeric|min:0',
         ]);
 
         $promotion->update($validated);
@@ -129,6 +194,22 @@ class PromotionController extends Controller
 
         if (isset($validated['customer_type_ids']) && method_exists($promotion, 'customerTypes')) {
             $promotion->customerTypes()->sync($validated['customer_type_ids']);
+        }
+
+        // Sync tiers if any
+        if (isset($validated['tiers'])) {
+            $promotion->tiers()->delete();
+            foreach ($validated['tiers'] as $tier) {
+                $promotion->tiers()->create($tier);
+            }
+        }
+
+        // Sync bundles if any
+        if (isset($validated['bundles'])) {
+            $promotion->bundles()->delete();
+            foreach ($validated['bundles'] as $bundle) {
+                $promotion->bundles()->create($bundle);
+            }
         }
 
         // Cek apakah ini request API (bukan Inertia)
@@ -157,7 +238,7 @@ class PromotionController extends Controller
     {
         // Method khusus untuk API - selalu return JSON
         $promotions = method_exists(Promotion::class, 'active')
-            ? Promotion::active()->with(['products', 'customerTypes'])->get()
+            ? Promotion::active()->with(['products', 'customerTypes', 'tiers', 'bundles'])->get()
             : Promotion::where('is_active', true)->get();
 
         return response()->json($promotions);

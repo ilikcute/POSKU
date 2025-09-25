@@ -42,21 +42,39 @@ const addProductToCart = (product) => {
         let finalPrice = basePrice;
         let discountAmount = 0;
         let promotionName = null;
+        let bundledProducts = [];
 
         if (product.active_promotion) {
             const promo = product.active_promotion;
-            if (promo.discount_type === 'percentage') {
-                discountAmount = basePrice * (promo.discount_value / 100);
-            } else {
-                discountAmount = promo.discount_value;
-            }
-
-            if (promo.max_discount_amount && discountAmount > promo.max_discount_amount) {
-                discountAmount = promo.max_discount_amount;
-            }
-
-            finalPrice = basePrice - discountAmount;
             promotionName = promo.name;
+
+            // Handle different promotion types
+            if (promo.promotion_type === 'tiered_pricing') {
+                // Tiered pricing logic will be handled in getPriceWithPromotion
+                const pricing = getPriceWithPromotion(product, 1);
+                finalPrice = pricing.final_price;
+                discountAmount = pricing.discount_amount;
+                bundledProducts = pricing.bundled_products || [];
+            } else if (promo.promotion_type === 'bundling') {
+                // Bundling logic will be handled in getPriceWithPromotion
+                const pricing = getPriceWithPromotion(product, 1);
+                finalPrice = pricing.final_price;
+                discountAmount = pricing.discount_amount;
+                bundledProducts = pricing.bundled_products || [];
+            } else {
+                // Standard discount
+                if (promo.discount_type === 'percentage') {
+                    discountAmount = basePrice * (promo.discount_value / 100);
+                } else {
+                    discountAmount = promo.discount_value;
+                }
+
+                if (promo.max_discount_amount && discountAmount > promo.max_discount_amount) {
+                    discountAmount = promo.max_discount_amount;
+                }
+
+                finalPrice = basePrice - discountAmount;
+            }
         }
 
         cart.value.push({
@@ -66,7 +84,22 @@ const addProductToCart = (product) => {
             original_price: basePrice,
             final_price: finalPrice,
             discount_amount: discountAmount,
-            promotion_name: promotionName
+            promotion_name: promotionName,
+            bundled_products: bundledProducts
+        });
+
+        // Add bundled products to cart
+        bundledProducts.forEach(bundled => {
+            cart.value.push({
+                ...bundled,
+                type: 'bundled',
+                quantity: bundled.quantity,
+                original_price: bundled.price,
+                final_price: bundled.price,
+                discount_amount: 0,
+                promotion_name: `${promotionName} (Bundled)`,
+                bundled_from: product.id
+            });
         });
     }
     updateFormItems();
@@ -75,14 +108,44 @@ const addProductToCart = (product) => {
 // Removed manual promotion addition - discounts are now applied automatically
 
 const removeFromCart = (id) => {
-    cart.value = cart.value.filter(item => item.id !== id);
+    // Remove the item and all its bundled products
+    cart.value = cart.value.filter(item => item.id !== id && item.bundled_from !== id);
     updateFormItems();
 };
 
 const updateQuantity = (id, quantity) => {
     const item = cart.value.find(item => item.id === id);
     if (item) {
-        item.quantity = Math.max(1, parseInt(quantity));
+        const newQuantity = Math.max(1, parseInt(quantity));
+
+        // If quantity changed, recalculate promotion
+        if (newQuantity !== item.quantity) {
+            item.quantity = newQuantity;
+
+            // Recalculate promotion for this item
+            if (item.active_promotion) {
+                const pricing = getPriceWithPromotion(item, newQuantity);
+                item.final_price = pricing.final_price;
+                item.discount_amount = pricing.discount_amount;
+
+                // Update bundled products
+                const existingBundled = cart.value.filter(cartItem => cartItem.bundled_from === id);
+                cart.value = cart.value.filter(cartItem => cartItem.bundled_from !== id);
+
+                pricing.bundled_products.forEach(bundled => {
+                    cart.value.push({
+                        ...bundled,
+                        type: 'bundled',
+                        quantity: bundled.quantity,
+                        original_price: bundled.price,
+                        final_price: bundled.price,
+                        discount_amount: 0,
+                        promotion_name: `${item.promotion_name} (Bundled)`,
+                        bundled_from: id
+                    });
+                });
+            }
+        }
     }
     updateFormItems();
 };
@@ -119,24 +182,81 @@ const formatCurrency = (value) => {
 
 const getProductPrice = (product) => {
     if (product.active_promotion) {
-        const basePrice = product.selling_price;
-        const promo = product.active_promotion;
-        let discountAmount = 0;
-
-        if (promo.discount_type === 'percentage') {
-            discountAmount = basePrice * (promo.discount_value / 100);
-        } else {
-            discountAmount = promo.discount_value;
-        }
-
-        if (promo.max_discount_amount && discountAmount > promo.max_discount_amount) {
-            discountAmount = promo.max_discount_amount;
-        }
-
-        return formatCurrency(basePrice - discountAmount);
+        const pricing = getPriceWithPromotion(product, 1);
+        return formatCurrency(pricing.final_price);
     }
 
     return formatCurrency(product.selling_price);
+};
+
+const getPriceWithPromotion = (product, quantity = 1) => {
+    const basePrice = product.selling_price;
+    let finalPrice = basePrice;
+    let discountAmount = 0;
+    let bundledProducts = [];
+
+    if (product.active_promotion) {
+        const promo = product.active_promotion;
+
+        if (promo.promotion_type === 'tiered_pricing') {
+            // Find the highest applicable tier
+            const applicableTiers = promo.tiers?.filter(tier => quantity >= tier.min_quantity) || [];
+            if (applicableTiers.length > 0) {
+                const bestTier = applicableTiers.reduce((prev, current) =>
+                    (prev.min_quantity > current.min_quantity) ? prev : current
+                );
+
+                if (bestTier.discount_type === 'percentage') {
+                    discountAmount = basePrice * (bestTier.discount_value / 100);
+                } else {
+                    discountAmount = bestTier.discount_value;
+                }
+
+                finalPrice = basePrice - discountAmount;
+            }
+        } else if (promo.promotion_type === 'bundling') {
+            // Calculate how many bundles can be made
+            const bundles = promo.bundles || [];
+            let totalBundledProducts = [];
+
+            bundles.forEach(bundle => {
+                const bundleCount = Math.floor(quantity / bundle.buy_quantity);
+                if (bundleCount > 0) {
+                    const bundledProduct = {
+                        id: bundle.get_product_id,
+                        name: bundle.get_product_name || `Product ${bundle.get_product_id}`,
+                        price: bundle.get_price || 0,
+                        quantity: bundleCount * bundle.get_quantity
+                    };
+                    totalBundledProducts.push(bundledProduct);
+                }
+            });
+
+            bundledProducts = totalBundledProducts;
+            // For bundling, the main product price might be discounted
+            finalPrice = basePrice; // Or apply additional discount if specified
+        } else {
+            // Standard discount
+            if (promo.discount_type === 'percentage') {
+                discountAmount = basePrice * (promo.discount_value / 100);
+            } else {
+                discountAmount = promo.discount_value;
+            }
+
+            if (promo.max_discount_amount && discountAmount > promo.max_discount_amount) {
+                discountAmount = promo.max_discount_amount;
+            }
+
+            finalPrice = basePrice - discountAmount;
+        }
+    }
+
+    return {
+        original_price: basePrice,
+        final_price: finalPrice,
+        discount_amount: discountAmount,
+        bundled_products: bundledProducts
+    };
 };
 
 const openPaymentModal = () => {
@@ -394,9 +514,14 @@ const customerExists = (customer) => {
                                 <p>Keranjang kosong. Pilih produk atau promosi di kiri.</p>
                             </div>
                             <div v-for="item in cart" :key="`${item.id}-${item.type}`"
-                                class="flex items-center justify-between mb-3 p-3 bg-white/5 rounded-lg border border-white/10">
+                                class="flex items-center justify-between mb-3 p-3 bg-white/5 rounded-lg border border-white/10"
+                                :class="{ 'opacity-75': item.type === 'bundled' }">
                                 <div class="flex-1">
-                                    <p class="font-semibold text-white">{{ item.name }}</p>
+                                    <p class="font-semibold text-white">
+                                        {{ item.name }}
+                                        <span v-if="item.type === 'bundled'"
+                                            class="text-xs text-blue-300">(Bundled)</span>
+                                    </p>
                                     <div class="text-sm text-gray-400">
                                         <span v-if="item.discount_amount > 0" class="line-through">{{
                                             formatCurrency(item.original_price) }}</span>
@@ -410,13 +535,14 @@ const customerExists = (customer) => {
                                     </div>
                                 </div>
                                 <div class="flex items-center gap-2">
-                                    <button @click="removeFromCart(item.id)" class="text-red-400 hover:text-red-300">
+                                    <button @click="removeFromCart(item.id)" class="text-red-400 hover:text-red-300"
+                                        :disabled="item.type === 'bundled'">
                                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                                 d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                                         </svg>
                                     </button>
-                                    <div class="flex items-center gap-1">
+                                    <div class="flex items-center gap-1" v-if="item.type !== 'bundled'">
                                         <button @click="updateQuantity(item.id, item.quantity - 1)"
                                             class="text-gray-400 hover:text-white px-2 py-1 rounded">-</button>
                                         <input type="number" v-model.number="item.quantity"
@@ -523,7 +649,7 @@ const customerExists = (customer) => {
                     <span>Total: {{ formatCurrency(calculateTotal) }}</span>
                     <span class="text-green-400">Kembali: {{ formatCurrency(Math.max(0, form.amount_paid -
                         calculateTotal))
-                        }}</span>
+                    }}</span>
                 </div>
 
                 <div class="flex gap-3">

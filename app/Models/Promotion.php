@@ -50,6 +50,16 @@ class Promotion extends Model
         return $this->belongsToMany(CustomerType::class, 'promotion_customers');
     }
 
+    public function tiers()
+    {
+        return $this->hasMany(PromotionTier::class);
+    }
+
+    public function bundles()
+    {
+        return $this->hasMany(PromotionBundle::class);
+    }
+
     public function scopeActive($query)
     {
         return $query->where('is_active', true)

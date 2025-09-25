@@ -236,8 +236,8 @@ Route::middleware('shift_required')->group(function () {
         ->middleware('check.permission:adjust_stock');
 
     // Stock Entry & Adjustment Routes
-    Route::resource('stock-entries', \App\Http\Controllers\StockEntryController::class)->only(['index', 'create', 'store', 'show'])->middleware('check.permission:view_stock_entries');
-    Route::resource('stock-adjustments', \App\Http\Controllers\StockAdjustmentController::class)->only(['index', 'create', 'store', 'show'])->middleware('check.permission:view_stock_adjustments');
+    // Route::resource('stock-entries', \App\Http\Controllers\StockEntryController::class)->only(['index', 'create', 'store', 'show'])->middleware('check.permission:view_stock_entries');
+    // Route::resource('stock-adjustments', \App\Http\Controllers\StockAdjustmentController::class)->only(['index', 'create', 'store', 'show'])->middleware('check.permission:view_stock_adjustments');
 
     // Reports Routes
     Route::middleware('check.permission:view_reports')->group(function () {

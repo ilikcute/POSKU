@@ -89,6 +89,7 @@ class Product extends Model
         $basePrice = $this->getPrice($customerTypeCode, $quantity);
 
         $activePromotions = $this->promotions()
+            ->with(['tiers', 'bundles'])
             ->where('is_active', true)
             ->where('start_date', '<=', now())
             ->where('end_date', '>=', now())
@@ -98,30 +99,80 @@ class Product extends Model
                 })->orWhereDoesntHave('customerTypes');
             })
             ->orderBy('discount_value', 'desc')
-            ->first();
+            ->get();
 
-        if (! $activePromotions) {
+        if ($activePromotions->isEmpty()) {
             return [
                 'original_price' => $basePrice,
                 'final_price' => $basePrice,
                 'discount_amount' => 0,
                 'promotion_name' => null,
+                'bundled_products' => [],
             ];
         }
 
-        $discountAmount = $activePromotions->discount_type === 'percentage'
-            ? $basePrice * ($activePromotions->discount_value / 100)
-            : $activePromotions->discount_value;
+        $finalPrice = $basePrice;
+        $discountAmount = 0;
+        $promotionName = null;
+        $bundledProducts = [];
 
-        if ($activePromotions->max_discount_amount && $discountAmount > $activePromotions->max_discount_amount) {
-            $discountAmount = $activePromotions->max_discount_amount;
+        foreach ($activePromotions as $promotion) {
+            if ($promotion->promotion_type === 'tiered_pricing') {
+                // Find applicable tier
+                $applicableTier = $promotion->tiers()
+                    ->where('min_quantity', '<=', $quantity)
+                    ->orderBy('min_quantity', 'desc')
+                    ->first();
+
+                if ($applicableTier) {
+                    $tierDiscount = $applicableTier->discount_type === 'percentage'
+                        ? $basePrice * ($applicableTier->discount_value / 100)
+                        : $applicableTier->discount_value;
+
+                    if ($promotion->max_discount_amount && $tierDiscount > $promotion->max_discount_amount) {
+                        $tierDiscount = $promotion->max_discount_amount;
+                    }
+
+                    $finalPrice = $basePrice - $tierDiscount;
+                    $discountAmount = $tierDiscount;
+                    $promotionName = $promotion->name;
+                }
+            } elseif ($promotion->promotion_type === 'bundling') {
+                // Handle bundling - add free products
+                foreach ($promotion->bundles as $bundle) {
+                    if ($bundle->buy_product_id == $this->id && $quantity >= $bundle->buy_quantity) {
+                        $freeQty = floor($quantity / $bundle->buy_quantity) * $bundle->get_quantity;
+                        $bundledProducts[] = [
+                            'product_id' => $bundle->get_product_id,
+                            'quantity' => $freeQty,
+                            'price' => $bundle->get_price,
+                            'product_name' => $bundle->getProduct->name,
+                        ];
+                    }
+                }
+                $promotionName = $promotion->name;
+            } else {
+                // Original logic for other types
+                $promoDiscount = $promotion->discount_type === 'percentage'
+                    ? $basePrice * ($promotion->discount_value / 100)
+                    : $promotion->discount_value;
+
+                if ($promotion->max_discount_amount && $promoDiscount > $promotion->max_discount_amount) {
+                    $promoDiscount = $promotion->max_discount_amount;
+                }
+
+                $finalPrice = $basePrice - $promoDiscount;
+                $discountAmount = $promoDiscount;
+                $promotionName = $promotion->name;
+            }
         }
 
         return [
             'original_price' => $basePrice,
-            'final_price' => $basePrice - $discountAmount,
+            'final_price' => $finalPrice,
             'discount_amount' => $discountAmount,
-            'promotion_name' => $activePromotions->name,
+            'promotion_name' => $promotionName,
+            'bundled_products' => $bundledProducts,
         ];
     }
 

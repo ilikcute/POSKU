@@ -15,7 +15,7 @@ return new class extends Migration
             $table->id();
             $table->string('name');
             $table->text('description')->nullable();
-            $table->enum('promotion_type', ['product_discount', 'buy_get', 'cashback', 'shipping_discount'])->default('product_discount');
+            $table->enum('promotion_type', ['product_discount', 'buy_get', 'cashback', 'shipping_discount', 'tiered_pricing', 'bundling'])->default('product_discount');
             $table->enum('discount_type', ['percentage', 'fixed_amount'])->default('percentage');
             $table->decimal('discount_value', 15, 2);
             $table->decimal('min_purchase_amount', 15, 2)->nullable()->comment('Minimal pembelian');

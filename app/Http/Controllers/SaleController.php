@@ -57,7 +57,7 @@ class SaleController extends Controller
         $storeId = auth()->user()->store_id ?? 1;
 
         $products = Product::with(['supplier', 'category', 'promotions' => function ($query) {
-            $query->active();
+            $query->active()->with(['tiers', 'bundles.getProduct', 'bundles.buyProduct']);
         }])
             ->whereHas('stocks', function ($query) use ($storeId) {
                 $query->where('store_id', $storeId)
@@ -120,14 +120,46 @@ class SaleController extends Controller
         }
 
         DB::transaction(function () use ($request) {
-            // Calculate totals
+            // Get customer for promotion calculation
+            $customer = $request->customer_id ? Customer::find($request->customer_id) : null;
+
+            // Calculate totals with promotions
             $totalAmount = 0;
+            $totalDiscount = 0;
+            $bundledItems = [];
             $items = collect($request->items);
 
-            foreach ($items as $item) {
-                $subtotal = $item['quantity'] * $item['price'];
+            foreach ($items as &$item) {
+                $product = Product::find($item['product_id']);
+                $promotionData = $product->getPriceWithPromotion($customer, $item['quantity']);
+
+                $item['original_price'] = $promotionData['original_price'];
+                $item['final_price'] = $promotionData['final_price'];
+                $item['discount_amount'] = $promotionData['discount_amount'];
+                $item['promotion_name'] = $promotionData['promotion_name'];
+
+                // Use the final price for subtotal
+                $subtotal = $item['quantity'] * $item['final_price'];
                 $totalAmount += $subtotal;
+                $totalDiscount += $item['discount_amount'] * $item['quantity'];
+
+                // Add bundled products if any
+                if (!empty($promotionData['bundled_products'])) {
+                    foreach ($promotionData['bundled_products'] as $bundled) {
+                        $bundledItems[] = [
+                            'product_id' => $bundled['product_id'],
+                            'quantity' => $bundled['quantity'],
+                            'price' => $bundled['price'],
+                            'subtotal' => $bundled['quantity'] * $bundled['price'],
+                            'is_bundled' => true,
+                            'bundled_from' => $product->id,
+                        ];
+                    }
+                }
             }
+
+            // Add bundled items to the items array
+            $items = $items->merge($bundledItems);
 
             $discount = $request->discount ?? 0;
             $tax = $request->tax ?? 0;
@@ -140,7 +172,7 @@ class SaleController extends Controller
                 'store_id' => auth()->user()->store_id ?? 1,
                 'customer_id' => $request->customer_id,
                 'total_amount' => $totalAmount,
-                'discount' => $discount,
+                'discount' => $discount + $totalDiscount, // Add promotion discounts
                 'tax' => $tax,
                 'final_amount' => $finalAmount,
                 'payment_method' => $request->payment_method,
