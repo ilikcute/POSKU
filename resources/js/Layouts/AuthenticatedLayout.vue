@@ -89,9 +89,9 @@ const menuItems = [
     },
     {
         can: canAccessInventoryMenu, isOpen: isInventoryMenuOpen, isActive: isInventoryMenuActive, toggle: () => isInventoryMenuOpen.value = !isInventoryMenuOpen.value, name: 'Inventory', icon: '<svg class="h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M20.25 7.5l-.625 10.632a2.25 2.25 0 01-2.247 2.118H6.622a2.25 2.25 0 01-2.247-2.118L3.75 7.5M10 11.25h4M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125z" /></svg>', sub: [
-            { route: 'stock-entries.index', label: 'Stok Masuk', can: hasPermission('view_stock_entries') },
-            { route: 'stock-adjustments.index', label: 'Penyesuaian Stok', can: hasPermission('view_stock_adjustments') },
-            { route: 'stock.opname', label: 'Opname Stok', can: hasPermission('view_stock_opnames') },
+            { route: 'stock.index', label: 'Kelola Stok', can: hasPermission('view_stock') },
+            { route: 'stock.movements', label: 'Riwayat Pergerakan Stok', can: hasPermission('view_stock') },
+            { route: 'stock.opname', label: 'Opname Stok', can: hasPermission('stock_opname') },
         ]
     },
     {
@@ -125,8 +125,8 @@ const menuItems = [
                     <Link :href="route('dashboard')" class="flex items-center overflow-hidden">
                     <div
                         class="flex-shrink-0 w-10 h-10 bg-gradient-to-br from-blue-400 to-purple-600 rounded-xl flex items-center justify-center shadow-lg">
-                        <img v-if="store && store.logo_path" :src="`/storage/${store.logo_path}`" :alt="store.name"
-                            class="h-7 w-7 rounded-lg object-contain" />
+                        <img v-if="store && store.logo_path" :src="`/storage/${store.logo_path}`"
+                            :alt="store?.name || 'Store Logo'" class="h-7 w-7 rounded-lg object-contain" />
                         <svg v-else class="h-6 w-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                 d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4">

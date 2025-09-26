@@ -1,13 +1,20 @@
-# TODO: Add Clear Products & Customers Feature to Promotions
+# TODO: Fix POSKU Program Issues
 
-## Frontend Changes (Index.vue)
-- [x] Modify index query to include products_count and customer_types_count
-- [x] Add display in table view: columns for Produk and Customer
-- [x] Add display in card view: lines for Produk and Customer
-- [x] Add "Kosongkan Produk & Customer" button in actions
-- [x] Add clearProductsCustomers method with confirmation
+## Backend Fixes
+- [ ] Fix syntax errors in routes/web.php: Correct "NaNare" to "Route::middleware", complete permission groups for suppliers, members, salesmen
+- [ ] Fix syntax in PurchaseController.php and SaleController.php: Close Rule::in arrays, remove NaN
+- [ ] Fix promotion expiry logic: Check PromotionFactory defaults, ensure strict date filtering in getPriceWithPromotion
+- [ ] Update Product.php: Add round( , 0) for integer prices in getPriceWithPromotion
+- [ ] Add API route in routes/api.php for price check endpoint
 
-## Backend Changes
-- [x] Add route: Route::patch('promotions/{promotion}/clear', [PromotionController::class, 'clear'])->name('promotions.clear');
-- [x] Add clear method in PromotionController to sync empty arrays for products and customerTypes
-- [x] Test the clear functionality
+## Frontend Fixes
+- [ ] Create missing Vue page: resources/js/Pages/Purchases/Create.vue with purchase form
+
+## Test Fixes
+- [ ] Update NewPromotionTest.php: Use precise dates for expiry test
+- [ ] Run full php artisan test suite after fixes
+
+## Verification
+- [ ] Run php artisan migrate:fresh --seed
+- [ ] Use browser_action to test UI flows: login, dashboard, sales/purchase creation, promotion application
+- [ ] Confirm WhatsApp integration placeholder (optional: install Twilio SDK)

@@ -88,7 +88,7 @@ class NewPromotionTest extends TestCase
 
     public function test_customer_type_based_promotion()
     {
-        $product = Product::factory()->create(['selling_price' => 100000]);
+        $product = Product::factory()->create(['selling_price' => 100000, 'vip_price' => 100000]);
 
         $promotion = Promotion::factory()->create([
             'promotion_type' => 'product_discount',
@@ -241,15 +241,15 @@ class NewPromotionTest extends TestCase
             'discount_type' => 'percentage',
             'discount_value' => 10,
             'is_active' => true,
-            'start_date' => now()->addDay(),
-            'end_date' => now()->addDays(2),
+            'start_date' => now()->subDays(3),
+            'end_date' => now()->subDays(1),
         ]);
 
         $promotion->products()->attach($product->id);
 
         $customer = Customer::factory()->create(['customer_type_id' => $this->regularType->id]);
 
-        // Promotion not yet started
+        // Promotion expired
         $pricing = $product->getPriceWithPromotion($customer, 1);
         $this->assertEquals(100000, $pricing['final_price']);
         $this->assertNull($pricing['promotion_name']);

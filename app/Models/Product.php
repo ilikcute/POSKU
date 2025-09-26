@@ -111,12 +111,16 @@ class Product extends Model
             ];
         }
 
-        $finalPrice = $basePrice;
-        $discountAmount = 0;
-        $promotionName = null;
-        $bundledProducts = [];
+        $bestFinalPrice = $basePrice;
+        $bestDiscountAmount = 0;
+        $bestPromotionName = null;
+        $bestBundledProducts = [];
 
         foreach ($activePromotions as $promotion) {
+            $candidateFinalPrice = $basePrice;
+            $candidateDiscountAmount = 0;
+            $candidateBundledProducts = [];
+
             if ($promotion->promotion_type === 'tiered_pricing') {
                 // Find applicable tier
                 $applicableTier = $promotion->tiers()
@@ -133,16 +137,15 @@ class Product extends Model
                         $tierDiscount = $promotion->max_discount_amount;
                     }
 
-                    $finalPrice = round($basePrice - $tierDiscount, 2);
-                    $discountAmount = round($tierDiscount, 2);
-                    $promotionName = $promotion->name;
+                    $candidateFinalPrice = round($basePrice - $tierDiscount, 0);
+                    $candidateDiscountAmount = round($tierDiscount, 0);
                 }
             } elseif ($promotion->promotion_type === 'bundling') {
                 // Handle bundling - add free products
                 foreach ($promotion->bundles as $bundle) {
                     if ($bundle->buy_product_id == $this->id && $quantity >= $bundle->buy_quantity) {
                         $freeQty = floor($quantity / $bundle->buy_quantity) * $bundle->get_quantity;
-                        $bundledProducts[] = [
+                        $candidateBundledProducts[] = [
                             'product_id' => $bundle->get_product_id,
                             'quantity' => $freeQty,
                             'price' => $bundle->get_price,
@@ -150,7 +153,9 @@ class Product extends Model
                         ];
                     }
                 }
-                $promotionName = $promotion->name;
+                // For bundling, final price remains base, discount 0
+                $candidateFinalPrice = $basePrice;
+                $candidateDiscountAmount = 0;
             } else {
                 // Original logic for other types
                 $promoDiscount = $promotion->discount_type === 'percentage'
@@ -161,11 +166,23 @@ class Product extends Model
                     $promoDiscount = $promotion->max_discount_amount;
                 }
 
-                $finalPrice = round($basePrice - $promoDiscount, 2);
-                $discountAmount = round($promoDiscount, 2);
-                $promotionName = $promotion->name;
+                $candidateFinalPrice = round($basePrice - $promoDiscount, 0);
+                $candidateDiscountAmount = round($promoDiscount, 0);
+            }
+
+            // Choose the best (lowest price)
+            if ($candidateFinalPrice < $bestFinalPrice) {
+                $bestFinalPrice = $candidateFinalPrice;
+                $bestDiscountAmount = $candidateDiscountAmount;
+                $bestPromotionName = $promotion->name;
+                $bestBundledProducts = $candidateBundledProducts;
             }
         }
+
+        $finalPrice = $bestFinalPrice;
+        $discountAmount = $bestDiscountAmount;
+        $promotionName = $bestPromotionName;
+        $bundledProducts = $bestBundledProducts;
 
         return [
             'original_price' => $basePrice,

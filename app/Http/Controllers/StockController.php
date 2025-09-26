@@ -36,8 +36,8 @@ class StockController extends Controller
         if ($request->has('search') && $request->search) {
             $query->whereHas('product', function ($q) use ($request) {
                 $q->where('name', 'like', '%' . $request->search . '%')
-                  ->orWhere('product_code', 'like', '%' . $request->search . '%')
-                  ->orWhere('barcode', 'like', '%' . $request->search . '%');
+                    ->orWhere('product_code', 'like', '%' . $request->search . '%')
+                    ->orWhere('barcode', 'like', '%' . $request->search . '%');
             });
         }
 
@@ -52,6 +52,7 @@ class StockController extends Controller
             'stocks' => $stocks,
             'categories' => $categories,
             'filters' => $request->only(['category_id', 'low_stock', 'search']),
+            'store' => auth()->user()->store,
         ]);
     }
 
@@ -81,7 +82,7 @@ class StockController extends Controller
         if ($request->has('start_date') && $request->start_date) {
             $query->whereDate('created_at', '>=', $request->start_date);
         }
-        
+
         if ($request->has('end_date') && $request->end_date) {
             $query->whereDate('created_at', '<=', $request->end_date);
         }
@@ -102,15 +103,34 @@ class StockController extends Controller
     /**
      * Show stock opname form
      */
-    public function opname()
+    public function opname(Request $request)
     {
-        $stocks = Stock::with(['product.category', 'product.supplier'])
-            ->byStore(auth()->user()->store_id ?? 1)
-            ->orderBy('quantity', 'asc')
-            ->get();
+        $query = Stock::with(['product.category', 'product.supplier', 'store'])
+            ->byStore(auth()->user()->store_id ?? 1);
+
+        // Filter by category
+        if ($request->has('category_id') && $request->category_id) {
+            $query->whereHas('product', function ($q) use ($request) {
+                $q->where('category_id', $request->category_id);
+            });
+        }
+
+        // Search by product name
+        if ($request->has('search') && $request->search) {
+            $query->whereHas('product', function ($q) use ($request) {
+                $q->where('name', 'like', '%' . $request->search . '%');
+            });
+        }
+
+        $stocks = $query->paginate(15)
+            ->withQueryString();
+
+        $categories = \App\Models\Category::orderBy('name')->get();
 
         return Inertia::render('Stock/Opname', [
             'stocks' => $stocks,
+            'categories' => $categories,
+            'filters' => $request->only(['category_id', 'search']),
         ]);
     }
 
@@ -129,7 +149,7 @@ class StockController extends Controller
         DB::transaction(function () use ($request) {
             foreach ($request->adjustments as $adjustment) {
                 $stock = Stock::findOrFail($adjustment['stock_id']);
-                
+
                 // Verify stock belongs to current store
                 if ($stock->store_id !== (auth()->user()->store_id ?? 1)) {
                     continue;
@@ -137,10 +157,10 @@ class StockController extends Controller
 
                 $physicalCount = $adjustment['physical_count'];
                 $systemCount = $stock->quantity;
-                
+
                 if ($physicalCount !== $systemCount) {
                     $reason = $adjustment['reason'] ?? 'Stock Opname Adjustment';
-                    
+
                     $stock->adjustStock(
                         $physicalCount,
                         $reason,
@@ -183,7 +203,7 @@ class StockController extends Controller
     public function show(Stock $stock)
     {
         $stock->load(['product.category', 'product.supplier', 'store']);
-        
+
         // Get recent stock movements
         $movements = $stock->stockMovements()
             ->with(['user'])
@@ -233,8 +253,8 @@ class StockController extends Controller
         if ($request->has('search') && $request->search) {
             $query->whereHas('product', function ($q) use ($request) {
                 $q->where('name', 'like', '%' . $request->search . '%')
-                  ->orWhere('product_code', 'like', '%' . $request->search . '%')
-                  ->orWhere('barcode', 'like', '%' . $request->search . '%');
+                    ->orWhere('product_code', 'like', '%' . $request->search . '%')
+                    ->orWhere('barcode', 'like', '%' . $request->search . '%');
             });
         }
 
@@ -298,11 +318,11 @@ class StockController extends Controller
     public function summary()
     {
         $storeId = auth()->user()->store_id ?? 1;
-        
+
         $totalProducts = Stock::byStore($storeId)->count();
         $lowStockCount = Stock::lowStock()->byStore($storeId)->count();
         $outOfStockCount = Stock::byStore($storeId)->where('quantity', 0)->count();
-        
+
         $totalStockValue = Stock::byStore($storeId)
             ->with('product')
             ->get()

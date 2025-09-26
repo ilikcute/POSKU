@@ -367,6 +367,14 @@ onMounted(() => {
 
     // Get cashier name from props or auth
     cashierName.value = props.auth?.user?.name || 'Kasir';
+
+    // Warn about unsaved changes
+    window.addEventListener('beforeunload', (e) => {
+        if (cart.value.length > 0) {
+            e.preventDefault();
+            e.returnValue = '';
+        }
+    });
 });
 
 // Get cashier name from auth
@@ -431,10 +439,9 @@ const customerExists = (customer) => {
         </template>
 
         <div class="max-w-full mx-auto px-4 sm:px-6 lg:px-8">
-            <div
-                class="flex h-screen bg-gray-900/50 backdrop-blur-md border border-white/10 rounded-2xl shadow-xl overflow-hidden">
+            <div class="flex bg-gray-900/50 backdrop-blur-md border border-white/10 rounded-2xl shadow-xl">
                 <!-- Kolom Kiri: Produk & Promosi -->
-                <div class="w-3/5 p-6 flex flex-col bg-white/5">
+                <div class="w-3/5 p-6 flex flex-col bg-white/5 min-h-screen">
                     <!-- Header for Products Section -->
                     <div class="mb-4">
                         <h3 class="text-lg font-semibold text-white mb-2">Produk Tersedia</h3>
@@ -464,7 +471,7 @@ const customerExists = (customer) => {
                     </div>
 
                     <!-- Content -->
-                    <div class="flex-grow overflow-y-auto">
+                    <div class="flex-1 overflow-y-auto min-h-[calc(100vh-300px)]">
                         <div v-if="props.products?.length === 0" class="text-center text-gray-400 py-12">
                             <svg class="mx-auto h-12 w-12 text-gray-500 mb-4" fill="none" viewBox="0 0 24 24"
                                 stroke="currentColor">
@@ -512,9 +519,9 @@ const customerExists = (customer) => {
                 </div>
 
                 <!-- Kolom Kanan: Keranjang & Pembayaran -->
-                <div class="w-2/5 bg-white/5 backdrop-blur-md border-l border-white/10 flex flex-col">
+                <div class="w-2/5 bg-white/5 backdrop-blur-md border-l border-white/10 flex flex-col min-h-screen">
                     <!-- Fixed Header Section -->
-                    <div class="p-6 border-b border-white/10">
+                    <div class="p-6 border-b border-white/10 flex-shrink-0">
                         <!-- Customer Selection -->
                         <div class="mb-4">
                             <label class="block text-sm font-medium text-gray-300 mb-2">Pelanggan</label>
@@ -534,7 +541,7 @@ const customerExists = (customer) => {
                     </div>
 
                     <!-- Scrollable Cart Section -->
-                    <div class="flex-1 overflow-y-auto px-6">
+                    <div class="flex-1 overflow-y-auto px-6 min-h-[calc(100vh-400px)]">
                         <!-- Cart Items -->
                         <div class="py-4">
                             <div v-if="cart.length === 0" class="text-center text-gray-400 mt-10">

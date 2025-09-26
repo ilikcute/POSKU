@@ -123,9 +123,11 @@ class RolePermissionSeeder extends Seeder
             'edit_sales_returns',
             'delete_sales_returns',
             'view_stock',
+            'stock_opname',
             'view_products',
             'view_members',
             'view_promotions',
+            'view_reports',
         ]);
     }
 }
