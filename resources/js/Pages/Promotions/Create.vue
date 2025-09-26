@@ -241,7 +241,7 @@ onMounted(() => {
                         <div class="flex items-center justify-between">
                             <h3 class="text-lg font-medium text-white">{{ isBuyGet ? 'Aturan Beli X Gratis Y' :
                                 'Bundling Rules'
-                                }}</h3>
+                            }}</h3>
                             <button type="button" @click="addBundle"
                                 class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition">
                                 {{ isBuyGet ? 'Tambah Aturan' : 'Tambah Bundle' }}
@@ -266,27 +266,31 @@ onMounted(() => {
                                     class="w-full bg-white/10 border border-white/20 rounded-lg text-gray-200 focus:ring-blue-500 focus:border-blue-500 px-3 py-2">
                             </div>
                             <div>
-                                <label class="block text-sm font-medium text-gray-300 mb-2">{{ isBuyGet ? 'Produk
-                                    Hadiah' :
-                                    'Gratis Produk' }}</label>
+                                <label class="block text-sm font-medium text-gray-300 mb-2">
+                                    {{ isBuyGet ? 'Produk Hadiah' : 'Gratis Produk' }}
+                                </label>
                                 <select v-model="bundle.get_product_id" required
                                     class="w-full bg-white/10 border border-white/20 rounded-lg text-gray-200 focus:ring-blue-500 focus:border-blue-500 px-3 py-2">
                                     <option value="">Pilih Produk</option>
-                                    <option v-for="product in products" :key="product.id" :value="product.id">
+                                    <option v-for="product in products" :key="product.id" :value="product.id"
+                                        v-if="product && product.id && product.name">
                                         {{ product.name }}
                                     </option>
                                 </select>
                             </div>
                             <div>
-                                <label class="block text-sm font-medium text-gray-300 mb-2">{{ isBuyGet ? 'Qty Hadiah' :
-                                    'Qty
-                                    Gratis' }}</label>
+                                <label class="block text-sm font-medium text-gray-300 mb-2">
+                                    {{ isBuyGet ? 'Qty Hadiah' : 'Qty Gratis' }}
+                                </label>
                                 <input v-model.number="bundle.get_quantity" type="number" min="1" required
+                                    :value="bundle?.get_quantity || 1"
                                     class="w-full bg-white/10 border border-white/20 rounded-lg text-gray-200 focus:ring-blue-500 focus:border-blue-500 px-3 py-2">
                             </div>
+
                             <div v-if="!isBuyGet">
                                 <label class="block text-sm font-medium text-gray-300 mb-2">Harga Gratis</label>
                                 <input v-model.number="bundle.get_price" type="number" step="0.01" min="0"
+                                    :value="bundle?.get_price || 0"
                                     class="w-full bg-white/10 border border-white/20 rounded-lg text-gray-200 focus:ring-blue-500 focus:border-blue-500 px-3 py-2">
                             </div>
                             <div class="flex items-end">

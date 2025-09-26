@@ -2,9 +2,14 @@
 
 namespace App\Http\Controllers;
 
+use App\Helpers\DeviceHelper;
 use App\Models\Authorization;
+use App\Models\Purchase;
+use App\Models\PurchaseReturn;
 use App\Models\Sale;
+use App\Models\SalesReturn;
 use App\Models\Shift;
+use App\Models\StockMovement;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -56,14 +61,16 @@ class ShiftController extends Controller
     public function showOpenShiftForm()
     {
         $user = Auth::user();
+        $deviceId = DeviceHelper::getDeviceId();
+
         $openShiftToday = Shift::where('store_id', $user->store_id)
-            ->whereDate('start_time', Carbon::today())
+            ->where('device_id', $deviceId)
             ->where('status', 'open')
             ->first();
 
         if ($openShiftToday) {
             return redirect()->route('shifts.close.form')
-                ->with('warning', 'Anda sudah memiliki shift terbuka hari ini. Silakan tutup shift terlebih dahulu.');
+                ->with('warning', 'Device ini sudah memiliki shift terbuka. Silakan tutup shift terlebih dahulu.');
         }
         return Inertia::render('Shifts/Open');
     }
@@ -76,6 +83,7 @@ class ShiftController extends Controller
         ]);
 
         $user = Auth::user();
+        $deviceId = DeviceHelper::getDeviceId();
         $todayCount = Shift::where('store_id', $user->store_id)
             ->whereDate('start_time', Carbon::today())
             ->count();
@@ -97,8 +105,12 @@ class ShiftController extends Controller
             'total_discount' => 0,
             'total_tax' => 0,
             'total_purchase' => 0,
+            'total_sales_return' => 0,
+            'total_purchase_return' => 0,
+            'total_stock_movements' => 0,
             'variance' => 0,
             'status' => 'open',
+            'device_id' => $deviceId,
         ]);
 
         return redirect()->route('dashboard')->with('success', 'Shift berhasil dibuka!');
@@ -107,7 +119,10 @@ class ShiftController extends Controller
     public function showCloseShiftForm()
     {
         $user = Auth::user();
+        $deviceId = DeviceHelper::getDeviceId();
+
         $activeShift = Shift::where('store_id', $user->store_id)
+            ->where('device_id', $deviceId)
             ->where('status', 'open')
             ->first();
 
@@ -146,21 +161,69 @@ class ShiftController extends Controller
         }
 
         // 2. Ambil data shift aktif
-        $activeShift = Shift::where('store_id', $user->store_id)->where('status', 'open')->firstOrFail();
+        $activeShift = Shift::where('store_id', $user->store_id)
+            ->where('device_id', DeviceHelper::getDeviceId())
+            ->where('status', 'open')->firstOrFail();
 
-        // 3. Lakukan Perhitungan
+        $startTime = $activeShift->start_time;
+
+        // 3. Lakukan Perhitungan untuk semua transaksi selama shift
+        // Total struk (jumlah penjualan)
+        $totalStruk = Sale::where('user_id', $user->id)
+            ->where('created_at', '>=', $startTime)
+            ->count();
+
+        // Total sales
         $totalSales = Sale::where('user_id', $user->id)
-            ->where('created_at', '>=', $activeShift->start_time)
+            ->where('created_at', '>=', $startTime)
             ->sum('final_amount');
 
-        $expectedCash = $activeShift->initial_cash + $totalSales;
+        // Total sales return
+        $totalSalesReturn = SalesReturn::where('user_id', $user->id)
+            ->where('created_at', '>=', $startTime)
+            ->sum('final_amount');
+
+        // Total purchase
+        $totalPurchase = Purchase::where('user_id', $user->id)
+            ->where('created_at', '>=', $startTime)
+            ->sum('final_amount');
+
+        // Total purchase return
+        $totalPurchaseReturn = PurchaseReturn::where('user_id', $user->id)
+            ->where('created_at', '>=', $startTime)
+            ->sum('final_amount');
+
+        // Total stock movements (jumlah gerakan stok, misalnya opname, adjustment)
+        $totalStockMovements = StockMovement::whereHas('stock', function ($q) use ($user) {
+            $q->where('store_id', $user->store_id);
+        })->where('created_at', '>=', $startTime)->count();
+
+        // Total discount (dari sales)
+        $totalDiscount = Sale::where('user_id', $user->id)
+            ->where('created_at', '>=', $startTime)
+            ->sum('discount') ?? 0;
+
+        // Total tax (dari sales)
+        $totalTax = Sale::where('user_id', $user->id)
+            ->where('created_at', '>=', $startTime)
+            ->sum('tax') ?? 0;
+
+        // Expected cash sederhana: initial + sales - sales_return + purchase - purchase_return
+        $expectedCash = $activeShift->initial_cash + $totalSales - $totalSalesReturn + $totalPurchase - $totalPurchaseReturn;
         $variance = $request->final_cash - $expectedCash;
 
-        // 4. Update data shift
+        // 4. Update data shift dengan semua totalan
         $activeShift->update([
             'end_time' => now(),
+            'total_struk' => (string) $totalStruk, // Karena field string
             'final_cash' => $request->final_cash,
             'total_sales' => $totalSales,
+            'total_discount' => $totalDiscount,
+            'total_tax' => $totalTax,
+            'total_purchase' => $totalPurchase,
+            'total_sales_return' => $totalSalesReturn,
+            'total_purchase_return' => $totalPurchaseReturn,
+            'total_stock_movements' => $totalStockMovements,
             'variance' => $variance,
             'status' => 'closed',
         ]);

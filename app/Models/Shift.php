@@ -25,8 +25,12 @@ class Shift extends Model
         'total_discount',
         'total_tax',
         'total_purchase',
+        'total_sales_return',
+        'total_purchase_return',
+        'total_stock_movements',
         'variance',
         'status',
+        'device_id',
     ];
 
     public function user()

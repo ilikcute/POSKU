@@ -19,6 +19,9 @@ return new class extends Migration
             $table->decimal('price_at_return', 15, 2);
             $table->decimal('subtotal', 15, 2);
             $table->timestamps();
+            $table->softDeletes();
+            $table->index('product_id');
+            $table->index('sales_return_id');
         });
     }
 

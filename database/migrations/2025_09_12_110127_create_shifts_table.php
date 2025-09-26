@@ -28,6 +28,10 @@ return new class extends Migration
             $table->decimal('total_purchase', 15, 2)->nullable();
             $table->decimal('variance', 15, 2)->nullable();
             $table->enum('status', ['open', 'closed'])->default('open');
+            $table->string('device_id')->nullable();
+            $table->decimal('total_sales_return', 15, 2)->nullable();
+            $table->decimal('total_purchase_return', 15, 2)->nullable();
+            $table->integer('total_stock_movements')->nullable();
             $table->timestamps();
             $table->softDeletes();
         });

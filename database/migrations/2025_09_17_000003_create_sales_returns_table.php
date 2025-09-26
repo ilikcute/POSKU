@@ -21,6 +21,10 @@ return new class extends Migration
             $table->text('notes')->nullable();
             $table->timestamp('return_date');
             $table->timestamps();
+            $table->softDeletes();
+            $table->index('sale_id');
+            $table->index('user_id');
+            $table->index('store_id');
         });
     }
 
