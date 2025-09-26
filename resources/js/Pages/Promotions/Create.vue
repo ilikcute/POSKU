@@ -1,6 +1,6 @@
 <script setup>
 import { Head, useForm } from '@inertiajs/vue3';
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, watch } from 'vue';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 
 const props = defineProps({
@@ -48,7 +48,9 @@ const discountTypes = [
 
 const isTieredPricing = computed(() => form.promotion_type === 'tiered_pricing');
 const isBundling = computed(() => form.promotion_type === 'bundling');
-const requiresDiscountFields = computed(() => !isTieredPricing.value && !isBundling.value);
+const isBuyGet = computed(() => form.promotion_type === 'buy_get');
+const isBuyGetOrBundling = computed(() => isBuyGet.value || isBundling.value);
+const requiresDiscountFields = computed(() => !isTieredPricing.value && !isBuyGetOrBundling.value);
 
 const addTier = () => {
     form.tiers.push({
@@ -63,14 +65,23 @@ const removeTier = (index) => {
 };
 
 const addBundle = () => {
-    form.bundles.push({
+    const newBundle = {
         buy_product_id: '',
         buy_quantity: 1,
         get_product_id: '',
         get_quantity: 1,
-        get_price: 0,
-    });
+        get_price: isBuyGet.value ? 0 : '',
+    };
+    form.bundles.push(newBundle);
 };
+
+watch(() => form.promotion_type, (newType) => {
+    if (newType === 'buy_get') {
+        form.bundles.forEach(bundle => {
+            bundle.get_price = 0;
+        });
+    }
+});
 
 const removeBundle = (index) => {
     form.bundles.splice(index, 1);
@@ -149,7 +160,7 @@ onMounted(() => {
                         <textarea v-model="form.description" rows="3"
                             class="w-full bg-white/5 border border-white/20 rounded-lg text-gray-200 focus:ring-blue-500 focus:border-blue-500 px-4 py-3"></textarea>
                         <div v-if="form.errors.description" class="text-red-400 text-sm mt-1">{{ form.errors.description
-                            }}
+                        }}
                         </div>
                     </div>
 
@@ -165,7 +176,7 @@ onMounted(() => {
                             </select>
                             <div v-if="form.errors.discount_type" class="text-red-400 text-sm mt-1">{{
                                 form.errors.discount_type
-                                }}</div>
+                            }}</div>
                         </div>
 
                         <div>
@@ -225,13 +236,15 @@ onMounted(() => {
                         </div>
                     </div>
 
-                    <!-- Bundling -->
-                    <div v-if="isBundling" class="space-y-4">
+                    <!-- Buy Get or Bundling -->
+                    <div v-if="isBuyGetOrBundling" class="space-y-4">
                         <div class="flex items-center justify-between">
-                            <h3 class="text-lg font-medium text-white">Bundling Rules</h3>
+                            <h3 class="text-lg font-medium text-white">{{ isBuyGet ? 'Aturan Beli X Gratis Y' :
+                                'Bundling Rules'
+                                }}</h3>
                             <button type="button" @click="addBundle"
                                 class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition">
-                                Tambah Bundle
+                                {{ isBuyGet ? 'Tambah Aturan' : 'Tambah Bundle' }}
                             </button>
                         </div>
 
@@ -253,7 +266,9 @@ onMounted(() => {
                                     class="w-full bg-white/10 border border-white/20 rounded-lg text-gray-200 focus:ring-blue-500 focus:border-blue-500 px-3 py-2">
                             </div>
                             <div>
-                                <label class="block text-sm font-medium text-gray-300 mb-2">Gratis Produk</label>
+                                <label class="block text-sm font-medium text-gray-300 mb-2">{{ isBuyGet ? 'Produk
+                                    Hadiah' :
+                                    'Gratis Produk' }}</label>
                                 <select v-model="bundle.get_product_id" required
                                     class="w-full bg-white/10 border border-white/20 rounded-lg text-gray-200 focus:ring-blue-500 focus:border-blue-500 px-3 py-2">
                                     <option value="">Pilih Produk</option>
@@ -263,11 +278,13 @@ onMounted(() => {
                                 </select>
                             </div>
                             <div>
-                                <label class="block text-sm font-medium text-gray-300 mb-2">Qty Gratis</label>
+                                <label class="block text-sm font-medium text-gray-300 mb-2">{{ isBuyGet ? 'Qty Hadiah' :
+                                    'Qty
+                                    Gratis' }}</label>
                                 <input v-model.number="bundle.get_quantity" type="number" min="1" required
                                     class="w-full bg-white/10 border border-white/20 rounded-lg text-gray-200 focus:ring-blue-500 focus:border-blue-500 px-3 py-2">
                             </div>
-                            <div>
+                            <div v-if="!isBuyGet">
                                 <label class="block text-sm font-medium text-gray-300 mb-2">Harga Gratis</label>
                                 <input v-model.number="bundle.get_price" type="number" step="0.01" min="0"
                                     class="w-full bg-white/10 border border-white/20 rounded-lg text-gray-200 focus:ring-blue-500 focus:border-blue-500 px-3 py-2">
@@ -340,7 +357,7 @@ onMounted(() => {
                             <input v-model="form.end_date" type="date" required
                                 class="w-full bg-white/5 border border-white/20 rounded-lg text-gray-200 focus:ring-blue-500 focus:border-blue-500 px-4 py-3">
                             <div v-if="form.errors.end_date" class="text-red-400 text-sm mt-1">{{ form.errors.end_date
-                                }}</div>
+                            }}</div>
                         </div>
                     </div>
 
