@@ -281,6 +281,49 @@ onMounted(() => {
                         </div>
                     </div>
 
+                    <!-- Applicable Products -->
+                    <div class="space-y-4">
+                        <div class="flex items-center justify-between">
+                            <h3 class="text-lg font-medium text-white">Produk yang Berlaku</h3>
+                            <span class="text-sm text-gray-400">Kosongkan untuk semua produk</span>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-300 mb-2">Pilih Produk</label>
+                            <select multiple v-model="form.product_ids"
+                                class="w-full bg-white/5 border border-white/20 rounded-lg text-gray-200 focus:ring-blue-500 focus:border-blue-500 px-4 py-3 min-h-[120px]">
+                                <option v-for="product in products" :key="product.id" :value="product.id">
+                                    {{ product.name }}
+                                </option>
+                            </select>
+                            <div class="text-xs text-gray-400 mt-1">Tekan Ctrl/Cmd untuk memilih multiple produk</div>
+                            <div v-if="form.errors.product_ids" class="text-red-400 text-sm mt-1">{{
+                                form.errors.product_ids }}
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Applicable Customer Types -->
+                    <div class="space-y-4">
+                        <div class="flex items-center justify-between">
+                            <h3 class="text-lg font-medium text-white">Tipe Customer yang Berlaku</h3>
+                            <span class="text-sm text-gray-400">Kosongkan untuk semua tipe customer</span>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-300 mb-2">Pilih Tipe Customer</label>
+                            <select multiple v-model="form.customer_type_ids"
+                                class="w-full bg-white/5 border border-white/20 rounded-lg text-gray-200 focus:ring-blue-500 focus:border-blue-500 px-4 py-3 min-h-[120px]">
+                                <option v-for="customerType in customerTypes" :key="customerType.id"
+                                    :value="customerType.id">
+                                    {{ customerType.name }}
+                                </option>
+                            </select>
+                            <div class="text-xs text-gray-400 mt-1">Tekan Ctrl/Cmd untuk memilih multiple tipe customer
+                            </div>
+                            <div v-if="form.errors.customer_type_ids" class="text-red-400 text-sm mt-1">{{
+                                form.errors.customer_type_ids }}</div>
+                        </div>
+                    </div>
+
                     <!-- Date Range -->
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div>
@@ -362,3 +405,10 @@ onMounted(() => {
         </div>
     </AuthenticatedLayout>
 </template>
+
+<style scoped>
+select option {
+    background-color: #374151;
+    color: #f3f4f6;
+}
+</style>

@@ -14,6 +14,7 @@ class PromotionController extends Controller
 
         $promotions = Promotion::query()
             ->select('name', 'start_date', 'end_date', 'promotion_type', 'id')
+            ->withCount(['products', 'customerTypes'])
             ->when($search, function ($query, $search) {
                 return $query->where('name', 'like', '%' . $search . '%');
             })
@@ -159,8 +160,8 @@ class PromotionController extends Controller
             'name' => 'nullable|string|max:255',
             'description' => 'nullable|string',
             'promotion_type' => 'nullable|in:product_discount,buy_get,cashback,shipping_discount,tiered_pricing,bundling',
-            'discount_type' => 'nullable_unless:promotion_type,tiered_pricing,bundling|in:percentage,fixed_amount',
-            'discount_value' => 'nullable_unless:promotion_type,tiered_pricing,bundling|numeric|min:0',
+            'discount_type' => 'nullable|required_unless:promotion_type,tiered_pricing,bundling|in:percentage,fixed_amount',
+            'discount_value' => 'nullable|required_unless:promotion_type,tiered_pricing,bundling|numeric|min:0',
             'min_purchase_amount' => 'nullable|numeric|min:0',
             'max_discount_amount' => 'nullable|numeric|min:0',
             'min_quantity' => 'nullable|integer|min:1',
@@ -232,6 +233,26 @@ class PromotionController extends Controller
 
         return redirect()->route('promotions.index')
             ->with('success', 'Promotion deleted successfully.');
+    }
+
+    public function clear(Request $request, Promotion $promotion)
+    {
+        // Clear products and customer types by syncing empty arrays
+        if (method_exists($promotion, 'products')) {
+            $promotion->products()->sync([]);
+        }
+
+        if (method_exists($promotion, 'customerTypes')) {
+            $promotion->customerTypes()->sync([]);
+        }
+
+        // Cek apakah ini request API (bukan Inertia)
+        if ($request->expectsJson() && !$request->header('X-Inertia')) {
+            return response()->json(['message' => 'Products and customer types cleared successfully']);
+        }
+
+        return redirect()->route('promotions.index')
+            ->with('success', 'Products and customer types cleared successfully.');
     }
 
     public function activePromotions()

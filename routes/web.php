@@ -258,6 +258,7 @@ Route::middleware('shift_required')->group(function () {
 
     // Promotions Routes
     Route::resource('promotions', PromotionController::class);
+    Route::patch('promotions/{promotion}/clear', [PromotionController::class, 'clear'])->name('promotions.clear');
     Route::get('promotions-active', [PromotionController::class, 'activePromotions']);
 
     // Pricing Routes
