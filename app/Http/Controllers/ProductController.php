@@ -6,6 +6,7 @@ use App\Exports\ProductsExport;
 use App\Exports\ProductTemplateExport;
 use App\Imports\ProductsImport;
 use App\Models\Product;
+use App\Models\ProductImportHistory;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Maatwebsite\Excel\Facades\Excel;
@@ -52,11 +53,25 @@ class ProductController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'name' => 'required|string|max:255',
             'product_code' => 'required|string|max:50|unique:products',
+            'barcode' => 'nullable|string|max:100|unique:products',
+            'name' => 'required|string|max:255',
+            'description' => 'nullable|string',
+            'image' => 'nullable|string',
             'purchase_price' => 'required|numeric|min:0',
             'selling_price' => 'required|numeric|min:0',
-            // Tambahkan validasi untuk field lain jika perlu
+            'member_price' => 'nullable|numeric|min:0',
+            'vip_price' => 'nullable|numeric|min:0',
+            'wholesale_price' => 'nullable|numeric|min:0',
+            'min_wholesale_qty' => 'nullable|integer|min:1',
+            'tax_rate' => 'nullable|numeric|min:0|max:100',
+            'category_id' => 'nullable|exists:categories,id',
+            'division_id' => 'nullable|exists:divisions,id',
+            'rack_id' => 'nullable|exists:racks,id',
+            'supplier_id' => 'nullable|exists:suppliers,id',
+            'unit' => 'required|string|max:50',
+            'weight' => 'nullable|numeric|min:0',
+            'min_stock_alert' => 'nullable|integer|min:0',
         ]);
 
         Product::create($validated);
@@ -77,10 +92,25 @@ class ProductController extends Controller
     public function update(Request $request, Product $product)
     {
         $validated = $request->validate([
-            'name' => 'required|string|max:255',
             'product_code' => 'required|string|max:50|unique:products,product_code,' . $product->id,
+            'barcode' => 'nullable|string|max:100|unique:products,barcode,' . $product->id,
+            'name' => 'required|string|max:255',
+            'description' => 'nullable|string',
+            'image' => 'nullable|string',
             'purchase_price' => 'required|numeric|min:0',
             'selling_price' => 'required|numeric|min:0',
+            'member_price' => 'nullable|numeric|min:0',
+            'vip_price' => 'nullable|numeric|min:0',
+            'wholesale_price' => 'nullable|numeric|min:0',
+            'min_wholesale_qty' => 'nullable|integer|min:1',
+            'tax_rate' => 'nullable|numeric|min:0|max:100',
+            'category_id' => 'nullable|exists:categories,id',
+            'division_id' => 'nullable|exists:divisions,id',
+            'rack_id' => 'nullable|exists:racks,id',
+            'supplier_id' => 'nullable|exists:suppliers,id',
+            'unit' => 'required|string|max:50',
+            'weight' => 'nullable|numeric|min:0',
+            'min_stock_alert' => 'nullable|integer|min:0',
         ]);
 
         $product->update($validated);
@@ -112,43 +142,37 @@ class ProductController extends Controller
         ]);
 
         try {
+            // Get all current products for history
+            $currentProducts = Product::all();
+
+            // Save to history
+            $historyRecords = [];
+            foreach ($currentProducts as $product) {
+                $historyRecords[] = [
+                    'user_id' => auth()->id(),
+                    'product_data' => $product->toArray(),
+                    'imported_at' => now(),
+                ];
+            }
+            ProductImportHistory::insert($historyRecords);
+
+            // Delete all existing products
+            Product::query()->delete();
+
+            // Import new products
             Excel::import(new ProductsImport, $request->file('import_file'));
 
             return redirect()->route('master.products.index')
-                ->with('success', 'Data produk berhasil diimpor!');
+                ->with('success', 'Data produk berhasil diimpor! Data lama telah dicatat dalam history.');
         } catch (\Exception $e) {
             return redirect()->back()
                 ->with('error', 'Gagal mengimpor data: ' . $e->getMessage());
         }
-
-        // Excel::import(new ProductsImport, $request->file('import_file'));
-
-        // return redirect()->route('master.products.index')->with('success', 'Produk berhasil diimpor.');
     }
 
     public function downloadTemplate()
     {
         return Excel::download(new ProductTemplateExport, 'template_import_products.xlsx');
-        $headers = [
-            'product_code',
-            'name',
-            'description',
-            'purchase_price',
-            'selling_price',
-        ];
-
-        return Excel::download(function ($excel) use ($headers) {
-            $excel->sheet('Template', function ($sheet) use ($headers) {
-                $sheet->appendRow($headers);
-            });
-        }, 'template_import_products.xlsx');
-        // $path = storage_path('app/public/templates/products_template.xlsx');
-
-        // if (!file_exists($path)) {
-        //     abort(404, 'File template tidak ditemukan.');
-        //  }
-
-        // return response()->download($path);
     }
 
     public function checkPrice(Request $request)

@@ -14,18 +14,23 @@ class Product extends Model
         'barcode',
         'name',
         'description',
+        'image',
         'purchase_price',
         'selling_price',
         'member_price',
         'vip_price',
         'wholesale_price',
         'min_wholesale_qty',
+        'tax_rate',
         'category_id',
         'division_id',
         'rack_id',
         'supplier_id',
         'unit',
+        'weight',
         'min_stock_alert',
+        'max_stock_alert',
+        'reorder',
     ];
 
     protected $casts = [
@@ -34,6 +39,8 @@ class Product extends Model
         'member_price' => 'decimal:2',
         'vip_price' => 'decimal:2',
         'wholesale_price' => 'decimal:2',
+        'tax_rate' => 'decimal:2',
+        'weight' => 'decimal:2',
         'min_wholesale_qty' => 'integer',
         'min_stock_alert' => 'integer',
     ];

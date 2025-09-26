@@ -3,23 +3,37 @@
 namespace App\Imports;
 
 use App\Models\Product;
+use Illuminate\Support\Facades\Schema;
 use Maatwebsite\Excel\Concerns\ToModel;
 use Maatwebsite\Excel\Concerns\WithHeadingRow;
 
 class ProductsImport implements ToModel, WithHeadingRow
 {
+    protected $fillableFields;
+
+    public function __construct()
+    {
+        // Get all columns from products table, exclude id and timestamps
+        $this->fillableFields = collect(Schema::getColumnListing('products'))->reject(function ($field) {
+            return in_array($field, ['id', 'created_at', 'updated_at']);
+        })->toArray();
+    }
+
     /**
      * @return \Illuminate\Database\Eloquent\Model|null
      */
     public function model(array $row)
     {
-        // Mencocokkan header di Excel dengan kolom di database
-        return new Product([
-            'product_code' => $row['product_code'],
-            'name' => $row['name'],
-            'description' => $row['description'],
-            'purchase_price' => $row['purchase_price'],
-            'selling_price' => $row['selling_price'],
-        ]);
+        // Filter row to only include fillable fields
+        $data = array_intersect_key($row, array_flip($this->fillableFields));
+
+        // Convert empty strings to null for nullable fields
+        foreach ($data as $key => $value) {
+            if ($value === '') {
+                $data[$key] = null;
+            }
+        }
+
+        return new Product($data);
     }
 }
