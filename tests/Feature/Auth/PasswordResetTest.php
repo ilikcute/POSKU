@@ -12,6 +12,12 @@ class PasswordResetTest extends TestCase
 {
     use RefreshDatabase;
 
+    protected function setUp(): void
+    {
+        parent::setUp();
+        $this->seed(\Database\Seeders\RolePermissionSeeder::class);
+    }
+
     public function test_reset_password_link_screen_can_be_rendered(): void
     {
         $response = $this->get('/forgot-password');
@@ -24,6 +30,7 @@ class PasswordResetTest extends TestCase
         Notification::fake();
 
         $user = User::factory()->create();
+        $user->assignRole('Kasir');
 
         $this->post('/forgot-password', ['email' => $user->email]);
 
@@ -35,11 +42,12 @@ class PasswordResetTest extends TestCase
         Notification::fake();
 
         $user = User::factory()->create();
+        $user->assignRole('Kasir');
 
         $this->post('/forgot-password', ['email' => $user->email]);
 
         Notification::assertSentTo($user, ResetPassword::class, function ($notification) {
-            $response = $this->get('/reset-password/'.$notification->token);
+            $response = $this->get('/reset-password/' . $notification->token);
 
             $response->assertStatus(200);
 
@@ -52,6 +60,7 @@ class PasswordResetTest extends TestCase
         Notification::fake();
 
         $user = User::factory()->create();
+        $user->assignRole('Kasir');
 
         $this->post('/forgot-password', ['email' => $user->email]);
 

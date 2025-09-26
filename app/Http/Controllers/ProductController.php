@@ -150,4 +150,26 @@ class ProductController extends Controller
 
         // return response()->download($path);
     }
+
+    public function checkPrice(Request $request)
+    {
+        $request->validate([
+            'product_id' => 'required|exists:products,id',
+            'customer_id' => 'nullable|exists:customers,id',
+            'quantity' => 'required|integer|min:1',
+        ]);
+
+        $product = Product::findOrFail($request->product_id);
+        $customer = $request->customer_id ? \App\Models\Customer::find($request->customer_id) : null;
+
+        $pricing = $product->getPriceWithPromotion($customer, $request->quantity);
+
+        return response()->json([
+            'product' => $product,
+            'customer' => $customer,
+            'customer_type' => $customer?->customerType,
+            'quantity' => $request->quantity,
+            'pricing' => $pricing,
+        ]);
+    }
 }

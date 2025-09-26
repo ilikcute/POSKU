@@ -9,6 +9,13 @@ class RegistrationTest extends TestCase
 {
     use RefreshDatabase;
 
+    protected function setUp(): void
+    {
+        parent::setUp();
+        $this->seed(\Database\Seeders\StoreSeeder::class);
+        $this->seed(\Database\Seeders\RolePermissionSeeder::class);
+    }
+
     public function test_registration_screen_can_be_rendered(): void
     {
         $response = $this->get('/register');
@@ -26,6 +33,8 @@ class RegistrationTest extends TestCase
         ]);
 
         $this->assertAuthenticated();
+        $user = auth()->user();
+        $user->assignRole('Kasir');
         $response->assertRedirect(route('dashboard', absolute: false));
     }
 }

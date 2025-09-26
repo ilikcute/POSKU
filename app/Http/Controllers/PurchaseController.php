@@ -14,6 +14,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
 use Illuminate\Validation\Rule;
+use Barryvdh\DomPDF\Facade\Pdf;
 
 class PurchaseController extends Controller
 {
@@ -29,7 +30,7 @@ class PurchaseController extends Controller
         if ($request->has('start_date') && $request->start_date) {
             $query->whereDate('transaction_date', '>=', $request->start_date);
         }
-        
+
         if ($request->has('end_date') && $request->end_date) {
             $query->whereDate('transaction_date', '<=', $request->end_date);
         }
@@ -57,7 +58,7 @@ class PurchaseController extends Controller
         $products = Product::with(['supplier', 'category'])
             ->orderBy('name')
             ->get();
-            
+
         $suppliers = Supplier::orderBy('name')->get();
         $customers = Customer::orderBy('name')->get();
 
@@ -88,7 +89,7 @@ class PurchaseController extends Controller
             // Calculate totals
             $totalAmount = 0;
             $items = collect($request->items);
-            
+
             foreach ($items as $item) {
                 $subtotal = $item['quantity'] * $item['price'];
                 $totalAmount += $subtotal;
@@ -118,7 +119,7 @@ class PurchaseController extends Controller
             // Create purchase details and update stock
             foreach ($items as $item) {
                 $subtotal = $item['quantity'] * $item['price'];
-                
+
                 PurchaseDetail::create([
                     'purchase_id' => $purchase->id,
                     'product_id' => $item['product_id'],
@@ -136,7 +137,7 @@ class PurchaseController extends Controller
                     ],
                     ['quantity' => 0]
                 );
-                
+
                 $stock->addStock(
                     $item['quantity'],
                     'Purchase',
@@ -169,11 +170,11 @@ class PurchaseController extends Controller
     public function edit(Purchase $purchase)
     {
         $purchase->load(['purchaseDetails.product']);
-        
+
         $products = Product::with(['supplier', 'category'])
             ->orderBy('name')
             ->get();
-            
+
         $suppliers = Supplier::orderBy('name')->get();
         $customers = Customer::orderBy('name')->get();
 
@@ -207,7 +208,7 @@ class PurchaseController extends Controller
                 $stock = Stock::where('product_id', $detail->product_id)
                     ->where('store_id', $purchase->store_id)
                     ->first();
-                    
+
                 if ($stock) {
                     $stock->reduceStock(
                         $detail->quantity,
@@ -225,7 +226,7 @@ class PurchaseController extends Controller
             // Calculate new totals
             $totalAmount = 0;
             $items = collect($request->items);
-            
+
             foreach ($items as $item) {
                 $subtotal = $item['quantity'] * $item['price'];
                 $totalAmount += $subtotal;
@@ -252,7 +253,7 @@ class PurchaseController extends Controller
             // Create new purchase details and update stock
             foreach ($items as $item) {
                 $subtotal = $item['quantity'] * $item['price'];
-                
+
                 PurchaseDetail::create([
                     'purchase_id' => $purchase->id,
                     'product_id' => $item['product_id'],
@@ -270,7 +271,7 @@ class PurchaseController extends Controller
                     ],
                     ['quantity' => 0]
                 );
-                
+
                 $stock->addStock(
                     $item['quantity'],
                     'Purchase Update',
@@ -296,7 +297,7 @@ class PurchaseController extends Controller
                 $stock = Stock::where('product_id', $detail->product_id)
                     ->where('store_id', $purchase->store_id)
                     ->first();
-                    
+
                 if ($stock) {
                     $stock->reduceStock(
                         $detail->quantity,
@@ -320,14 +321,10 @@ class PurchaseController extends Controller
      */
     public function generatePDF(Purchase $purchase)
     {
-        $purchase->load(['user', 'store', 'member', 'purchaseDetails.product']);
-        
-        // Here you would use a PDF generation library like DomPDF or TCPDF
-        // For now, return JSON response
-        return response()->json([
-            'message' => 'PDF generation not implemented yet',
-            'purchase' => $purchase
-        ]);
+        $purchase->load(['user', 'store', 'supplier', 'purchaseDetails.product']);
+
+        $pdf = Pdf::loadView('purchases.pdf', compact('purchase'));
+        return $pdf->download('purchase-' . $purchase->invoice_number . '.pdf');
     }
 
     /**
@@ -336,7 +333,7 @@ class PurchaseController extends Controller
     public function print(Purchase $purchase)
     {
         $purchase->load(['user', 'store', 'member', 'purchaseDetails.product']);
-        
+
         return Inertia::render('Purchases/Print', [
             'purchase' => $purchase,
         ]);

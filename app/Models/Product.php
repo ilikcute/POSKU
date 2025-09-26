@@ -133,8 +133,8 @@ class Product extends Model
                         $tierDiscount = $promotion->max_discount_amount;
                     }
 
-                    $finalPrice = $basePrice - $tierDiscount;
-                    $discountAmount = $tierDiscount;
+                    $finalPrice = round($basePrice - $tierDiscount, 2);
+                    $discountAmount = round($tierDiscount, 2);
                     $promotionName = $promotion->name;
                 }
             } elseif ($promotion->promotion_type === 'bundling') {
@@ -161,8 +161,8 @@ class Product extends Model
                     $promoDiscount = $promotion->max_discount_amount;
                 }
 
-                $finalPrice = $basePrice - $promoDiscount;
-                $discountAmount = $promoDiscount;
+                $finalPrice = round($basePrice - $promoDiscount, 2);
+                $discountAmount = round($promoDiscount, 2);
                 $promotionName = $promotion->name;
             }
         }

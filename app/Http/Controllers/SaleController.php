@@ -15,6 +15,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
 use Illuminate\Validation\Rule;
+use Barryvdh\DomPDF\Facade\Pdf;
 
 class SaleController extends Controller
 {
@@ -323,7 +324,7 @@ class SaleController extends Controller
 
             // Update sale
             $sale->update([
-                'member_id' => $request->member_id,
+                'customer_id' => $request->customer_id,
                 'total_amount' => $totalAmount,
                 'discount' => $discount,
                 'tax' => $tax,
@@ -407,12 +408,8 @@ class SaleController extends Controller
     {
         $sale->load(['user', 'store', 'member', 'saleDetails.product']);
 
-        // Here you would use a PDF generation library like DomPDF or TCPDF
-        // For now, return JSON response
-        return response()->json([
-            'message' => 'PDF generation not implemented yet',
-            'sale' => $sale
-        ]);
+        $pdf = Pdf::loadView('sales.pdf', compact('sale'));
+        return $pdf->download('sale-' . $sale->invoice_number . '.pdf');
     }
 
     /**

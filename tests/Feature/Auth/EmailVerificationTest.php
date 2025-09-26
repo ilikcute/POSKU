@@ -13,9 +13,16 @@ class EmailVerificationTest extends TestCase
 {
     use RefreshDatabase;
 
+    protected function setUp(): void
+    {
+        parent::setUp();
+        $this->seed(\Database\Seeders\RolePermissionSeeder::class);
+    }
+
     public function test_email_verification_screen_can_be_rendered(): void
     {
         $user = User::factory()->unverified()->create();
+        $user->assignRole('Kasir');
 
         $response = $this->actingAs($user)->get('/verify-email');
 
@@ -25,6 +32,7 @@ class EmailVerificationTest extends TestCase
     public function test_email_can_be_verified(): void
     {
         $user = User::factory()->unverified()->create();
+        $user->assignRole('Kasir');
 
         Event::fake();
 
@@ -38,12 +46,13 @@ class EmailVerificationTest extends TestCase
 
         Event::assertDispatched(Verified::class);
         $this->assertTrue($user->fresh()->hasVerifiedEmail());
-        $response->assertRedirect(route('dashboard', absolute: false).'?verified=1');
+        $response->assertRedirect(route('dashboard', absolute: false) . '?verified=1');
     }
 
     public function test_email_is_not_verified_with_invalid_hash(): void
     {
         $user = User::factory()->unverified()->create();
+        $user->assignRole('Kasir');
 
         $verificationUrl = URL::temporarySignedRoute(
             'verification.verify',

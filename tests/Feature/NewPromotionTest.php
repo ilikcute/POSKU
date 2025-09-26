@@ -22,6 +22,9 @@ class NewPromotionTest extends TestCase
     {
         parent::setUp();
 
+        $this->seed(\Database\Seeders\StoreSeeder::class);
+        $this->seed(\Database\Seeders\RolePermissionSeeder::class);
+
         // Create customer types
         $this->regularType = CustomerType::factory()->create(['code' => 'REGULAR']);
         $this->vipType = CustomerType::factory()->create(['code' => 'VIP']);

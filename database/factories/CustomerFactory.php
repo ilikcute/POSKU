@@ -20,7 +20,9 @@ class CustomerFactory extends Factory
             'country' => fake()->optional(0.7)->country(),
             'zip_code' => fake()->optional(0.7)->postcode(),
             'customer_type_id' => CustomerType::factory(),
-            'store_id' => 1,
+            'store_id' => function () {
+                return \App\Models\Store::where('is_main_store', true)->firstOrFail()->id;
+            },
             'status' => 'active',
             'joined_at' => fake()->dateTimeBetween('-1 years', 'now'),
             'points' => fake()->numberBetween(0, 1000),
