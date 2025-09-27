@@ -22,6 +22,7 @@ class Product extends Model
         'wholesale_price',
         'min_wholesale_qty',
         'tax_rate',
+        'stock',
         'category_id',
         'division_id',
         'rack_id',
@@ -42,7 +43,9 @@ class Product extends Model
         'tax_rate' => 'decimal:2',
         'weight' => 'decimal:2',
         'min_wholesale_qty' => 'integer',
+        'stock' => 'integer',
         'min_stock_alert' => 'integer',
+        'max_stock_alert' => 'integer',
     ];
 
     public function category()

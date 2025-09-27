@@ -8,6 +8,8 @@ use App\Imports\ProductsImport;
 use App\Models\Product;
 use App\Models\ProductImportHistory;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Inertia\Inertia;
 use Maatwebsite\Excel\Facades\Excel;
 
@@ -63,8 +65,9 @@ class ProductController extends Controller
             'member_price' => 'nullable|numeric|min:0',
             'vip_price' => 'nullable|numeric|min:0',
             'wholesale_price' => 'nullable|numeric|min:0',
-            'min_wholesale_qty' => 'nullable|integer|min:1',
+            'min_wholesale_qty' => 'required|integer|min:1',
             'tax_rate' => 'nullable|numeric|min:0|max:100',
+            'stock' => 'nullable|integer|min:0',
             'category_id' => 'nullable|exists:categories,id',
             'division_id' => 'nullable|exists:divisions,id',
             'rack_id' => 'nullable|exists:racks,id',
@@ -72,6 +75,8 @@ class ProductController extends Controller
             'unit' => 'required|string|max:50',
             'weight' => 'nullable|numeric|min:0',
             'min_stock_alert' => 'nullable|integer|min:0',
+            'max_stock_alert' => 'nullable|integer|min:0',
+            'reorder' => 'nullable|string',
         ]);
 
         Product::create($validated);
@@ -102,8 +107,9 @@ class ProductController extends Controller
             'member_price' => 'nullable|numeric|min:0',
             'vip_price' => 'nullable|numeric|min:0',
             'wholesale_price' => 'nullable|numeric|min:0',
-            'min_wholesale_qty' => 'nullable|integer|min:1',
+            'min_wholesale_qty' => 'required|integer|min:1',
             'tax_rate' => 'nullable|numeric|min:0|max:100',
+            'stock' => 'nullable|integer|min:0',
             'category_id' => 'nullable|exists:categories,id',
             'division_id' => 'nullable|exists:divisions,id',
             'rack_id' => 'nullable|exists:racks,id',
@@ -111,6 +117,8 @@ class ProductController extends Controller
             'unit' => 'required|string|max:50',
             'weight' => 'nullable|numeric|min:0',
             'min_stock_alert' => 'nullable|integer|min:0',
+            'max_stock_alert' => 'nullable|integer|min:0',
+            'reorder' => 'nullable|string',
         ]);
 
         $product->update($validated);
@@ -137,34 +145,78 @@ class ProductController extends Controller
 
     public function import(Request $request)
     {
+        Log::info('Starting product import process');
+
         $request->validate([
             'import_file' => 'required|mimes:xlsx,xls',
         ]);
 
         try {
-            // Get all current products for history
-            $currentProducts = Product::all();
+            // Get all current products indexed by product_code
+            $currentProducts = Product::all()->keyBy('product_code');
+            Log::info('Current products count: ' . $currentProducts->count());
 
-            // Save to history
-            $historyRecords = [];
-            foreach ($currentProducts as $product) {
-                $historyRecords[] = [
-                    'user_id' => auth()->id(),
-                    'product_data' => $product->toArray(),
-                    'imported_at' => now(),
-                ];
+            // Import new products data
+            $import = new ProductsImport;
+            $newProductsData = Excel::toCollection($import, $request->file('import_file'))->first();
+            Log::info('Imported data count: ' . $newProductsData->count());
+
+            if ($newProductsData->isEmpty()) {
+                Log::warning('No valid product data found in Excel file');
+                return redirect()->back()->with('error', 'File Excel tidak mengandung data produk yang valid.');
             }
-            ProductImportHistory::insert($historyRecords);
 
-            // Delete all existing products
-            Product::query()->truncate();
+            // Process the import in transaction
+            $result = DB::transaction(function () use ($newProductsData, $currentProducts) {
+                $historyRecords = [];
+                $updatedCount = 0;
+                $createdCount = 0;
 
-            // Import new products
-            Excel::import(new ProductsImport, $request->file('import_file'));
+                foreach ($newProductsData as $data) {
+                    // Ensure $data is array
+                    $data = is_array($data) ? $data : $data->toArray();
+
+                    // Update or create the product (validation already done in ProductsImport)
+                    $product = Product::updateOrCreate(
+                        ['product_code' => $data['product_code']],
+                        $data
+                    );
+
+                    if ($product->wasRecentlyCreated) {
+                        $createdCount++;
+                        Log::info('Created new product: ' . $data['product_code']);
+                    } else {
+                        $updatedCount++;
+                        // Add to history if it was existing
+                        if (isset($currentProducts[$data['product_code']])) {
+                            $historyRecords[] = [
+                                'user_id' => auth()->id(),
+                                'product_data' => $currentProducts[$data['product_code']]->toArray(),
+                                'imported_at' => now(),
+                            ];
+                        }
+                        Log::info('Updated existing product: ' . $data['product_code']);
+                    }
+                }
+
+                // Insert history records if any
+                if (!empty($historyRecords)) {
+                    ProductImportHistory::insert($historyRecords);
+                    Log::info('History records inserted: ' . count($historyRecords));
+                }
+
+                return ['updated' => $updatedCount, 'created' => $createdCount];
+            });
+
+            $updatedCount = $result['updated'];
+            $createdCount = $result['created'];
+
+            Log::info('Import completed: ' . $updatedCount . ' updated, ' . $createdCount . ' created');
 
             return redirect()->route('master.products.index')
-                ->with('success', 'Data produk berhasil diimpor! Data lama telah dicatat dalam history.');
+                ->with('success', 'Data produk berhasil diimpor! ' . $updatedCount . ' produk diganti dan ' . $createdCount . ' produk baru ditambahkan. Riwayat perubahan telah dicatat.');
         } catch (\Exception $e) {
+            Log::error('Import failed: ' . $e->getMessage(), ['trace' => $e->getTraceAsString()]);
             return redirect()->back()
                 ->with('error', 'Gagal mengimpor data: ' . $e->getMessage());
         }

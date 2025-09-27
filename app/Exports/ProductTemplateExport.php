@@ -39,15 +39,18 @@ class ProductTemplateExport implements FromCollection, WithHeadings, WithStyles
                 14000, // member_price
                 13000, // vip_price
                 12000, // wholesale_price
-                10, // min_wholesale_qty
                 10, // tax_rate
-                1, // category_id (contoh)
+                10, // min_wholesale_qty
+                100, // stock
+                1, // category_id
                 1, // division_id
                 1, // rack_id
                 1, // supplier_id
                 'PCS', // unit
                 0.5, // weight
                 5, // min_stock_alert
+                10, // max_stock_alert
+                'Reorder when low', // reorder
             ],
             // Sample 2
             [
@@ -61,8 +64,9 @@ class ProductTemplateExport implements FromCollection, WithHeadings, WithStyles
                 28000,
                 26000,
                 25000,
-                20,
                 12,
+                20,
+                50,
                 2,
                 1,
                 2,
@@ -70,6 +74,8 @@ class ProductTemplateExport implements FromCollection, WithHeadings, WithStyles
                 'KG',
                 1.0,
                 10,
+                20,
+                'Reorder note',
             ],
             // Sample 3
             [
@@ -83,7 +89,8 @@ class ProductTemplateExport implements FromCollection, WithHeadings, WithStyles
                 null,
                 null,
                 null,
-                null,
+                0,
+                5,
                 0,
                 null,
                 null,
@@ -92,6 +99,8 @@ class ProductTemplateExport implements FromCollection, WithHeadings, WithStyles
                 'UNIT',
                 null,
                 0,
+                5,
+                null,
             ],
             // 2 baris kosong untuk tambahan
             array_fill(0, count($this->fields), ''),
