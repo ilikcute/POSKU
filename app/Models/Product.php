@@ -207,4 +207,44 @@ class Product extends Model
     {
         return $this->hasMany(Stock::class);
     }
+
+    /**
+     * Sync the product's stock field with the sum of quantities from stocks table.
+     * If no stock records exist, create a default one with quantity 0 and log as initial.
+     */
+    public function syncStock()
+    {
+        // Check if any stock records exist for this product
+        $existingStocks = $this->stocks();
+
+        if ($existingStocks->count() == 0) {
+            // Create a default stock record for store_id=1 (assuming default store exists)
+            $stock = Stock::create([
+                'product_id' => $this->id,
+                'store_id' => 1, // Default store
+                'quantity' => 0,
+            ]);
+
+            // Log initial stock movement
+            $userId = auth()->id() ?? \App\Models\User::first()->id ?? 1; // Default to first user or 1
+            $stock->stockMovements()->create([
+                'user_id' => $userId,
+                'movement_type' => 'in', // Initial stock as 'in'
+                'quantity' => 0,
+                'reason' => 'Initial stock for new product',
+                'reference_type' => 'initial',
+                'reference_id' => null,
+                'old_quantity' => 0,
+                'new_quantity' => 0,
+            ]);
+        }
+
+        // Sum all quantities from stocks
+        $totalStock = $this->stocks()->sum('quantity');
+
+        // Update the product's stock field
+        $this->update(['stock' => $totalStock]);
+
+        return $this;
+    }
 }

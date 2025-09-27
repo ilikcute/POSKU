@@ -67,7 +67,6 @@ class ProductController extends Controller
             'wholesale_price' => 'nullable|numeric|min:0',
             'min_wholesale_qty' => 'required|integer|min:1',
             'tax_rate' => 'nullable|numeric|min:0|max:100',
-            'stock' => 'nullable|integer|min:0',
             'category_id' => 'nullable|exists:categories,id',
             'division_id' => 'nullable|exists:divisions,id',
             'rack_id' => 'nullable|exists:racks,id',
@@ -79,7 +78,8 @@ class ProductController extends Controller
             'reorder' => 'nullable|string',
         ]);
 
-        Product::create($validated);
+        $product = Product::create($validated);
+        $product->syncStock();
 
         return redirect()->back()->with('success', 'Produk berhasil ditambahkan.');
     }
@@ -109,7 +109,6 @@ class ProductController extends Controller
             'wholesale_price' => 'nullable|numeric|min:0',
             'min_wholesale_qty' => 'required|integer|min:1',
             'tax_rate' => 'nullable|numeric|min:0|max:100',
-            'stock' => 'nullable|integer|min:0',
             'category_id' => 'nullable|exists:categories,id',
             'division_id' => 'nullable|exists:divisions,id',
             'rack_id' => 'nullable|exists:racks,id',
@@ -122,6 +121,7 @@ class ProductController extends Controller
         ]);
 
         $product->update($validated);
+        $product->syncStock();
 
         return redirect()->back()->with('success', 'Produk berhasil diperbarui.');
     }
@@ -181,6 +181,9 @@ class ProductController extends Controller
 
                     Log::info('Processing product: ' . $data['product_code']);
 
+                    // Remove stock from data to prevent manual intervention
+                    unset($data['stock']);
+
                     // Check if product exists
                     $existingProduct = $currentProducts->get($data['product_code']);
 
@@ -189,6 +192,9 @@ class ProductController extends Controller
                         ['product_code' => $data['product_code']],
                         $data
                     );
+
+                    // Sync stock from stocks table
+                    $product->syncStock();
 
                     if ($product->wasRecentlyCreated) {
                         $createdCount++;

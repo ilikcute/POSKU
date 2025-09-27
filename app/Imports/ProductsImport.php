@@ -87,6 +87,9 @@ class ProductsImport implements ToCollection, WithHeadingRow
                 return null;
             }
 
+            // Remove stock from data to prevent manual intervention
+            unset($data['stock']);
+
             Log::info('Row processed successfully', ['product_code' => $data['product_code']]);
             return $data;
         })->filter()->values();

@@ -24,6 +24,7 @@ return new class extends Migration
             $table->decimal('vip_price', 15, 2);
             $table->decimal('wholesale_price', 15, 2);
             $table->decimal('tax_rate', 5, 2)->default(0);
+            $table->enum('tax_type', ['Y', 'N'])->default('Y');
             $table->integer('min_wholesale_qty');
             $table->integer('stock')->default(0);
             $table->foreignId('category_id')->nullable()->constrained()->onDelete('set null');
