@@ -90,10 +90,7 @@ export default {
         return { form, submit };
     },
     props: {
-        logoUrl: {
-            type: String,
-            default: "/images/logo.svg",
-        },
+        logoUrl: String,
     },
 };
 </script>

@@ -18,9 +18,13 @@ class AuthenticatedSessionController extends Controller
      */
     public function create(): Response
     {
+        // Ambil logo dari toko utama
+        $mainStore = \App\Models\Store::where('is_main_store', true)->first();
+        $logoUrl = $mainStore && $mainStore->logo_path ? '/storage/' . $mainStore->logo_path : '/logo-posku.svg';
         return Inertia::render('Auth/Login', [
             'canResetPassword' => Route::has('password.request'),
             'status' => session('status'),
+            'logoUrl' => $logoUrl,
         ]);
     }
 

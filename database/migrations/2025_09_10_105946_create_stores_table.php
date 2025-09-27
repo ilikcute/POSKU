@@ -16,7 +16,12 @@ return new class extends Migration
             $table->string('name');
             $table->text('address')->nullable();
             $table->string('phone', 20)->nullable();
+            $table->string('email')->nullable();
+            $table->string('website')->nullable();
             $table->string('logo_path')->nullable();
+            $table->string('heroimage_path')->nullable();
+            $table->string('favicon_path')->nullable();
+            $table->string('tax')->nullable();
             $table->boolean('is_main_store')->default(false);
             $table->timestamps();
         });

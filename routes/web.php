@@ -38,9 +38,15 @@ Route::get('/', function () {
         // Tambahkan pesan flash untuk memberitahu pengguna
         return redirect()->route('shifts.close.form')->with('warning', 'Anda memiliki shift yang belum ditutup dari hari sebelumnya. Silakan tutup shift terlebih dahulu.');
     }
+    // Ambil logo dan hero image dari toko utama
+    $mainStore = \App\Models\Store::where('is_main_store', true)->first();
+    $logoUrl = $mainStore && $mainStore->logo_path ? '/storage/' . $mainStore->logo_path : '/logo-posku.svg';
+    $heroImageUrl = $mainStore && $mainStore->heroimage_path ? '/storage/' . $mainStore->heroimage_path : '/hero-modern-pos.svg';
     return Inertia::render('Welcome', [
         'canLogin' => Route::has('login'),
-        'canRegister' => Route::has('register')
+        'canRegister' => Route::has('register'),
+        'logoUrl' => $logoUrl,
+        'heroImageUrl' => $heroImageUrl
     ]);
 });
 

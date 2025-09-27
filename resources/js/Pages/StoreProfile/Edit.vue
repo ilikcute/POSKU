@@ -14,15 +14,22 @@ const props = defineProps({
 const viewMode = ref('form');
 const isModalOpen = ref(false);
 
-// State untuk preview logo baru
+// State untuk preview gambar baru
 const logoPreview = ref(null);
+const heroimagePreview = ref(null);
+const faviconPreview = ref(null);
 
 // Inisialisasi form dengan data toko dari controller
 const form = useForm({
     name: props.store.name,
     address: props.store.address,
     phone: props.store.phone,
+    email: props.store.email,
+    website: props.store.website,
+    tax: props.store.tax,
     logo: null,
+    heroimage: null,
+    favicon: null,
 });
 
 // Handle file input change
@@ -38,6 +45,30 @@ const handleLogoChange = (event) => {
     }
 };
 
+const handleHeroimageChange = (event) => {
+    const file = event.target.files[0];
+    if (file) {
+        form.heroimage = file;
+        // Create preview URL
+        heroimagePreview.value = URL.createObjectURL(file);
+    } else {
+        form.heroimage = null;
+        heroimagePreview.value = null;
+    }
+};
+
+const handleFaviconChange = (event) => {
+    const file = event.target.files[0];
+    if (file) {
+        form.favicon = file;
+        // Create preview URL
+        faviconPreview.value = URL.createObjectURL(file);
+    } else {
+        form.favicon = null;
+        faviconPreview.value = null;
+    }
+};
+
 const openModal = () => {
     isModalOpen.value = true;
 };
@@ -45,7 +76,11 @@ const openModal = () => {
 const closeModal = () => {
     isModalOpen.value = false;
     form.reset('logo');
+    form.reset('heroimage');
+    form.reset('favicon');
     logoPreview.value = null;
+    heroimagePreview.value = null;
+    faviconPreview.value = null;
 };
 
 const saveStoreProfile = () => {
@@ -56,10 +91,21 @@ const saveStoreProfile = () => {
     formData.append('name', form.name);
     formData.append('address', form.address || '');
     formData.append('phone', form.phone || '');
+    formData.append('email', form.email || '');
+    formData.append('website', form.website || '');
+    formData.append('tax', form.tax || '');
     formData.append('_method', 'PATCH');
 
     if (form.logo) {
         formData.append('logo', form.logo);
+    }
+
+    if (form.heroimage) {
+        formData.append('heroimage', form.heroimage);
+    }
+
+    if (form.favicon) {
+        formData.append('favicon', form.favicon);
     }
 
     // Use router.post with FormData for file uploads
@@ -261,6 +307,30 @@ const saveStoreProfile = () => {
                         </div>
 
                         <div>
+                            <InputLabel for="email" value="Email Toko" class="text-gray-300 font-semibold" />
+                            <TextInput id="email" v-model="form.email" type="email"
+                                class="mt-2 block w-full bg-white/5 border-white/20 rounded-lg text-white placeholder-gray-400 focus:ring-blue-500 focus:border-blue-500"
+                                placeholder="contoh@email.com" />
+                            <InputError :message="form.errors?.email" class="mt-2 text-red-400" />
+                        </div>
+
+                        <div>
+                            <InputLabel for="website" value="Website Toko" class="text-gray-300 font-semibold" />
+                            <TextInput id="website" v-model="form.website"
+                                class="mt-2 block w-full bg-white/5 border-white/20 rounded-lg text-white placeholder-gray-400 focus:ring-blue-500 focus:border-blue-500"
+                                placeholder="https://www.tokoanda.com" />
+                            <InputError :message="form.errors?.website" class="mt-2 text-red-400" />
+                        </div>
+
+                        <div>
+                            <InputLabel for="tax" value="Nomor Pajak" class="text-gray-300 font-semibold" />
+                            <TextInput id="tax" v-model="form.tax"
+                                class="mt-2 block w-full bg-white/5 border-white/20 rounded-lg text-white placeholder-gray-400 focus:ring-blue-500 focus:border-blue-500"
+                                placeholder="Contoh: 1234567890" />
+                            <InputError :message="form.errors?.tax" class="mt-2 text-red-400" />
+                        </div>
+
+                        <div>
                             <InputLabel for="logo" value="Logo Toko" class="text-gray-300 font-semibold" />
                             <input id="logo" type="file" accept="image/*"
                                 class="mt-2 block w-full bg-white/5 border-white/20 rounded-lg text-white file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-500 file:text-white hover:file:bg-blue-600"
@@ -300,6 +370,97 @@ const saveStoreProfile = () => {
                                             </svg>
                                         </div>
                                         <p class="text-xs text-gray-400 mt-2">Belum ada logo</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div>
+                            <InputLabel for="heroimage" value="Gambar Hero Toko" class="text-gray-300 font-semibold" />
+                            <input id="heroimage" type="file" accept="image/*"
+                                class="mt-2 block w-full bg-white/5 border-white/20 rounded-lg text-white file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-green-500 file:text-white hover:file:bg-green-600"
+                                @change="handleHeroimageChange" />
+                            <InputError :message="form.errors?.heroimage" class="mt-2 text-red-400" />
+                            <p class="mt-2 text-sm text-gray-400">
+                                Pilih gambar hero untuk halaman welcome (format: JPG, PNG, GIF. Maksimal 2MB).
+                            </p>
+
+                            <!-- Hero Image Preview -->
+                            <div class="mt-4">
+                                <p class="text-sm font-medium text-gray-300 mb-3">Preview Gambar Hero:</p>
+                                <div class="flex items-center space-x-6">
+                                    <!-- Current Hero Image (if exists and no new file selected) -->
+                                    <div v-if="!heroimagePreview && props.store.heroimage_path" class="text-center">
+                                        <p class="text-xs text-gray-500 mb-2">Gambar Hero Saat Ini</p>
+                                        <img :src="`/storage/${props.store.heroimage_path}`"
+                                            alt="Gambar Hero Toko Saat Ini"
+                                            class="h-20 w-auto object-contain border border-white/20 rounded-lg shadow-sm"
+                                            @error="$event.target.style.display = 'none'" />
+                                    </div>
+
+                                    <!-- New Hero Image Preview -->
+                                    <div v-if="heroimagePreview" class="text-center">
+                                        <p class="text-xs text-gray-500 mb-2">Gambar Hero Baru</p>
+                                        <img :src="heroimagePreview" alt="Preview Gambar Hero Baru"
+                                            class="h-20 w-auto object-contain border border-white/20 rounded-lg shadow-sm" />
+                                    </div>
+
+                                    <!-- No Hero Image State -->
+                                    <div v-if="!heroimagePreview && !props.store.heroimage_path" class="text-center">
+                                        <div
+                                            class="h-20 w-20 bg-gray-700 border border-white/20 rounded-lg flex items-center justify-center">
+                                            <svg class="w-8 h-8 text-gray-400" fill="none" stroke="currentColor"
+                                                viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                    d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                            </svg>
+                                        </div>
+                                        <p class="text-xs text-gray-400 mt-2">Belum ada gambar hero</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div>
+                            <InputLabel for="favicon" value="Favicon Toko" class="text-gray-300 font-semibold" />
+                            <input id="favicon" type="file" accept="image/*"
+                                class="mt-2 block w-full bg-white/5 border-white/20 rounded-lg text-white file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-purple-500 file:text-white hover:file:bg-purple-600"
+                                @change="handleFaviconChange" />
+                            <InputError :message="form.errors?.favicon" class="mt-2 text-red-400" />
+                            <p class="mt-2 text-sm text-gray-400">
+                                Pilih gambar favicon untuk browser tab (format: ICO, PNG. Maksimal 512KB).
+                            </p>
+
+                            <!-- Favicon Preview -->
+                            <div class="mt-4">
+                                <p class="text-sm font-medium text-gray-300 mb-3">Preview Favicon:</p>
+                                <div class="flex items-center space-x-6">
+                                    <!-- Current Favicon (if exists and no new file selected) -->
+                                    <div v-if="!faviconPreview && props.store.favicon_path" class="text-center">
+                                        <p class="text-xs text-gray-500 mb-2">Favicon Saat Ini</p>
+                                        <img :src="`/storage/${props.store.favicon_path}`" alt="Favicon Toko Saat Ini"
+                                            class="h-8 w-8 object-contain border border-white/20 rounded shadow-sm"
+                                            @error="$event.target.style.display = 'none'" />
+                                    </div>
+
+                                    <!-- New Favicon Preview -->
+                                    <div v-if="faviconPreview" class="text-center">
+                                        <p class="text-xs text-gray-500 mb-2">Favicon Baru</p>
+                                        <img :src="faviconPreview" alt="Preview Favicon Baru"
+                                            class="h-8 w-8 object-contain border border-white/20 rounded shadow-sm" />
+                                    </div>
+
+                                    <!-- No Favicon State -->
+                                    <div v-if="!faviconPreview && !props.store.favicon_path" class="text-center">
+                                        <div
+                                            class="h-8 w-8 bg-gray-700 border border-white/20 rounded flex items-center justify-center">
+                                            <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor"
+                                                viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                    d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                            </svg>
+                                        </div>
+                                        <p class="text-xs text-gray-400 mt-2">Belum ada favicon</p>
                                     </div>
                                 </div>
                             </div>

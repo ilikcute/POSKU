@@ -18,11 +18,11 @@
                     </Link>
                     <template v-else>
                         <Link :href="route('login')"
-                            class="text-base font-semibold text-white/90 hover:text-white transition">
+                            class="inline-block bg-gradient-to-r from-indigo-400 to-pink-400 text-white font-bold py-2 px-6 rounded-full text-base shadow-xl hover:scale-105 hover:from-indigo-500 hover:to-pink-500 transition-transform duration-200">
                         Log in
                         </Link>
                         <Link v-if="canRegister" :href="route('register')"
-                            class="ml-2 inline-block bg-white text-indigo-700 font-semibold py-2 px-5 rounded-xl shadow-md hover:bg-gray-100 transition">
+                            class="ml-2 inline-block bg-gradient-to-r from-indigo-400 to-pink-400 text-white font-bold py-2 px-6 rounded-full text-base shadow-xl hover:scale-105 hover:from-indigo-500 hover:to-pink-500 transition-transform duration-200">
                         Register
                         </Link>
                     </template>
@@ -31,8 +31,8 @@
         </header>
 
         <!-- Hero Section -->
-        <main class="flex-grow flex items-center relative overflow-hidden">
-            <div class="container mx-auto px-6 py-16 grid md:grid-cols-2 gap-16 items-center">
+        <main class="w-7xl mx-auto flex-grow flex items-center relative overflow-hidden">
+            <div class="container mx-auto px-6 py-16 grid lg:grid-cols-2 gap-6 items-center">
                 <!-- Text Content -->
                 <div class="flex flex-col justify-center items-start animate-fade-in-up space-y-6">
                     <h1 class="text-5xl md:text-6xl font-extrabold leading-tight drop-shadow-2xl">
@@ -49,10 +49,10 @@
                 </div>
 
                 <!-- Image Content -->
-                <div class="flex justify-center animate-fade-in-up delay-200 relative">
-                    <div class="absolute -top-10 -right-10 w-72 h-72 bg-pink-400/40 rounded-full blur-3xl"></div>
+                <div class="flex justify-center animate-fade-in-up delay-200 relative w-7xl">
+                    <div class="absolute -top-10 -right-10 w-100 h-100 bg-pink-400/40 rounded-full blur-3xl"></div>
                     <img :src="heroImageUrl" alt="Modern Retail POS"
-                        class="relative max-w-full h-auto rounded-3xl shadow-2xl border-4 border-white/50" />
+                        class="relative max-w-full h-auto rounded-2xl shadow-2xl border-4 border-white/50" />
                 </div>
             </div>
         </main>

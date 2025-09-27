@@ -33,15 +33,39 @@ class StoreProfileController extends Controller
             'name' => 'required|string|max:255',
             'address' => 'nullable|string',
             'phone' => 'nullable|string|max:20',
-            'logo_path' => 'nullable|image|max:1024', // Validasi untuk upload logo
+            'email' => 'nullable|email|max:255',
+            'website' => 'nullable|url|max:255',
+            'tax' => 'nullable|string|max:50',
+            'logo' => 'nullable|image|max:1024', // Validasi untuk upload logo
+            'heroimage' => 'nullable|image|max:2048', // Validasi untuk upload hero image
+            'favicon' => 'nullable|image|max:512', // Validasi untuk upload favicon
         ]);
 
-        $store->update($validated);
+        $store->update([
+            'name' => $validated['name'],
+            'address' => $validated['address'],
+            'phone' => $validated['phone'],
+            'email' => $validated['email'],
+            'website' => $validated['website'],
+            'tax' => $validated['tax'],
+        ]);
 
-        // Logika untuk upload logo bisa ditambahkan di sini
+        // Upload logo
         if ($request->file('logo')) {
             $path = $request->file('logo')->store('logos', 'public');
             $store->update(['logo_path' => $path]);
+        }
+
+        // Upload hero image
+        if ($request->file('heroimage')) {
+            $path = $request->file('heroimage')->store('heroimages', 'public');
+            $store->update(['heroimage_path' => $path]);
+        }
+
+        // Upload favicon
+        if ($request->file('favicon')) {
+            $path = $request->file('favicon')->store('favicons', 'public');
+            $store->update(['favicon_path' => $path]);
         }
 
         return Redirect::route('store.profile.edit')->with('success', 'Profil toko berhasil diperbarui.');

@@ -34,6 +34,11 @@ class ProductsImport implements ToModel, WithHeadingRow
             }
         }
 
-        return new Product($data);
+        // Temporarily unguard to allow mass assignment of all fields
+        Product::unguard();
+        $product = new Product($data);
+        Product::reguard();
+
+        return $product;
     }
 }

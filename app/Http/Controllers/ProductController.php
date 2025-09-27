@@ -157,7 +157,7 @@ class ProductController extends Controller
             ProductImportHistory::insert($historyRecords);
 
             // Delete all existing products
-            Product::query()->delete();
+            Product::query()->truncate();
 
             // Import new products
             Excel::import(new ProductsImport, $request->file('import_file'));
