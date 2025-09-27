@@ -18,7 +18,7 @@ class ProductController extends Controller
     public function index(Request $request)
     {
         // Ambil semua produk, tapi siapkan untuk difilter
-        $products = Product::query()
+        $products = Product::with(['category', 'division', 'rack', 'supplier'])
             // Gunakan 'when' untuk menjalankan query pencarian HANYA JIKA ada input 'search'
             ->when($request->input('search'), function ($query, $search) {
                 // Cari di kolom 'name' ATAU 'product_code'
