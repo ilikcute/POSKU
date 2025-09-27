@@ -68,6 +68,7 @@ const menuItems = [
     {
         can: canAccessMasterMenu, isOpen: isMasterMenuOpen, isActive: isMasterMenuActive, toggle: () => isMasterMenuOpen.value = !isMasterMenuOpen.value, name: 'Setting Master', icon: '<svg class="h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12a7.5 7.5 0 0015 0m-15 0a7.5 7.5 0 1115 0m-15 0H3m16.5 0H21m-1.5 0H12m-8.457 3.077l1.41-.513m14.095-5.13l-1.41-.513M5.106 17.785l1.153-.964M16.745 7.86l1.154-.964m-14.09 5.13l1.41.513M18.894 6.215l-1.153.964m-5.13-1.41l-.513 1.41m5.643 5.643l-.513 1.41M12 21.75c-2.676 0-5.216-.584-7.499-1.632z" /></svg>', sub: [
             { route: 'master.products.index', label: 'Produk', can: hasPermission('view_products') },
+            { route: 'master.barcodes.index', label: 'Cetak Barcode', can: hasPermission('view_products') },
             { route: 'promotions.index', label: 'Promosi', can: hasPermission('view_promotions') },
             { route: 'master.categories.index', label: 'Kategori', can: hasPermission('view_categories') },
             { route: 'master.divisions.index', label: 'Divisi', can: hasPermission('view_divisions') },

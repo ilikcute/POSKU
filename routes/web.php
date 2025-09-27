@@ -393,6 +393,15 @@ Route::middleware('shift_required')->group(function () {
         Route::delete('salesmen/{salesman}', [SalesmanController::class, 'destroy'])
             ->name('salesmen.destroy')
             ->middleware('check.permission:delete_salesmen');
+
+        // Barcode routes
+        Route::middleware('check.permission:view_products')->group(function () {
+            Route::get('barcodes', [App\Http\Controllers\BarcodeController::class, 'index'])->name('barcodes.index');
+            Route::post('barcodes/generate', [App\Http\Controllers\BarcodeController::class, 'generate'])->name('barcodes.generate');
+            Route::post('barcodes/print', [App\Http\Controllers\BarcodeController::class, 'print'])->name('barcodes.print');
+            Route::post('barcodes/generate-price-tags', [App\Http\Controllers\BarcodeController::class, 'generatePriceTags'])->name('barcodes.generate-price-tags');
+            Route::post('barcodes/print-price-tags', [App\Http\Controllers\BarcodeController::class, 'printPriceTags'])->name('barcodes.print-price-tags');
+        });
     });
 });
 
