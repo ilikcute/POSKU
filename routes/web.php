@@ -3,6 +3,7 @@
 use carbon\Carbon;
 use Inertia\Inertia;
 use App\Models\Shift;
+use App\Models\Store;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Foundation\Application;
 use App\Http\Controllers\SaleController;
@@ -79,6 +80,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->middleware('check.permission:close_shifts');
     Route::get('/shifts', [ShiftController::class, 'index'])
         ->name('shifts.index')
+        ->middleware('check.permission:view_shifts');
+    Route::resource('shifts/authorizations', \App\Http\Controllers\AuthorizationController::class)
+        ->names('shifts.authorizations')
         ->middleware('check.permission:view_shifts');
 
 

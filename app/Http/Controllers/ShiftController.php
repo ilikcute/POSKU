@@ -80,9 +80,19 @@ class ShiftController extends Controller
     {
         $request->validate([
             'initial_cash' => 'required|numeric|min:0',
+            'authorization_password' => 'required|string',
         ]);
 
         $user = Auth::user();
+
+        // Verifikasi Password
+        $auth = Authorization::where('name', 'Buka Shift')->where('store_id', $user->store_id)->first();
+        if (! $auth || ! Hash::check($request->authorization_password, $auth->password)) {
+            throw ValidationException::withMessages([
+                'authorization_password' => 'Password verifikasi salah.',
+            ]);
+        }
+
         $deviceId = DeviceHelper::getDeviceId();
         $todayCount = Shift::where('store_id', $user->store_id)
             ->whereDate('start_time', Carbon::today())
@@ -233,6 +243,6 @@ class ShiftController extends Controller
         $request->session()->invalidate();
         $request->session()->regenerateToken();
 
-        return redirect('/login')->with('success', 'Shift berhasil ditutup. Silakan login kembali untuk memulai shift baru.');
+        return redirect('/index')->with('success', 'Shift berhasil ditutup. Silakan login kembali untuk memulai shift baru.');
     }
 }

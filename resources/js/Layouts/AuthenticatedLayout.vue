@@ -56,6 +56,7 @@ const menuItems = [
             { route: 'shifts.open.form', label: 'Buka Shift' },
             { route: 'shifts.close.form', label: 'Tutup Shift' },
             { route: 'shifts.index', label: 'Shift History' },
+            { route: 'shifts.authorizations.index', label: 'Kelola Authorization' },
         ]
     },
     {

@@ -12,6 +12,7 @@ const user = usePage().props.auth.user;
 const form = useForm({
     initial_cash: 0,
     name: "",
+    authorization_password: "",
 });
 
 const submit = () => {
@@ -53,8 +54,16 @@ const submit = () => {
                     <InputLabel for="initial_cash" value="Modal Awal (Rp)" class="text-white" />
                     <TextInput id="initial_cash" type="number"
                         class="mt-1 block w-full bg-white/5 border-white/20 focus:ring-blue-500 focus:border-blue-500 rounded-lg"
-                        v-model="form.initial_cash" required autofocus />
+                        v-model="form.initial_cash" required />
                     <InputError class="mt-2" :message="form.errors.initial_cash" />
+                </div>
+
+                <div>
+                    <InputLabel for="authorization_password" value="Password Verifikasi" class="text-white" />
+                    <TextInput id="authorization_password" type="password"
+                        class="mt-1 block w-full bg-white/5 border-white/20 focus:ring-blue-500 focus:border-blue-500 rounded-lg"
+                        v-model="form.authorization_password" required autofocus />
+                    <InputError class="mt-2" :message="form.errors.authorization_password" />
                 </div>
 
                 <div class="flex items-center justify-between mt-6">
