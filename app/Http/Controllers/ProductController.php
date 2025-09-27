@@ -156,9 +156,12 @@ class ProductController extends Controller
             $currentProducts = Product::all()->keyBy('product_code');
             Log::info('Current products count: ' . $currentProducts->count());
 
-            // Import new products data
+            // Import using the custom importer
             $import = new ProductsImport;
-            $newProductsData = Excel::toCollection($import, $request->file('import_file'))->first();
+            Excel::import($import, $request->file('import_file'));
+
+            // Get the processed data
+            $newProductsData = $import->getProcessedData();
             Log::info('Imported data count: ' . $newProductsData->count());
 
             if ($newProductsData->isEmpty()) {
@@ -176,7 +179,12 @@ class ProductController extends Controller
                     // Ensure $data is array
                     $data = is_array($data) ? $data : $data->toArray();
 
-                    // Update or create the product (validation already done in ProductsImport)
+                    Log::info('Processing product: ' . $data['product_code']);
+
+                    // Check if product exists
+                    $existingProduct = $currentProducts->get($data['product_code']);
+
+                    // Update or create the product
                     $product = Product::updateOrCreate(
                         ['product_code' => $data['product_code']],
                         $data
@@ -188,11 +196,13 @@ class ProductController extends Controller
                     } else {
                         $updatedCount++;
                         // Add to history if it was existing
-                        if (isset($currentProducts[$data['product_code']])) {
+                        if ($existingProduct) {
                             $historyRecords[] = [
                                 'user_id' => auth()->id(),
-                                'product_data' => $currentProducts[$data['product_code']]->toArray(),
+                                'product_data' => json_encode($existingProduct->toArray()), // Convert to JSON if column is JSON type
                                 'imported_at' => now(),
+                                'created_at' => now(),
+                                'updated_at' => now(),
                             ];
                         }
                         Log::info('Updated existing product: ' . $data['product_code']);
@@ -205,22 +215,105 @@ class ProductController extends Controller
                     Log::info('History records inserted: ' . count($historyRecords));
                 }
 
-                return ['updated' => $updatedCount, 'created' => $createdCount];
+                return ['updated' => $updatedCount, 'created' => $createdCount, 'history_count' => count($historyRecords)];
             });
 
             $updatedCount = $result['updated'];
             $createdCount = $result['created'];
+            $historyCount = $result['history_count'];
 
-            Log::info('Import completed: ' . $updatedCount . ' updated, ' . $createdCount . ' created');
+            Log::info('Import completed: ' . $updatedCount . ' updated, ' . $createdCount . ' created, ' . $historyCount . ' history records');
 
             return redirect()->route('master.products.index')
-                ->with('success', 'Data produk berhasil diimpor! ' . $updatedCount . ' produk diganti dan ' . $createdCount . ' produk baru ditambahkan. Riwayat perubahan telah dicatat.');
+                ->with('success', 'Data produk berhasil diimpor! ' . $updatedCount . ' produk diganti dan ' . $createdCount . ' produk baru ditambahkan. Riwayat perubahan telah dicatat (' . $historyCount . ' record).');
         } catch (\Exception $e) {
-            Log::error('Import failed: ' . $e->getMessage(), ['trace' => $e->getTraceAsString()]);
+            Log::error('Import failed: ' . $e->getMessage(), [
+                'trace' => $e->getTraceAsString(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine()
+            ]);
             return redirect()->back()
                 ->with('error', 'Gagal mengimpor data: ' . $e->getMessage());
         }
     }
+    // public function import(Request $request)
+    // {
+    //     Log::info('Starting product import process');
+
+    //     $request->validate([
+    //         'import_file' => 'required|mimes:xlsx,xls',
+    //     ]);
+
+    //     try {
+    //         // Get all current products indexed by product_code
+    //         $currentProducts = Product::all()->keyBy('product_code');
+    //         Log::info('Current products count: ' . $currentProducts->count());
+
+    //         // Import new products data
+    //         $import = new ProductsImport;
+    //         $newProductsData = Excel::toCollection($import, $request->file('import_file'))->first();
+    //         Log::info('Imported data count: ' . $newProductsData->count());
+
+    //         if ($newProductsData->isEmpty()) {
+    //             Log::warning('No valid product data found in Excel file');
+    //             return redirect()->back()->with('error', 'File Excel tidak mengandung data produk yang valid.');
+    //         }
+
+    //         // Process the import in transaction
+    //         $result = DB::transaction(function () use ($newProductsData, $currentProducts) {
+    //             $historyRecords = [];
+    //             $updatedCount = 0;
+    //             $createdCount = 0;
+
+    //             foreach ($newProductsData as $data) {
+    //                 // Ensure $data is array
+    //                 $data = is_array($data) ? $data : $data->toArray();
+
+    //                 // Update or create the product (validation already done in ProductsImport)
+    //                 $product = Product::updateOrCreate(
+    //                     ['product_code' => $data['product_code']],
+    //                     $data
+    //                 );
+
+    //                 if ($product->wasRecentlyCreated) {
+    //                     $createdCount++;
+    //                     Log::info('Created new product: ' . $data['product_code']);
+    //                 } else {
+    //                     $updatedCount++;
+    //                     // Add to history if it was existing
+    //                     if (isset($currentProducts[$data['product_code']])) {
+    //                         $historyRecords[] = [
+    //                             'user_id' => auth()->id(),
+    //                             'product_data' => $currentProducts[$data['product_code']]->toArray(),
+    //                             'imported_at' => now(),
+    //                         ];
+    //                     }
+    //                     Log::info('Updated existing product: ' . $data['product_code']);
+    //                 }
+    //             }
+
+    //             // Insert history records if any
+    //             if (!empty($historyRecords)) {
+    //                 ProductImportHistory::insert($historyRecords);
+    //                 Log::info('History records inserted: ' . count($historyRecords));
+    //             }
+
+    //             return ['updated' => $updatedCount, 'created' => $createdCount];
+    //         });
+
+    //         $updatedCount = $result['updated'];
+    //         $createdCount = $result['created'];
+
+    //         Log::info('Import completed: ' . $updatedCount . ' updated, ' . $createdCount . ' created');
+
+    //         return redirect()->route('master.products.index')
+    //             ->with('success', 'Data produk berhasil diimpor! ' . $updatedCount . ' produk diganti dan ' . $createdCount . ' produk baru ditambahkan. Riwayat perubahan telah dicatat.');
+    //     } catch (\Exception $e) {
+    //         Log::error('Import failed: ' . $e->getMessage(), ['trace' => $e->getTraceAsString()]);
+    //         return redirect()->back()
+    //             ->with('error', 'Gagal mengimpor data: ' . $e->getMessage());
+    //     }
+    // }
 
     public function downloadTemplate()
     {

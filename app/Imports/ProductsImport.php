@@ -5,6 +5,7 @@ namespace App\Imports;
 use App\Models\Product;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\Log;
 use Maatwebsite\Excel\Concerns\ToCollection;
 use Maatwebsite\Excel\Concerns\WithHeadingRow;
 use Illuminate\Support\Collection;
@@ -12,6 +13,7 @@ use Illuminate\Support\Collection;
 class ProductsImport implements ToCollection, WithHeadingRow
 {
     protected $fillableFields;
+    protected $processedData = [];
 
     public function __construct()
     {
@@ -23,13 +25,19 @@ class ProductsImport implements ToCollection, WithHeadingRow
 
     /**
      * @param Collection $rows
-     * @return Collection|null
      */
     public function collection(Collection $rows)
     {
-        $processedRows = $rows->map(function (array $row) {
+        Log::info('Processing ' . $rows->count() . ' rows from Excel');
+
+        $this->processedData = $rows->map(function ($row, $index) {
+            // Convert Collection to array if needed
+            $rowData = $row instanceof Collection ? $row->toArray() : (array) $row;
+
+            Log::info('Processing row ' . ($index + 1), $rowData);
+
             // Filter row to only include fillable fields
-            $data = array_intersect_key($row, array_flip($this->fillableFields));
+            $data = array_intersect_key($rowData, array_flip($this->fillableFields));
 
             // Convert empty strings to null for nullable fields
             foreach ($data as $key => $value) {
@@ -44,40 +52,53 @@ class ProductsImport implements ToCollection, WithHeadingRow
 
             // Remove rows without required product_code or name
             if (empty($data['product_code']) || empty($data['name'])) {
+                Log::warning('Skipping row due to missing product_code or name', $data);
                 return null;
             }
 
             // Validate foreign keys and uniques
             $validationErrors = [];
             if (!empty($data['category_id']) && !DB::table('categories')->where('id', $data['category_id'])->exists()) {
-                $validationErrors[] = "Invalid category_id";
+                $validationErrors[] = "Invalid category_id: " . $data['category_id'];
             }
             if (!empty($data['division_id']) && !DB::table('divisions')->where('id', $data['division_id'])->exists()) {
-                $validationErrors[] = "Invalid division_id";
+                $validationErrors[] = "Invalid division_id: " . $data['division_id'];
             }
             if (!empty($data['rack_id']) && !DB::table('racks')->where('id', $data['rack_id'])->exists()) {
-                $validationErrors[] = "Invalid rack_id";
+                $validationErrors[] = "Invalid rack_id: " . $data['rack_id'];
             }
             if (!empty($data['supplier_id']) && !DB::table('suppliers')->where('id', $data['supplier_id'])->exists()) {
-                $validationErrors[] = "Invalid supplier_id";
+                $validationErrors[] = "Invalid supplier_id: " . $data['supplier_id'];
             }
             if (!empty($data['barcode'])) {
                 $barcodeExists = DB::table('products')->where('barcode', $data['barcode'])
                     ->where('product_code', '!=', $data['product_code'])
                     ->exists();
                 if ($barcodeExists) {
-                    $validationErrors[] = "Duplicate barcode";
+                    $validationErrors[] = "Duplicate barcode: " . $data['barcode'];
                 }
             }
 
             if (!empty($validationErrors)) {
-                // Skip invalid rows, but could log or collect errors
+                Log::warning('Skipping row due to validation errors', [
+                    'product_code' => $data['product_code'] ?? 'N/A',
+                    'errors' => $validationErrors
+                ]);
                 return null;
             }
 
+            Log::info('Row processed successfully', ['product_code' => $data['product_code']]);
             return $data;
-        })->filter(); // Remove null rows
+        })->filter()->values();
 
-        return $processedRows->values()->toArray();
+        Log::info('Total valid rows processed: ' . $this->processedData->count());
+    }
+
+    /**
+     * Get processed data
+     */
+    public function getProcessedData()
+    {
+        return $this->processedData;
     }
 }
