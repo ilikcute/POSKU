@@ -401,6 +401,8 @@ Route::middleware('shift_required')->group(function () {
             Route::post('barcodes/print', [App\Http\Controllers\BarcodeController::class, 'print'])->name('barcodes.print');
             Route::post('barcodes/generate-price-tags', [App\Http\Controllers\BarcodeController::class, 'generatePriceTags'])->name('barcodes.generate-price-tags');
             Route::post('barcodes/print-price-tags', [App\Http\Controllers\BarcodeController::class, 'printPriceTags'])->name('barcodes.print-price-tags');
+            Route::post('barcodes/generate-customer-cards', [App\Http\Controllers\BarcodeController::class, 'generateCustomerCards'])->name('barcodes.generate-customer-cards');
+            Route::post('barcodes/print-customer-cards', [App\Http\Controllers\BarcodeController::class, 'printCustomerCards'])->name('barcodes.print-customer-cards');
         });
     });
 });

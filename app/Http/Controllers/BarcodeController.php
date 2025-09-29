@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Product;
+use App\Models\Customer;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Picqer\Barcode\BarcodeGeneratorSVG;
@@ -207,6 +208,95 @@ class BarcodeController extends Controller
 
         return response()->view('barcodes.price-tag-print', [
             'products' => $productsWithPriceTags->toArray(),
+            'layout' => [
+                'rows' => $request->rows,
+                'columns' => $request->columns,
+                'paper_size' => $request->paper_size,
+            ]
+        ])->header('Content-Type', 'text/html');
+    }
+
+    public function generateCustomerCards(Request $request)
+    {
+        $request->validate([
+            'customer_codes' => 'required|array|min:1',
+            'customer_codes.*' => 'required|string|exists:customers,customer_code',
+            'rows' => 'required|integer|min:1|max:20',
+            'columns' => 'required|integer|min:1|max:10',
+            'paper_size' => 'required|in:A4',
+        ]);
+
+        $customers = Customer::with('customerType')->whereIn('customer_code', $request->customer_codes)->get();
+
+        $customerCardData = $customers->map(function ($customer) {
+            $qrCodeImage = '';
+            try {
+                $qrCodeImage = 'data:image/svg+xml;base64,' . base64_encode(
+                    QrCode::size(100)->format('svg')->generate($customer->customer_code)
+                );
+            } catch (\Exception $e) {
+                $qrCodeImage = '';
+            }
+
+            return [
+                'customer_code' => $customer->customer_code,
+                'name' => $customer->name,
+                'status' => $customer->status ?? ($customer->is_active ? 'active' : 'inactive'),
+                'customer_type' => $customer->customerType ? $customer->customerType->name : 'N/A',
+                'joined_at' => $customer->joined_at ? $customer->joined_at->format('d/m/Y') : 'N/A',
+                'photo_url' => $customer->photo_url,
+                'qr_code_image' => $qrCodeImage,
+            ];
+        });
+
+        return response()->json([
+            'customer_card_data' => $customerCardData,
+            'layout' => [
+                'rows' => $request->rows,
+                'columns' => $request->columns,
+                'paper_size' => $request->paper_size,
+            ]
+        ]);
+    }
+
+    public function printCustomerCards(Request $request)
+    {
+        $customer_codes = json_decode($request->input('customer_codes'), true);
+        $request->merge(['customer_codes' => $customer_codes]);
+
+        $request->validate([
+            'customer_codes' => 'required|array|min:1',
+            'customer_codes.*' => 'required|string|exists:customers,customer_code',
+            'rows' => 'required|integer|min:1|max:20',
+            'columns' => 'required|integer|min:1|max:10',
+            'paper_size' => 'required|in:A4',
+        ]);
+
+        $customers = Customer::with('customerType')->whereIn('customer_code', $customer_codes)->get();
+
+        $customersWithCards = collect($customers)->map(function ($customer) {
+            $qrCodeImage = '';
+            try {
+                $qrCodeImage = 'data:image/svg+xml;base64,' . base64_encode(
+                    QrCode::size(100)->format('svg')->generate($customer->customer_code)
+                );
+            } catch (\Exception $e) {
+                $qrCodeImage = '';
+            }
+
+            return [
+                'customer_code' => $customer->customer_code,
+                'name' => $customer->name,
+                'status' => $customer->status ?? ($customer->is_active ? 'active' : 'inactive'),
+                'customer_type' => $customer->customerType ? $customer->customerType->name : 'N/A',
+                'joined_at' => $customer->joined_at ? $customer->joined_at->format('d/m/Y') : 'N/A',
+                'photo_url' => $customer->photo_url,
+                'qr_code_image' => $qrCodeImage,
+            ];
+        });
+
+        return response()->view('barcodes.customer-card-print', [
+            'customers' => $customersWithCards->toArray(),
             'layout' => [
                 'rows' => $request->rows,
                 'columns' => $request->columns,

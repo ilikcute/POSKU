@@ -15,14 +15,16 @@ const props = defineProps({
 });
 
 const productCodes = ref('');
+const customerCodes = ref('');
 const barcodeType = ref('code128');
 const rows = ref(5);
-const columns = ref(3);
+const activeTab = ref('barcode'); // 'barcode', 'price-tag', or 'customer-card'
+const columns = ref(activeTab.value === 'customer-card' ? 2 : 3);
 const paperSize = ref('A4');
 const isGenerating = ref(false);
 const generatedBarcodes = ref([]);
 const generatedPriceTags = ref([]);
-const activeTab = ref('barcode'); // 'barcode' or 'price-tag'
+const generatedCustomerCards = ref([]);
 
 const form = useForm({
     product_codes: [],
@@ -34,6 +36,13 @@ const form = useForm({
 
 const parsedProductCodes = computed(() => {
     return productCodes.value
+        .split('\n')
+        .map(code => code.trim())
+        .filter(code => code.length > 0);
+});
+
+const parsedCustomerCodes = computed(() => {
+    return customerCodes.value
         .split('\n')
         .map(code => code.trim())
         .filter(code => code.length > 0);
@@ -251,10 +260,108 @@ const printPriceTags = () => {
     router.visit(route('dashboard'));
 };
 
+const generateCustomerCards = async () => {
+    if (parsedCustomerCodes.value.length === 0) {
+        alert('Masukkan minimal satu kode customer');
+        return;
+    }
+
+    isGenerating.value = true;
+
+    const token = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+
+    try {
+        const response = await axios.post(route('master.barcodes.generate-customer-cards'), {
+            customer_codes: parsedCustomerCodes.value,
+            rows: rows.value,
+            columns: columns.value,
+            paper_size: paperSize.value,
+        }, {
+            headers: {
+                'X-CSRF-TOKEN': token
+            }
+        });
+
+        generatedCustomerCards.value = response.data.customer_card_data;
+    } catch (error) {
+        console.error('Error generating customer cards:', error);
+        if (error.response && error.response.status === 422) {
+            // Validation errors
+            const errors = error.response.data.errors;
+            let errorMessage = 'Kesalahan validasi:\n';
+            for (const field in errors) {
+                errorMessage += `${field}: ${errors[field].join(', ')}\n`;
+            }
+            alert(errorMessage);
+        } else {
+            alert('Terjadi kesalahan saat generate kartu customer');
+        }
+    } finally {
+        isGenerating.value = false;
+    }
+};
+
+const printCustomerCards = () => {
+    if (generatedCustomerCards.value.length === 0) {
+        alert('Generate kartu customer terlebih dahulu');
+        return;
+    }
+
+    const printForm = document.createElement('form');
+    printForm.method = 'POST';
+    printForm.target = '_blank';
+    printForm.action = route('master.barcodes.print-customer-cards');
+    printForm.style.display = 'none';
+
+    // CSRF token
+    const csrfInput = document.createElement('input');
+    csrfInput.type = 'hidden';
+    csrfInput.name = '_token';
+    csrfInput.value = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+    printForm.appendChild(csrfInput);
+
+    // Customer codes
+    const customerCodesInput = document.createElement('input');
+    customerCodesInput.type = 'hidden';
+    customerCodesInput.name = 'customer_codes';
+    customerCodesInput.value = JSON.stringify(parsedCustomerCodes.value);
+    printForm.appendChild(customerCodesInput);
+
+    // Rows
+    const rowsInput = document.createElement('input');
+    rowsInput.type = 'hidden';
+    rowsInput.name = 'rows';
+    rowsInput.value = rows.value;
+    printForm.appendChild(rowsInput);
+
+    // Columns
+    const columnsInput = document.createElement('input');
+    columnsInput.type = 'hidden';
+    columnsInput.name = 'columns';
+    columnsInput.value = columns.value;
+    printForm.appendChild(columnsInput);
+
+    // Paper size
+    const paperSizeInput = document.createElement('input');
+    paperSizeInput.type = 'hidden';
+    paperSizeInput.name = 'paper_size';
+    paperSizeInput.value = paperSize.value;
+    printForm.appendChild(paperSizeInput);
+
+    document.body.appendChild(printForm);
+    printForm.submit();
+    document.body.removeChild(printForm);
+
+    // Redirect to dashboard after opening print window
+    router.visit(route('dashboard'));
+};
+
 const clearForm = () => {
     productCodes.value = '';
+    customerCodes.value = '';
     generatedBarcodes.value = [];
     generatedPriceTags.value = [];
+    generatedCustomerCards.value = [];
     form.reset();
 };
 </script>
@@ -262,16 +369,16 @@ const clearForm = () => {
 <template>
     <AuthenticatedLayout>
 
-        <Head title="Cetak Barcode" />
+        <Head title="Cetak Barcode & Label" />
 
         <template #header>
             <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <div>
                     <h2 class="font-semibold text-xl text-white leading-tight">
-                        Cetak Barcode
+                        Cetak Barcode & Label
                     </h2>
                     <p class="text-sm text-gray-400 mt-1">
-                        Generate dan cetak barcode untuk produk yang tidak memiliki barcode pabrik.
+                        Generate dan cetak barcode, price tag, dan kartu customer.
                     </p>
                 </div>
             </div>
@@ -292,6 +399,11 @@ const clearForm = () => {
                             class="whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm">
                             Price Tag
                         </button>
+                        <button @click="activeTab = 'customer-card'"
+                            :class="activeTab === 'customer-card' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'"
+                            class="whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm">
+                            Kartu Customer
+                        </button>
                     </nav>
                 </div>
             </div>
@@ -301,7 +413,8 @@ const clearForm = () => {
                 <div class="space-y-6">
                     <div class="backdrop-blur-md bg-white/5 border border-white/10 rounded-2xl shadow-xl p-6">
                         <h3 class="text-lg font-semibold text-white mb-4">
-                            {{ activeTab === 'barcode' ? 'Konfigurasi Barcode' : 'Konfigurasi Price Tag' }}
+                            {{ activeTab === 'barcode' ? 'Konfigurasi Barcode' : activeTab === 'price-tag' ?
+                                'KonfigurasiPriceTag' : 'Konfigurasi Kartu Customer' }}
                         </h3>
 
                         <form v-if="activeTab === 'barcode'" @submit.prevent="generateBarcodes" class="space-y-6">
@@ -383,7 +496,8 @@ const clearForm = () => {
                             </div>
                         </form>
 
-                        <form v-else @submit.prevent="generatePriceTags" class="space-y-6">
+                        <form v-else-if="activeTab === 'price-tag'" @submit.prevent="generatePriceTags"
+                            class="space-y-6">
                             <!-- Product Codes -->
                             <div>
                                 <InputLabel for="product_codes_price" value="Kode Produk" class="text-gray-300" />
@@ -450,6 +564,74 @@ const clearForm = () => {
                                 </button>
                             </div>
                         </form>
+
+                        <form v-else @submit.prevent="generateCustomerCards" class="space-y-6">
+                            <!-- Customer Codes -->
+                            <div>
+                                <InputLabel for="customer_codes" value="Kode Customer" class="text-gray-300" />
+                                <textarea id="customer_codes" v-model="customerCodes"
+                                    class="mt-1 block w-full bg-white/5 border-white/20 rounded-lg text-gray-200 focus:ring-blue-500 focus:border-blue-500 min-h-32"
+                                    placeholder="Masukkan kode customer, satu per baris&#10;Contoh:&#10;CUST001&#10;CUST002&#10;CUST003"
+                                    required></textarea>
+                                <p class="text-xs text-gray-400 mt-1">
+                                    Masukkan kode customer yang akan dicetak kartu customernya, satu kode per baris.
+                                    Total: {{ parsedCustomerCodes.length }} customer
+                                </p>
+                                <InputError :message="form.errors.customer_codes" class="mt-2 text-red-400" />
+                            </div>
+
+                            <!-- Layout Configuration -->
+                            <div class="grid grid-cols-2 gap-4">
+                                <div>
+                                    <InputLabel for="rows_customer" value="Baris per Halaman" class="text-gray-300" />
+                                    <select id="rows_customer" v-model="rows"
+                                        class="mt-1 block w-full bg-white/5 border-white/20 rounded-lg text-gray-200 focus:ring-blue-500 focus:border-blue-500">
+                                        <option v-for="r in 20" :key="r" :value="r">{{ r }}</option>
+                                    </select>
+                                    <InputError :message="form.errors.rows" class="mt-2 text-red-400" />
+                                </div>
+
+                                <div>
+                                    <InputLabel for="columns_customer" value="Kolom per Baris" class="text-gray-300" />
+                                    <select id="columns_customer" v-model="columns"
+                                        class="mt-1 block w-full bg-white/5 border-white/20 rounded-lg text-gray-200 focus:ring-blue-500 focus:border-blue-500">
+                                        <option v-for="c in 10" :key="c" :value="c">{{ c }}</option>
+                                    </select>
+                                    <InputError :message="form.errors.columns" class="mt-2 text-red-400" />
+                                </div>
+                            </div>
+
+                            <!-- Paper Size -->
+                            <div>
+                                <InputLabel for="paper_size_customer" value="Ukuran Kertas" class="text-gray-300" />
+                                <select id="paper_size_customer" v-model="paperSize"
+                                    class="mt-1 block w-full bg-white/5 border-white/20 rounded-lg text-gray-200 focus:ring-blue-500 focus:border-blue-500">
+                                    <option value="A4">A4</option>
+                                </select>
+                                <InputError :message="form.errors.paper_size" class="mt-2 text-red-400" />
+                            </div>
+
+                            <!-- Actions -->
+                            <div class="flex gap-3">
+                                <button type="submit" :disabled="isGenerating || parsedCustomerCodes.length === 0"
+                                    class="flex-1 inline-flex items-center justify-center bg-gradient-to-r from-purple-400 to-pink-400 text-white font-bold py-3 px-6 rounded-full text-sm shadow-lg hover:scale-105 hover:from-purple-500 hover:to-pink-500 transition-transform duration-200 disabled:opacity-50">
+                                    <svg v-if="isGenerating" class="animate-spin -ml-1 mr-3 h-4 w-4 text-white"
+                                        xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor"
+                                            stroke-width="4"></circle>
+                                        <path class="opacity-75" fill="currentColor"
+                                            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
+                                        </path>
+                                    </svg>
+                                    {{ isGenerating ? 'Generating...' : 'Generate Kartu Customer' }}
+                                </button>
+
+                                <button type="button" @click="clearForm"
+                                    class="inline-flex items-center justify-center bg-gradient-to-r from-gray-400 to-gray-500 text-white font-bold py-3 px-6 rounded-full text-sm shadow-lg hover:scale-105 hover:from-gray-500 hover:to-gray-600 transition-transform duration-200">
+                                    Clear
+                                </button>
+                            </div>
+                        </form>
                     </div>
                 </div>
 
@@ -458,7 +640,7 @@ const clearForm = () => {
                     <div class="backdrop-blur-md bg-white/5 border border-white/10 rounded-2xl shadow-xl p-6">
                         <div class="flex items-center justify-between mb-4">
                             <h3 class="text-lg font-semibold text-white">
-                                {{ activeTab === 'barcode' ? 'Preview Barcode' : 'Preview Price Tag' }}
+                                {{ activeTab === 'barcode' ? 'Preview Barcode' : activeTab === 'price-tag' ? 'PreviewPriceTag':'Preview Kartu Customer' }}
                             </h3>
                             <button v-if="activeTab === 'barcode' && generatedBarcodes.length > 0"
                                 @click="printBarcodes"
@@ -472,6 +654,15 @@ const clearForm = () => {
                             <button v-else-if="activeTab === 'price-tag' && generatedPriceTags.length > 0"
                                 @click="printPriceTags"
                                 class="inline-flex items-center bg-gradient-to-r from-green-400 to-emerald-400 text-white font-bold py-2 px-4 rounded-full text-sm shadow-lg hover:scale-105 hover:from-green-500 hover:to-emerald-500 transition-transform duration-200">
+                                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+                                </svg>
+                                Print
+                            </button>
+                            <button v-else-if="activeTab === 'customer-card' && generatedCustomerCards.length > 0"
+                                @click="printCustomerCards"
+                                class="inline-flex items-center bg-gradient-to-r from-purple-400 to-pink-400 text-white font-bold py-2 px-4 rounded-full text-sm shadow-lg hover:scale-105 hover:from-purple-500 hover:to-pink-500 transition-transform duration-200">
                                 <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                         d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
@@ -513,7 +704,7 @@ const clearForm = () => {
                             </div>
                         </div>
 
-                        <div v-else>
+                        <div v-else-if="activeTab === 'price-tag'">
                             <div v-if="generatedPriceTags.length === 0" class="text-center py-12">
                                 <svg class="mx-auto h-12 w-12 text-gray-400 mb-4" fill="none" viewBox="0 0 24 24"
                                     stroke="currentColor">
@@ -576,6 +767,69 @@ const clearForm = () => {
                                     Total: {{ generatedPriceTags.length }} price tag • Layout: {{ rows }} baris × {{
                                         columns }}
                                     kolom
+                                </p>
+                            </div>
+                        </div>
+
+                        <div v-else-if="activeTab === 'customer-card'">
+                            <div v-if="generatedCustomerCards.length === 0" class="text-center py-12">
+                                <svg class="mx-auto h-12 w-12 text-gray-400 mb-4" fill="none" viewBox="0 0 24 24"
+                                    stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z" />
+                                </svg>
+                                <h3 class="text-lg font-medium text-gray-300 mb-2">Belum ada kartu customer</h3>
+                                <p class="text-gray-400">Generate kartu customer terlebih dahulu untuk melihat preview.
+                                </p>
+                            </div>
+
+                            <div v-else class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                                <div v-for="card in generatedCustomerCards" :key="card.customer_code"
+                                    class="backdrop-blur-md bg-white border-2 border-gray-300 rounded-lg p-4 text-center shadow-sm">
+                                    <div class="text-center">
+                                        <!-- Photo -->
+                                        <div v-if="card.photo_url" class="mb-2">
+                                            <img :src="`/storage/${card.photo_url}`" :alt="`Photo ${card.name}`"
+                                                class="w-10 h-10 rounded-full mx-auto object-cover border border-gray-300" />
+                                        </div>
+
+                                        <!-- Customer Code -->
+                                        <div class="font-bold text-sm text-gray-800 mb-1">{{ card.customer_code }}</div>
+
+                                        <!-- Name -->
+                                        <div class="font-semibold text-base text-black mb-2">{{ card.name }}</div>
+
+                                        <!-- Customer Type -->
+                                        <div class="text-xs text-gray-600 mb-1">
+                                            <strong>Jenis:</strong> {{ card.customer_type }}
+                                        </div>
+
+                                        <!-- Status -->
+                                        <div class="text-xs mb-1"
+                                            :class="card.status === 'active' ? 'text-green-600' : 'text-red-600'">
+                                            <strong>Status:</strong> {{ card.status.charAt(0).toUpperCase() +
+                                                card.status.slice(1) }}
+                                        </div>
+
+                                        <!-- Joined Date -->
+                                        <div class="text-xs text-gray-500 mb-2">
+                                            <strong>Bergabung:</strong> {{ card.joined_at }}
+                                        </div>
+
+                                        <!-- QR Code -->
+                                        <div v-if="card.qr_code_image" class="mt-2">
+                                            <img :src="card.qr_code_image" :alt="`QR Code ${card.customer_code}`"
+                                                class="w-16 h-16 mx-auto object-contain" />
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div v-if="generatedCustomerCards.length > 0" class="mt-4 text-center">
+                                <p class="text-sm text-gray-400">
+                                    Total: {{ generatedCustomerCards.length }} kartu customer • Layout: {{ rows }} baris
+                                    × {{
+                                        columns }} kolom
                                 </p>
                             </div>
                         </div>
