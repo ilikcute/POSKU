@@ -77,7 +77,17 @@ const generateBarcodes = async () => {
         generatedBarcodes.value = response.data.barcode_data;
     } catch (error) {
         console.error('Error generating barcodes:', error);
-        alert('Terjadi kesalahan saat generate barcode');
+        if (error.response && error.response.status === 422) {
+            // Validation errors
+            const errors = error.response.data.errors;
+            let errorMessage = 'Kesalahan validasi:\n';
+            for (const field in errors) {
+                errorMessage += `${field}: ${errors[field].join(', ')}\n`;
+            }
+            alert(errorMessage);
+        } else {
+            alert('Terjadi kesalahan saat generate barcode');
+        }
     } finally {
         isGenerating.value = false;
     }
@@ -170,7 +180,17 @@ const generatePriceTags = async () => {
         generatedPriceTags.value = response.data.price_tag_data;
     } catch (error) {
         console.error('Error generating price tags:', error);
-        alert('Terjadi kesalahan saat generate price tag');
+        if (error.response && error.response.status === 422) {
+            // Validation errors
+            const errors = error.response.data.errors;
+            let errorMessage = 'Kesalahan validasi:\n';
+            for (const field in errors) {
+                errorMessage += `${field}: ${errors[field].join(', ')}\n`;
+            }
+            alert(errorMessage);
+        } else {
+            alert('Terjadi kesalahan saat generate price tag');
+        }
     } finally {
         isGenerating.value = false;
     }

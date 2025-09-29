@@ -1,9 +1,12 @@
-# TODO: Sync Product Stock from Stocks Table
+# TODO: Fix Barcode and Price Tag Generation Errors
 
-## Tasks
-- [x] Add syncStock() method to Product model (app/Models/Product.php)
-- [x] Modify ProductController store() method: Remove stock validation, call syncStock() after create
-- [x] Modify ProductController update() method: Remove stock validation, call syncStock() after update
-- [x] Modify ProductController import() method: Unset stock from data, call syncStock() after updateOrCreate
-- [x] Modify ProductsImport collection() method: Unset stock from processed data
-- [x] Test the changes: Create/update product, import products, verify stock syncs from stocks table
+## Completed Tasks
+- [x] Analyze the error: 422 Unprocessable Content from validation failure when generating barcodes/price tags
+- [x] Identify root cause: Invalid product codes entered by user, causing validation errors not displayed properly
+- [x] Update generateBarcodes function to handle 422 validation errors and show specific error messages
+- [x] Update generatePriceTags function to handle 422 validation errors and show specific error messages
+
+## Followup Steps
+- [ ] Test the application with invalid product codes to verify error messages are displayed correctly
+- [ ] Test with valid product codes to ensure generation works properly
+- [ ] Verify that printing functionality works after successful generation

@@ -36,9 +36,13 @@ class BarcodeController extends Controller
 
             if ($request->barcode_type === 'qrcode') {
                 // Generate QR code using SimpleSoftwareIO with SVG format
-                $barcodeImage = 'data:image/svg+xml;base64,' . base64_encode(
-                    QrCode::format('svg')->size(150)->generate($product->product_code)
-                );
+                try {
+                    $barcodeImage = 'data:image/svg+xml;base64,' . base64_encode(
+                        QrCode::size(150)->format('svg')->generate($product->product_code)
+                    );
+                } catch (\Exception $e) {
+                    $barcodeImage = '';
+                }
             } else {
                 // Generate barcode using SVG (no image extensions needed)
                 try {
@@ -90,9 +94,13 @@ class BarcodeController extends Controller
 
             if ($request->barcode_type === 'qrcode') {
                 // Generate QR code using SimpleSoftwareIO with SVG format
-                $barcodeImage = 'data:image/svg+xml;base64,' . base64_encode(
-                    QrCode::format('svg')->size(150)->generate($product->product_code)
-                );
+                try {
+                    $barcodeImage = 'data:image/svg+xml;base64,' . base64_encode(
+                        QrCode::size(150)->format('svg')->generate($product->product_code)
+                    );
+                } catch (\Exception $e) {
+                    $barcodeImage = '';
+                }
             } else {
                 // Generate barcode using SVG
                 try {
