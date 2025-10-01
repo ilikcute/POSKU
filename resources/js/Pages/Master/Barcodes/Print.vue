@@ -12,16 +12,20 @@ const props = defineProps({
     },
 });
 
-// Auto print when component mounts
 onMounted(() => {
     setTimeout(() => {
         window.print();
     }, 500);
 });
+
+const getProductForPosition = (page, row, col) => {
+    const index = (page - 1) * (props.layout.rows * props.layout.columns) + ((row - 1) * props.layout.columns) + (col - 1);
+    return props.products[index] || null;
+};
 </script>
 
 <template>
-    <div class="print-container">
+    <div>
         <style>
             @media print {
                 @page {
@@ -32,6 +36,8 @@ onMounted(() => {
                 body {
                     margin: 0;
                     padding: 0;
+                    -webkit-print-color-adjust: exact;
+                    print-color-adjust: exact;
                 }
 
                 .print-container {
@@ -41,12 +47,68 @@ onMounted(() => {
                 .no-print {
                     display: none !important;
                 }
+
+                .barcode-label {
+                    page-break-inside: avoid;
+                }
             }
 
             @media screen {
                 .print-container {
-                    display: none;
+                    background: #f5f5f5;
+                    padding: 20px;
                 }
+            }
+
+            .barcode-label {
+                background: white;
+                border: 1px dashed #999;
+                border-radius: 3px;
+                padding: 8px;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                text-align: center;
+                box-sizing: border-box;
+                height: 100%;
+            }
+
+            .barcode-image-wrapper {
+                margin-bottom: 4px;
+                width: 100%;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+            }
+
+            .barcode-image-wrapper img {
+                max-width: 95%;
+                height: auto;
+                max-height: 40px;
+            }
+
+            .barcode-code {
+                font-family: 'Courier New', monospace;
+                font-size: 11px;
+                font-weight: bold;
+                letter-spacing: 1px;
+                margin-bottom: 2px;
+                color: #000;
+            }
+
+            .barcode-name {
+                font-family: Arial, sans-serif;
+                font-size: 8px;
+                line-height: 1.2;
+                color: #333;
+                max-height: 24px;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                display: -webkit-box;
+                -webkit-line-clamp: 2;
+                -webkit-box-orient: vertical;
+                width: 100%;
             }
         </style>
 
@@ -57,26 +119,33 @@ onMounted(() => {
         </div>
 
         <div class="print-container">
-            <div v-for="page in Math.ceil(products.length / (layout.rows * layout.columns))" :key="page"
-                class="page-break"
-                style="page-break-after: always; width: 100%; height: 100vh; display: grid; grid-template-rows: repeat(auto-fit, minmax(0, 1fr)); gap: 0.5cm; padding: 0.5cm; box-sizing: border-box;">
-                <div v-for="row in layout.rows" :key="row"
-                    style="display: grid; grid-template-columns: repeat(auto-fit, minmax(0, 1fr)); gap: 0.5cm; height: 100%;">
-                    <div v-for="col in layout.columns" :key="col" class="barcode-item"
-                        style="display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 0.5cm; border: 1px solid #ccc; border-radius: 4px; background: white; min-height: 2cm;">
+            <div v-for="page in Math.ceil(products.length / (layout.rows * layout.columns))" :key="page" :style="{
+                pageBreakAfter: 'always',
+                width: '100%',
+                minHeight: '100vh',
+                display: 'grid',
+                gridTemplateRows: `repeat(${layout.rows}, 1fr)`,
+                gap: '0.3cm',
+                padding: '0.2cm',
+                boxSizing: 'border-box'
+            }">
+                <div v-for="row in layout.rows" :key="row" :style="{
+                    display: 'grid',
+                    gridTemplateColumns: `repeat(${layout.columns}, 1fr)`,
+                    gap: '0.3cm',
+                    height: '100%'
+                }">
+                    <div v-for="col in layout.columns" :key="col" class="barcode-label">
                         <template v-if="getProductForPosition(page, row, col)">
-                            <div style="text-align: center; margin-bottom: 0.2cm;">
+                            <div class="barcode-image-wrapper">
                                 <img v-if="getProductForPosition(page, row, col).barcode_image"
                                     :src="getProductForPosition(page, row, col).barcode_image"
-                                    :alt="`Barcode ${getProductForPosition(page, row, col).product_code}`"
-                                    style="max-width: 100%; height: 1.5cm; object-fit: contain;" />
+                                    :alt="`Barcode ${getProductForPosition(page, row, col).product_code}`" />
                             </div>
-                            <div
-                                style="font-size: 8px; font-family: monospace; text-align: center; margin-bottom: 0.1cm;">
+                            <div class="barcode-code">
                                 {{ getProductForPosition(page, row, col).product_code }}
                             </div>
-                            <div
-                                style="font-size: 6px; text-align: center; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%;">
+                            <div class="barcode-name">
                                 {{ getProductForPosition(page, row, col).name }}
                             </div>
                         </template>
@@ -86,14 +155,3 @@ onMounted(() => {
         </div>
     </div>
 </template>
-
-<script>
-export default {
-    methods: {
-        getProductForPosition(page, row, col) {
-            const index = (page - 1) * (this.layout.rows * this.layout.columns) + ((row - 1) * this.layout.columns) + (col - 1);
-            return this.products[index] || null;
-        }
-    }
-}
-</script>
