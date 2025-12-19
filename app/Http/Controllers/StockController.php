@@ -17,8 +17,9 @@ class StockController extends Controller
      */
     public function index(Request $request)
     {
+        $storeId = $this->currentStoreId();
         $query = Stock::with(['product.category', 'product.supplier', 'store'])
-            ->byStore(auth()->user()->store_id ?? 1);
+            ->byStore($storeId);
 
         // Filter by category
         if ($request->has('category_id') && $request->category_id) {
@@ -52,7 +53,7 @@ class StockController extends Controller
             'stocks' => $stocks,
             'categories' => $categories,
             'filters' => $request->only(['category_id', 'low_stock', 'search']),
-            'store' => auth()->user()->store,
+            'store' => $this->currentStore(),
         ]);
     }
 
@@ -61,9 +62,10 @@ class StockController extends Controller
      */
     public function movements(Request $request)
     {
+        $storeId = $this->currentStoreId();
         $query = StockMovement::with(['stock.product', 'user'])
-            ->whereHas('stock', function ($q) {
-                $q->where('store_id', auth()->user()->store_id ?? 1);
+            ->whereHas('stock', function ($q) use ($storeId) {
+                $q->where('store_id', $storeId);
             });
 
         // Filter by product
@@ -105,8 +107,9 @@ class StockController extends Controller
      */
     public function opname(Request $request)
     {
+        $storeId = $this->currentStoreId();
         $query = Stock::with(['product.category', 'product.supplier', 'store'])
-            ->byStore(auth()->user()->store_id ?? 1);
+            ->byStore($storeId);
 
         // Filter by category
         if ($request->has('category_id') && $request->category_id) {
@@ -146,12 +149,14 @@ class StockController extends Controller
             'adjustments.*.reason' => 'nullable|string|max:255',
         ]);
 
-        DB::transaction(function () use ($request) {
+        $storeId = $this->currentStoreId();
+
+        DB::transaction(function () use ($request, $storeId) {
             foreach ($request->adjustments as $adjustment) {
                 $stock = Stock::findOrFail($adjustment['stock_id']);
 
                 // Verify stock belongs to current store
-                if ($stock->store_id !== (auth()->user()->store_id ?? 1)) {
+                if ($stock->store_id !== $storeId) {
                     continue;
                 }
 
@@ -184,7 +189,7 @@ class StockController extends Controller
         ]);
 
         // Verify stock belongs to current store
-        if ($stock->store_id !== (auth()->user()->store_id ?? 1)) {
+        if ($stock->store_id !== $this->currentStoreId()) {
             return back()->withErrors(['stock' => 'Invalid stock selected.']);
         }
 
@@ -224,7 +229,7 @@ class StockController extends Controller
     {
         $lowStocks = Stock::lowStock()
             ->with(['product.category', 'product.supplier'])
-            ->byStore(auth()->user()->store_id ?? 1)
+            ->byStore($this->currentStoreId())
             ->orderBy('quantity', 'asc')
             ->get();
 
@@ -237,7 +242,7 @@ class StockController extends Controller
     public function export(Request $request)
     {
         $query = Stock::with(['product.category', 'product.supplier'])
-            ->byStore(auth()->user()->store_id ?? 1);
+            ->byStore($this->currentStoreId());
 
         // Apply same filters as index
         if ($request->has('category_id') && $request->category_id) {
@@ -291,12 +296,14 @@ class StockController extends Controller
             'adjustments.*.reason' => 'required|string|max:255',
         ]);
 
-        DB::transaction(function () use ($request) {
+        $storeId = $this->currentStoreId();
+
+        DB::transaction(function () use ($request, $storeId) {
             foreach ($request->adjustments as $adjustment) {
                 $stock = Stock::firstOrCreate(
                     [
                         'product_id' => $adjustment['product_id'],
-                        'store_id' => auth()->user()->store_id ?? 1,
+                        'store_id' => $storeId,
                     ],
                     ['quantity' => 0]
                 );
@@ -317,7 +324,7 @@ class StockController extends Controller
      */
     public function summary()
     {
-        $storeId = auth()->user()->store_id ?? 1;
+        $storeId = $this->currentStoreId();
 
         $totalProducts = Stock::byStore($storeId)->count();
         $lowStockCount = Stock::lowStock()->byStore($storeId)->count();

@@ -14,7 +14,8 @@ class Purchase extends Model
         'invoice_number',
         'user_id',
         'store_id',
-        'member_id',
+        'station_id',
+        'customer_id',
         'total_amount',
         'discount',
         'tax',
@@ -71,9 +72,22 @@ class Purchase extends Model
         return $this->belongsTo(Store::class);
     }
 
+    public function station()
+    {
+        return $this->belongsTo(Station::class);
+    }
+
+    public function customer()
+    {
+        return $this->belongsTo(Customer::class, 'customer_id');
+    }
+
+    /**
+     * @deprecated Use customer() instead.
+     */
     public function member()
     {
-        return $this->belongsTo(Customer::class, 'member_id');
+        return $this->customer();
     }
 
     public function purchaseDetails()

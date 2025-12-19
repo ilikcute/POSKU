@@ -16,6 +16,7 @@ use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
 use Illuminate\Validation\Rule;
 use Barryvdh\DomPDF\Facade\Pdf;
+use App\Services\StationResolver;
 
 class SaleController extends Controller
 {
@@ -25,7 +26,7 @@ class SaleController extends Controller
     public function index(Request $request)
     {
         $query = Sale::with(['user', 'store', 'member', 'saleDetails.product'])
-            ->byStore(auth()->user()->store_id ?? 1);
+            ->byStore($this->currentStoreId());
 
         // Filter by date range
         if ($request->has('start_date') && $request->start_date) {
@@ -56,7 +57,7 @@ class SaleController extends Controller
      */
     public function create()
     {
-        $storeId = auth()->user()->store_id ?? 1;
+        $storeId = $this->currentStoreId();
 
         $products = Product::with(['supplier', 'category', 'promotions' => function ($query) {
             $query->active()->with(['tiers', 'bundles.getProduct', 'bundles.buyProduct']);
@@ -103,24 +104,29 @@ class SaleController extends Controller
      */
     public function store(Request $request)
     {
-        $request->validate([
+        $validated = $request->validate([
             'items' => 'required|array|min:1',
             'items.*.product_id' => 'required|exists:products,id',
             'items.*.quantity' => 'required|integer|min:1',
-            'items.*.price' => 'required|numeric|min:0',
+            'items.*.price' => 'nullable|numeric|min:0', // Harga akhir tetap dihitung di server
             'payment_method' => ['required', Rule::in(['cash', 'debit', 'credit', 'transfer'])],
             'amount_paid' => 'required|numeric|min:0',
             'notes' => 'nullable|string|max:1000',
             'customer_id' => 'nullable|exists:customers,id',
+            'discount' => 'nullable|numeric|min:0',
+            'tax' => 'nullable|numeric|min:0',
         ]);
 
+        $storeId = $this->currentStoreId();
+        $itemsInput = collect($validated['items']);
+
         // Check stock availability
-        foreach ($request->items as $item) {
+        foreach ($itemsInput as $item) {
             $stock = Stock::where('product_id', $item['product_id'])
-                ->where('store_id', auth()->user()->store_id ?? 1)
+                ->where('store_id', $storeId)
                 ->first();
 
-            if (!$stock || $stock->quantity < $item['quantity']) {
+            if (! $stock || $stock->quantity < $item['quantity']) {
                 $product = Product::find($item['product_id']);
                 return back()->withErrors([
                     'items' => "Insufficient stock for product: {$product->name}. Available: " . ($stock->quantity ?? 0)
@@ -128,80 +134,87 @@ class SaleController extends Controller
             }
         }
 
-        DB::transaction(function () use ($request) {
-            // Get customer for promotion calculation
-            $customer = $request->customer_id ? Customer::find($request->customer_id) : null;
+        $customer = $validated['customer_id'] ? Customer::find($validated['customer_id']) : null;
+        $station = StationResolver::resolve();
 
+        DB::transaction(function () use ($validated, $itemsInput, $customer, $storeId, $station) {
+            // Get customer for promotion calculation
             // Calculate totals with promotions
             $totalAmount = 0;
             $totalDiscount = 0;
             $bundledItems = [];
-            $items = collect($request->items);
+            $items = collect();
 
-            foreach ($items as &$item) {
+            foreach ($itemsInput as $item) {
                 $product = Product::find($item['product_id']);
                 $promotionData = $product->getPriceWithPromotion($customer, $item['quantity']);
 
-                $item['original_price'] = $promotionData['original_price'];
-                $item['final_price'] = $promotionData['final_price'];
-                $item['discount_amount'] = $promotionData['discount_amount'];
-                $item['promotion_name'] = $promotionData['promotion_name'];
+                $unitPrice = $promotionData['final_price'];
+                $discountPerItem = max(0, $promotionData['original_price'] - $promotionData['final_price']);
+                $subtotal = $item['quantity'] * $unitPrice;
 
-                // Use the final price for subtotal
-                $subtotal = $item['quantity'] * $item['final_price'];
+                $items->push([
+                    'product_id' => $product->id,
+                    'quantity' => $item['quantity'],
+                    'unit_price' => $unitPrice,
+                    'discount_per_item' => $discountPerItem,
+                    'promotion_name' => $promotionData['promotion_name'],
+                    'subtotal' => $subtotal,
+                ]);
+
                 $totalAmount += $subtotal;
-                $totalDiscount += $item['discount_amount'] * $item['quantity'];
+                $totalDiscount += $discountPerItem * $item['quantity'];
 
                 // Add bundled products if any
-                if (!empty($promotionData['bundled_products'])) {
+                if (! empty($promotionData['bundled_products'])) {
                     foreach ($promotionData['bundled_products'] as $bundled) {
-                        $bundledItems[] = [
+                        $bundledSubtotal = $bundled['quantity'] * ($bundled['price'] ?? 0);
+                        $items->push([
                             'product_id' => $bundled['product_id'],
                             'quantity' => $bundled['quantity'],
-                            'price' => $bundled['price'],
-                            'subtotal' => $bundled['quantity'] * $bundled['price'],
+                            'unit_price' => $bundled['price'] ?? 0,
+                            'discount_per_item' => 0,
+                            'promotion_name' => $promotionData['promotion_name'],
+                            'subtotal' => $bundledSubtotal,
                             'is_bundled' => true,
                             'bundled_from' => $product->id,
-                        ];
+                        ]);
+                        $totalAmount += $bundledSubtotal;
                     }
                 }
             }
 
-            // Add bundled items to the items array
-            $items = $items->merge($bundledItems);
-
-            $discount = $request->discount ?? 0;
-            $tax = $request->tax ?? 0;
+            $discount = $validated['discount'] ?? 0;
+            $tax = $validated['tax'] ?? 0;
             $finalAmount = $totalAmount - $discount + $tax;
-            $changeDue = max(0, $request->amount_paid - $finalAmount);
+            $changeDue = max(0, $validated['amount_paid'] - $finalAmount);
 
             // Create sale
             $sale = Sale::create([
                 'user_id' => Auth::id(),
-                'store_id' => auth()->user()->store_id ?? 1,
-                'customer_id' => $request->customer_id,
+                'store_id' => $storeId,
+                'station_id' => $station->id,
+                'customer_id' => $validated['customer_id'],
                 'total_amount' => $totalAmount,
                 'discount' => $discount + $totalDiscount, // Add promotion discounts
                 'tax' => $tax,
                 'final_amount' => $finalAmount,
-                'payment_method' => $request->payment_method,
-                'amount_paid' => $request->amount_paid,
+                'payment_method' => $validated['payment_method'],
+                'amount_paid' => $validated['amount_paid'],
                 'change_due' => $changeDue,
                 'transaction_date' => now(),
-                'notes' => $request->notes,
+                'notes' => $validated['notes'],
             ]);
 
             // Create sale details and update stock
             foreach ($items as $item) {
-                $subtotal = $item['quantity'] * $item['price'];
-
                 SaleDetail::create([
                     'sale_id' => $sale->id,
                     'product_id' => $item['product_id'],
                     'quantity' => $item['quantity'],
-                    'price_at_sale' => $item['price'],
+                    'price_at_sale' => $item['unit_price'],
                     'discount_per_item' => $item['discount_per_item'] ?? 0,
-                    'subtotal' => $subtotal,
+                    'subtotal' => $item['subtotal'],
                 ]);
 
                 // Update stock
@@ -451,7 +464,7 @@ class SaleController extends Controller
     public function getProductStock(Product $product)
     {
         $stock = Stock::where('product_id', $product->id)
-            ->where('store_id', auth()->user()->store_id ?? 1)
+            ->where('store_id', $this->currentStoreId())
             ->first();
 
         return response()->json([

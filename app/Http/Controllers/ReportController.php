@@ -19,8 +19,9 @@ class ReportController extends Controller
 
     public function sales(Request $request)
     {
+        $storeId = $this->currentStoreId();
         $query = Sale::with(['user', 'store', 'member'])
-            ->byStore(auth()->user()->store_id ?? 1);
+            ->byStore($storeId);
 
         if ($request->start_date) {
             $query->whereDate('transaction_date', '>=', $request->start_date);
@@ -29,17 +30,20 @@ class ReportController extends Controller
             $query->whereDate('transaction_date', '<=', $request->end_date);
         }
 
-        $sales = $query->get();
+        $totals = (clone $query)
+            ->selectRaw('COALESCE(SUM(final_amount),0) as total_sales, COALESCE(SUM(discount),0) as total_discount')
+            ->first();
 
-        $totalSales = $sales->sum('final_amount');
-        $totalDiscount = $sales->sum('discount');
+        $sales = $query->orderByDesc('transaction_date')
+            ->paginate(50)
+            ->withQueryString();
 
         return Inertia::render('Reports/Sales', [
             'sales' => $sales,
             'summary' => [
-                'total_sales' => $totalSales,
-                'total_discount' => $totalDiscount,
-                'net_sales' => $totalSales - $totalDiscount,
+                'total_sales' => (float) $totals->total_sales,
+                'total_discount' => (float) $totals->total_discount,
+                'net_sales' => (float) $totals->total_sales - (float) $totals->total_discount,
             ],
             'filters' => $request->only(['start_date', 'end_date']),
         ]);
@@ -47,8 +51,9 @@ class ReportController extends Controller
 
     public function purchases(Request $request)
     {
+        $storeId = $this->currentStoreId();
         $query = Purchase::with(['user', 'store', 'supplier'])
-            ->byStore(auth()->user()->store_id ?? 1);
+            ->byStore($storeId);
 
         if ($request->start_date) {
             $query->whereDate('transaction_date', '>=', $request->start_date);
@@ -57,14 +62,16 @@ class ReportController extends Controller
             $query->whereDate('transaction_date', '<=', $request->end_date);
         }
 
-        $purchases = $query->get();
+        $totalPurchases = (clone $query)->sum('final_amount');
 
-        $totalPurchases = $purchases->sum('final_amount');
+        $purchases = $query->orderByDesc('transaction_date')
+            ->paginate(50)
+            ->withQueryString();
 
         return Inertia::render('Reports/Purchases', [
             'purchases' => $purchases,
             'summary' => [
-                'total_purchases' => $totalPurchases,
+                'total_purchases' => (float) $totalPurchases,
             ],
             'filters' => $request->only(['start_date', 'end_date']),
         ]);
@@ -73,7 +80,7 @@ class ReportController extends Controller
     public function stock(Request $request)
     {
         $stocks = Stock::with(['product', 'store'])
-            ->where('store_id', auth()->user()->store_id ?? 1)
+            ->where('store_id', $this->currentStoreId())
             ->get();
 
         $totalValue = $stocks->sum(function ($stock) {
@@ -91,8 +98,11 @@ class ReportController extends Controller
 
     public function stockMovements(Request $request)
     {
-        $query = StockMovement::with(['product', 'user', 'store'])
-            ->where('store_id', auth()->user()->store_id ?? 1);
+        $storeId = $this->currentStoreId();
+        $query = StockMovement::with(['stock.product', 'stock.store', 'user'])
+            ->whereHas('stock', function ($q) use ($storeId) {
+                $q->where('store_id', $storeId);
+            });
 
         if ($request->start_date) {
             $query->whereDate('created_at', '>=', $request->start_date);
@@ -101,7 +111,9 @@ class ReportController extends Controller
             $query->whereDate('created_at', '<=', $request->end_date);
         }
 
-        $movements = $query->orderBy('created_at', 'desc')->get();
+        $movements = $query->orderByDesc('created_at')
+            ->paginate(50)
+            ->withQueryString();
 
         return Inertia::render('Reports/StockMovements', [
             'movements' => $movements,
@@ -115,11 +127,11 @@ class ReportController extends Controller
         $endDate = $request->end_date ?? now()->endOfMonth();
 
         $sales = Sale::whereBetween('transaction_date', [$startDate, $endDate])
-            ->byStore(auth()->user()->store_id ?? 1)
+            ->byStore($this->currentStoreId())
             ->sum('final_amount');
 
         $purchases = Purchase::whereBetween('transaction_date', [$startDate, $endDate])
-            ->byStore(auth()->user()->store_id ?? 1)
+            ->byStore($this->currentStoreId())
             ->sum('final_amount');
 
         $profit = $sales - $purchases;

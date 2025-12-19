@@ -28,6 +28,11 @@ class StockMovement extends Model
         'new_quantity' => 'integer',
     ];
 
+    protected $appends = [
+        'product',
+        'store',
+    ];
+
     // Relationships
     public function stock()
     {
@@ -37,6 +42,16 @@ class StockMovement extends Model
     public function user()
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function getProductAttribute()
+    {
+        return $this->stock?->product;
+    }
+
+    public function getStoreAttribute()
+    {
+        return $this->stock?->store;
     }
 
     // Scopes

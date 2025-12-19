@@ -15,6 +15,7 @@ use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
 use Illuminate\Validation\Rule;
 use Barryvdh\DomPDF\Facade\Pdf;
+use App\Services\StationResolver;
 
 class PurchaseController extends Controller
 {
@@ -23,8 +24,8 @@ class PurchaseController extends Controller
      */
     public function index(Request $request)
     {
-        $query = Purchase::with(['user', 'store', 'member', 'purchaseDetails.product'])
-            ->byStore(auth()->user()->store_id ?? 1);
+        $query = Purchase::with(['user', 'store', 'customer', 'purchaseDetails.product'])
+            ->byStore($this->currentStoreId());
 
         // Filter by date range
         if ($request->has('start_date') && $request->start_date) {
@@ -74,7 +75,7 @@ class PurchaseController extends Controller
      */
     public function store(Request $request)
     {
-        $request->validate([
+        $validated = $request->validate([
             'items' => 'required|array|min:1',
             'items.*.product_id' => 'required|exists:products,id',
             'items.*.quantity' => 'required|integer|min:1',
@@ -82,38 +83,42 @@ class PurchaseController extends Controller
             'payment_method' => ['required', Rule::in(['cash', 'card', 'transfer'])],
             'amount_paid' => 'required|numeric|min:0',
             'notes' => 'nullable|string|max:1000',
-            'member_id' => 'nullable|exists:customers,id',
+            'customer_id' => 'nullable|exists:customers,id',
         ]);
 
-        DB::transaction(function () use ($request) {
+        $storeId = $this->currentStoreId();
+        $station = StationResolver::resolve();
+        $items = collect($validated['items']);
+
+        DB::transaction(function () use ($validated, $items, $storeId, $station) {
             // Calculate totals
             $totalAmount = 0;
-            $items = collect($request->items);
 
             foreach ($items as $item) {
                 $subtotal = $item['quantity'] * $item['price'];
                 $totalAmount += $subtotal;
             }
 
-            $discount = $request->discount ?? 0;
-            $tax = $request->tax ?? 0;
+            $discount = $validated['discount'] ?? 0;
+            $tax = $validated['tax'] ?? 0;
             $finalAmount = $totalAmount - $discount + $tax;
-            $changeDue = max(0, $request->amount_paid - $finalAmount);
+            $changeDue = max(0, $validated['amount_paid'] - $finalAmount);
 
             // Create purchase
             $purchase = Purchase::create([
                 'user_id' => Auth::id(),
-                'store_id' => auth()->user()->store_id ?? 1,
-                'member_id' => $request->member_id,
+                'store_id' => $storeId,
+                'station_id' => $station->id,
+                'customer_id' => $validated['customer_id'],
                 'total_amount' => $totalAmount,
                 'discount' => $discount,
                 'tax' => $tax,
                 'final_amount' => $finalAmount,
-                'payment_method' => $request->payment_method,
-                'amount_paid' => $request->amount_paid,
+                'payment_method' => $validated['payment_method'],
+                'amount_paid' => $validated['amount_paid'],
                 'change_due' => $changeDue,
                 'transaction_date' => now(),
-                'notes' => $request->notes,
+                'notes' => $validated['notes'],
             ]);
 
             // Create purchase details and update stock
@@ -157,7 +162,7 @@ class PurchaseController extends Controller
      */
     public function show(Purchase $purchase)
     {
-        $purchase->load(['user', 'store', 'member', 'purchaseDetails.product', 'purchaseReturns']);
+        $purchase->load(['user', 'store', 'customer', 'purchaseDetails.product', 'purchaseReturns']);
 
         return Inertia::render('Purchases/Show', [
             'purchase' => $purchase,
@@ -199,7 +204,7 @@ class PurchaseController extends Controller
             'payment_method' => ['required', Rule::in(['cash', 'card', 'transfer'])],
             'amount_paid' => 'required|numeric|min:0',
             'notes' => 'nullable|string|max:1000',
-            'member_id' => 'nullable|exists:customers,id',
+            'customer_id' => 'nullable|exists:customers,id',
         ]);
 
         DB::transaction(function () use ($request, $purchase) {
@@ -239,7 +244,7 @@ class PurchaseController extends Controller
 
             // Update purchase
             $purchase->update([
-                'member_id' => $request->member_id,
+                'customer_id' => $request->customer_id,
                 'total_amount' => $totalAmount,
                 'discount' => $discount,
                 'tax' => $tax,
@@ -332,7 +337,7 @@ class PurchaseController extends Controller
      */
     public function print(Purchase $purchase)
     {
-        $purchase->load(['user', 'store', 'member', 'purchaseDetails.product']);
+        $purchase->load(['user', 'store', 'customer', 'purchaseDetails.product']);
 
         return Inertia::render('Purchases/Print', [
             'purchase' => $purchase,

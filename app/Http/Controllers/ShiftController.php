@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers;
 
-use App\Helpers\DeviceHelper;
 use App\Models\Authorization;
 use App\Models\Purchase;
 use App\Models\PurchaseReturn;
@@ -16,6 +15,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
+use App\Services\StationResolver;
 
 class ShiftController extends Controller
 {
@@ -61,10 +61,10 @@ class ShiftController extends Controller
     public function showOpenShiftForm()
     {
         $user = Auth::user();
-        $deviceId = DeviceHelper::getDeviceId();
+        $station = StationResolver::resolve();
 
         $openShiftToday = Shift::where('store_id', $user->store_id)
-            ->where('device_id', $deviceId)
+            ->where('station_id', $station->id)
             ->where('status', 'open')
             ->first();
 
@@ -93,7 +93,7 @@ class ShiftController extends Controller
             ]);
         }
 
-        $deviceId = DeviceHelper::getDeviceId();
+        $station = StationResolver::resolve();
         $todayCount = Shift::where('store_id', $user->store_id)
             ->whereDate('start_time', Carbon::today())
             ->count();
@@ -106,6 +106,7 @@ class ShiftController extends Controller
             'shift_code' => $shiftCode,
             'name' => $request->name,
             'store_id' => $user->store_id,
+            'station_id' => $station->id,
             'start_time' => Carbon::now(),
             'end_time' => null,
             'total_struk' => 0,
@@ -120,7 +121,7 @@ class ShiftController extends Controller
             'total_stock_movements' => 0,
             'variance' => 0,
             'status' => 'open',
-            'device_id' => $deviceId,
+            'device_id' => $station->device_identifier,
         ]);
 
         return redirect()->route('dashboard')->with('success', 'Shift berhasil dibuka!');
@@ -129,10 +130,10 @@ class ShiftController extends Controller
     public function showCloseShiftForm()
     {
         $user = Auth::user();
-        $deviceId = DeviceHelper::getDeviceId();
+        $station = StationResolver::resolve();
 
         $activeShift = Shift::where('store_id', $user->store_id)
-            ->where('device_id', $deviceId)
+            ->where('station_id', $station->id)
             ->where('status', 'open')
             ->first();
 
@@ -171,8 +172,9 @@ class ShiftController extends Controller
         }
 
         // 2. Ambil data shift aktif
+        $station = StationResolver::resolve();
         $activeShift = Shift::where('store_id', $user->store_id)
-            ->where('device_id', DeviceHelper::getDeviceId())
+            ->where('station_id', $station->id)
             ->where('status', 'open')->firstOrFail();
 
         $startTime = $activeShift->start_time;
@@ -243,6 +245,6 @@ class ShiftController extends Controller
         $request->session()->invalidate();
         $request->session()->regenerateToken();
 
-        return redirect('/index')->with('success', 'Shift berhasil ditutup. Silakan login kembali untuk memulai shift baru.');
+        return redirect('/login')->with('success', 'Shift berhasil ditutup. Silakan login kembali untuk memulai shift baru.');
     }
 }

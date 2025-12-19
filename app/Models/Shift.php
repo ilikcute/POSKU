@@ -31,6 +31,7 @@ class Shift extends Model
         'variance',
         'status',
         'device_id',
+        'station_id',
     ];
 
     public function user()
@@ -41,5 +42,10 @@ class Shift extends Model
     public function store()
     {
         return $this->belongsTo(Store::class);
+    }
+
+    public function station()
+    {
+        return $this->belongsTo(Station::class);
     }
 }

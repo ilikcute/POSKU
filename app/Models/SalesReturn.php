@@ -14,6 +14,7 @@ class SalesReturn extends Model
         'sale_id',
         'user_id',
         'store_id',
+        'station_id',
         'total_amount',
         'final_amount',
         'notes',
@@ -49,6 +50,11 @@ class SalesReturn extends Model
     public function store()
     {
         return $this->belongsTo(Store::class);
+    }
+
+    public function station()
+    {
+        return $this->belongsTo(Station::class);
     }
 
     public function salesReturnDetails()

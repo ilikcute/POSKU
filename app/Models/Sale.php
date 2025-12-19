@@ -14,7 +14,8 @@ class Sale extends Model
         'invoice_number',
         'user_id',
         'store_id',
-        'member_id',
+        'station_id',
+        'customer_id',
         'total_amount',
         'discount',
         'tax',
@@ -65,14 +66,27 @@ class Sale extends Model
         return $this->belongsTo(User::class);
     }
 
+    public function customer()
+    {
+        return $this->belongsTo(Customer::class, 'customer_id');
+    }
+
+    /**
+     * @deprecated Use customer() instead. Kept for backward compatibility with existing views.
+     */
     public function member()
     {
-        return $this->belongsTo(Customer::class, 'member_id');
+        return $this->customer();
     }
 
     public function store()
     {
         return $this->belongsTo(Store::class);
+    }
+
+    public function station()
+    {
+        return $this->belongsTo(Station::class);
     }
 
     public function saleDetails()

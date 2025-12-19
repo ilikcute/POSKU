@@ -5,20 +5,14 @@ namespace App\Http\Controllers;
 use App\Models\Customer;
 use App\Models\Store;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
 
 class CustomerController extends Controller
 {
     public function index(Request $request)
     {
-        $user = Auth::user();
-        $query = Customer::query();
-
-        // Filter by store if available (for member-like logic)
-        if (isset($user->store_id)) {
-            $query->where('store_id', $user->store_id);
-        }
+        $store = $this->currentStore();
+        $query = Customer::query()->where('store_id', $store->id);
 
         // Search by name, code, phone
         if ($request->search) {
@@ -36,12 +30,12 @@ class CustomerController extends Controller
         return Inertia::render('Master/Members/Index', [
             'customers' => $customers,
             'filters' => $request->only(['search']),
+            'store' => $store,
         ]);
     }
 
     public function store(Request $request)
     {
-        $user = Auth::user();
         $validated = $request->validate([
             'customer_code' => 'nullable|string|max:50|unique:customers,customer_code',
             'member_code' => 'nullable|string|unique:customers,member_code',
@@ -58,10 +52,7 @@ class CustomerController extends Controller
             'joined_at' => 'nullable|date',
         ]);
 
-        // Default store_id for member logic
-        if (isset($user->store_id) && empty($validated['store_id'])) {
-            $validated['store_id'] = $user->store_id;
-        }
+        $validated['store_id'] = $this->currentStoreId();
         $validated['points'] = $validated['points'] ?? 0;
         $validated['status'] = $validated['status'] ?? 'active';
 
@@ -98,9 +89,7 @@ class CustomerController extends Controller
 
     public function update(Request $request, Customer $customer)
     {
-        $user = Auth::user();
-        // Only allow update if store_id matches (for member logic)
-        if (isset($user->store_id) && $customer->store_id !== $user->store_id) {
+        if ($customer->store_id !== $this->currentStoreId()) {
             abort(403, 'Unauthorized');
         }
         $validated = $request->validate([
@@ -124,8 +113,7 @@ class CustomerController extends Controller
 
     public function destroy(Customer $customer)
     {
-        $user = Auth::user();
-        if (isset($user->store_id) && $customer->store_id !== $user->store_id) {
+        if ($customer->store_id !== $this->currentStoreId()) {
             abort(403, 'Unauthorized');
         }
         $customer->delete();
@@ -135,11 +123,11 @@ class CustomerController extends Controller
     // Tambahkan fitur generateCard jika perlu
     public function generateCard(Customer $customer)
     {
-        $user = Auth::user();
-        if (isset($user->store_id) && $customer->store_id !== $user->store_id) {
+        $storeId = $this->currentStoreId();
+        if ($customer->store_id !== $storeId) {
             abort(403, 'Unauthorized');
         }
-        $store = Store::find($user->store_id);
+        $store = Store::find($storeId);
         return response()->json([
             'member' => $customer,
             'store' => $store,

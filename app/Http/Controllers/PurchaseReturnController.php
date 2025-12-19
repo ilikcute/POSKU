@@ -10,6 +10,8 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
+use Illuminate\Validation\ValidationException;
+use App\Services\StationResolver;
 
 class PurchaseReturnController extends Controller
 {
@@ -18,8 +20,9 @@ class PurchaseReturnController extends Controller
      */
     public function index(Request $request)
     {
+        $storeId = $this->currentStoreId();
         $query = PurchaseReturn::with(['purchase', 'user', 'store', 'purchaseReturnDetails.product'])
-            ->where('store_id', auth()->user()->store_id ?? 1);
+            ->where('store_id', $storeId);
 
         // Filter by date range
         if ($request->has('start_date') && $request->start_date) {
@@ -45,18 +48,19 @@ class PurchaseReturnController extends Controller
      */
     public function create(Request $request)
     {
+        $storeId = $this->currentStoreId();
         $purchaseId = $request->get('purchase_id');
         $purchase = null;
         
         if ($purchaseId) {
             $purchase = Purchase::with(['purchaseDetails.product'])
                 ->where('id', $purchaseId)
-                ->where('store_id', auth()->user()->store_id ?? 1)
+                ->where('store_id', $storeId)
                 ->first();
         }
 
         $purchases = Purchase::with(['purchaseDetails'])
-            ->where('store_id', auth()->user()->store_id ?? 1)
+            ->where('store_id', $storeId)
             ->orderBy('transaction_date', 'desc')
             ->limit(50)
             ->get();
@@ -72,31 +76,49 @@ class PurchaseReturnController extends Controller
      */
     public function store(Request $request)
     {
-        $request->validate([
+        $validated = $request->validate([
             'purchase_id' => 'required|exists:purchases,id',
             'items' => 'required|array|min:1',
             'items.*.product_id' => 'required|exists:products,id',
             'items.*.quantity' => 'required|integer|min:1',
-            'items.*.price' => 'required|numeric|min:0',
+            'items.*.price' => 'nullable|numeric|min:0',
             'notes' => 'nullable|string|max:1000',
         ]);
 
-        $purchase = Purchase::findOrFail($request->purchase_id);
+        $storeId = $this->currentStoreId();
+        $station = StationResolver::resolve();
+        $purchase = Purchase::findOrFail($validated['purchase_id']);
         
         // Validate that purchase belongs to current store
-        if ($purchase->store_id !== (auth()->user()->store_id ?? 1)) {
+        if ($purchase->store_id !== $storeId) {
             return back()->withErrors(['purchase_id' => 'Invalid purchase selected.']);
         }
 
-        DB::transaction(function () use ($request, $purchase) {
-            // Calculate totals
-            $totalAmount = 0;
-            $items = collect($request->items);
-            
-            foreach ($items as $item) {
-                $subtotal = $item['quantity'] * $item['price'];
-                $totalAmount += $subtotal;
-            }
+        $returnables = $this->calculatePurchaseReturnables($purchase);
+
+        DB::transaction(function () use ($validated, $purchase, $returnables, $station) {
+            $items = collect($validated['items'])->map(function ($item) use ($returnables) {
+                $info = $returnables[$item['product_id']] ?? null;
+                if (! $info || $info['returnable_quantity'] <= 0) {
+                    throw ValidationException::withMessages(['items' => 'Produk tidak valid untuk retur.']);
+                }
+                if ($item['quantity'] > $info['returnable_quantity']) {
+                    throw ValidationException::withMessages([
+                        'items' => "Jumlah retur melebihi batas untuk {$info['product']->name}.",
+                    ]);
+                }
+
+                $unitPrice = $info['price_at_purchase'];
+
+                return [
+                    'product_id' => $item['product_id'],
+                    'quantity' => $item['quantity'],
+                    'unit_price' => $unitPrice,
+                    'subtotal' => $unitPrice * $item['quantity'],
+                ];
+            });
+
+            $totalAmount = $items->sum('subtotal');
 
             $finalAmount = $totalAmount;
 
@@ -105,22 +127,21 @@ class PurchaseReturnController extends Controller
                 'purchase_id' => $purchase->id,
                 'user_id' => Auth::id(),
                 'store_id' => $purchase->store_id,
+                'station_id' => $station->id,
                 'total_amount' => $totalAmount,
                 'final_amount' => $finalAmount,
-                'notes' => $request->notes,
+                'notes' => $validated['notes'],
                 'return_date' => now(),
             ]);
 
             // Create purchase return details and update stock
             foreach ($items as $item) {
-                $subtotal = $item['quantity'] * $item['price'];
-                
                 PurchaseReturnDetail::create([
                     'purchase_return_id' => $purchaseReturn->id,
                     'product_id' => $item['product_id'],
                     'quantity' => $item['quantity'],
-                    'price_at_return' => $item['price'],
-                    'subtotal' => $subtotal,
+                    'price_at_return' => $item['unit_price'],
+                    'subtotal' => $item['subtotal'],
                 ]);
 
                 // Update stock (reduce because we're returning items)
@@ -181,15 +202,17 @@ class PurchaseReturnController extends Controller
      */
     public function update(Request $request, PurchaseReturn $purchaseReturn)
     {
-        $request->validate([
+        $validated = $request->validate([
             'items' => 'required|array|min:1',
             'items.*.product_id' => 'required|exists:products,id',
             'items.*.quantity' => 'required|integer|min:1',
-            'items.*.price' => 'required|numeric|min:0',
+            'items.*.price' => 'nullable|numeric|min:0',
             'notes' => 'nullable|string|max:1000',
         ]);
 
-        DB::transaction(function () use ($request, $purchaseReturn) {
+        $returnables = $this->calculatePurchaseReturnables($purchaseReturn->purchase, $purchaseReturn->id);
+
+        DB::transaction(function () use ($validated, $purchaseReturn, $returnables) {
             // Revert previous stock changes (add back the returned items)
             foreach ($purchaseReturn->purchaseReturnDetails as $detail) {
                 $stock = Stock::firstOrCreate(
@@ -213,13 +236,29 @@ class PurchaseReturnController extends Controller
             $purchaseReturn->purchaseReturnDetails()->delete();
 
             // Calculate new totals
-            $totalAmount = 0;
-            $items = collect($request->items);
-            
-            foreach ($items as $item) {
-                $subtotal = $item['quantity'] * $item['price'];
-                $totalAmount += $subtotal;
-            }
+            $items = collect($validated['items'])->map(function ($item) use ($returnables) {
+                $info = $returnables[$item['product_id']] ?? null;
+                if (! $info || $info['returnable_quantity'] <= 0) {
+                    throw ValidationException::withMessages(['items' => 'Produk tidak valid untuk retur.']);
+                }
+
+                if ($item['quantity'] > $info['returnable_quantity']) {
+                    throw ValidationException::withMessages([
+                        'items' => "Jumlah retur melebihi batas untuk {$info['product']->name}.",
+                    ]);
+                }
+
+                $unitPrice = $info['price_at_purchase'];
+
+                return [
+                    'product_id' => $item['product_id'],
+                    'quantity' => $item['quantity'],
+                    'unit_price' => $unitPrice,
+                    'subtotal' => $unitPrice * $item['quantity'],
+                ];
+            });
+
+            $totalAmount = $items->sum('subtotal');
 
             $finalAmount = $totalAmount;
 
@@ -227,19 +266,17 @@ class PurchaseReturnController extends Controller
             $purchaseReturn->update([
                 'total_amount' => $totalAmount,
                 'final_amount' => $finalAmount,
-                'notes' => $request->notes,
+                'notes' => $validated['notes'],
             ]);
 
             // Create new purchase return details and update stock
             foreach ($items as $item) {
-                $subtotal = $item['quantity'] * $item['price'];
-                
                 PurchaseReturnDetail::create([
                     'purchase_return_id' => $purchaseReturn->id,
                     'product_id' => $item['product_id'],
                     'quantity' => $item['quantity'],
-                    'price_at_return' => $item['price'],
-                    'subtotal' => $subtotal,
+                    'price_at_return' => $item['unit_price'],
+                    'subtotal' => $item['subtotal'],
                 ]);
 
                 // Update stock (reduce because we're returning items)
@@ -300,27 +337,38 @@ class PurchaseReturnController extends Controller
      */
     public function getReturnableItems(Purchase $purchase)
     {
-        $purchase->load(['purchaseDetails.product']);
-        
-        // Get already returned quantities
+        $returnableItems = $this->calculatePurchaseReturnables($purchase);
+
+        return response()->json(array_values($returnableItems));
+    }
+
+    protected function calculatePurchaseReturnables(Purchase $purchase, ?int $excludeReturnId = null): array
+    {
+        $purchase->loadMissing(['purchaseDetails.product']);
+
         $returnedQuantities = [];
-        $purchaseReturns = PurchaseReturn::where('purchase_id', $purchase->id)->get();
+        $purchaseReturns = PurchaseReturn::where('purchase_id', $purchase->id)
+            ->with('purchaseReturnDetails')
+            ->get();
         
         foreach ($purchaseReturns as $return) {
+            if ($excludeReturnId && $return->id === $excludeReturnId) {
+                continue;
+            }
+
             foreach ($return->purchaseReturnDetails as $detail) {
                 $key = $detail->product_id;
                 $returnedQuantities[$key] = ($returnedQuantities[$key] ?? 0) + $detail->quantity;
             }
         }
 
-        // Calculate returnable quantities
         $returnableItems = [];
         foreach ($purchase->purchaseDetails as $detail) {
             $returned = $returnedQuantities[$detail->product_id] ?? 0;
-            $returnable = $detail->quantity - $returned;
-            
+            $returnable = max(0, $detail->quantity - $returned);
+
             if ($returnable > 0) {
-                $returnableItems[] = [
+                $returnableItems[$detail->product_id] = [
                     'product_id' => $detail->product_id,
                     'product' => $detail->product,
                     'original_quantity' => $detail->quantity,
@@ -331,6 +379,6 @@ class PurchaseReturnController extends Controller
             }
         }
 
-        return response()->json($returnableItems);
+        return $returnableItems;
     }
 }

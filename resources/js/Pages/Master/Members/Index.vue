@@ -4,72 +4,97 @@
         <Head title="Master Customer" />
 
         <template #header>
-            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                <div>
-                    <h2 class="font-semibold text-xl text-white leading-tight">
-                        Master Customer
-                    </h2>
-                    <p class="text-sm text-gray-400 mt-1">
-                        Kelola customer dengan tampilan konsisten dan mudah.
-                    </p>
-                </div>
-
-                <div class="flex flex-col sm:flex-row sm:items-center gap-3">
-                    <div class="flex bg-gray-800/50 rounded-lg p-1 backdrop-blur-sm">
-                        <button @click="viewMode = 'table'" :class="[
-                            'px-3 py-2 rounded-md text-sm font-medium transition-all duration-200',
-                            viewMode === 'table'
-                                ? 'bg-white/20 text-white shadow-sm'
-                                : 'text-gray-300 hover:text-white hover:bg-white/10'
-                        ]">
-
-                            <svg class="w-4 h-4 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                    d="M3 10h18M3 6h18m-9 10h9" />
+            <AppPageHeader
+                title="Master Customer"
+                description="Kelola data pelanggan dengan tampilan yang konsisten dan nyaman."
+            >
+                <template #filters>
+                    <div class="flex bg-white/10 rounded-full p-1 backdrop-blur-sm">
+                        <button
+                            @click="viewMode = 'table'"
+                            :class="[
+                                'flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold transition-all',
+                                viewMode === 'table'
+                                    ? 'bg-white text-slate-900 shadow-lg'
+                                    : 'text-white/70 hover:text-white hover:bg-white/10',
+                            ]"
+                        >
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                    stroke-width="2"
+                                    d="M3 10h18M3 6h18m-9 10h9"
+                                />
                             </svg>
                             Table
                         </button>
-                        <button @click="viewMode = 'cards'" :class="[
-                            'px-3 py-2 rounded-md text-sm font-medium transition-all duration-200',
-                            viewMode === 'cards'
-                                ? 'bg-white/20 text-white shadow-sm'
-                                : 'text-gray-300 hover:text-white hover:bg-white/10'
-                        ]">
-                            <svg class="w-4 h-4 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                    d="M19 11H5m14-7H5a2 2 0 00-2 2v12a2 2 0 002 2h14a2 2 0 002-2V6a2 2 0 00-2-2z" />
+                        <button
+                            @click="viewMode = 'cards'"
+                            :class="[
+                                'flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold transition-all',
+                                viewMode === 'cards'
+                                    ? 'bg-white text-slate-900 shadow-lg'
+                                    : 'text-white/70 hover:text-white hover:bg-white/10',
+                            ]"
+                        >
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                    stroke-width="2"
+                                    d="M19 11H5m14-7H5a2 2 0 00-2 2v12a2 2 0 002 2h14a2 2 0 002-2V6a2 2 0 00-2-2z"
+                                />
                             </svg>
                             Cards
                         </button>
                     </div>
-
-                    <button @click="openModal(false)"
-                        class="inline-flex items-center justify-center bg-gradient-to-r from-green-400 to-emerald-400 text-white font-bold py-3 px-6 rounded-full text-sm shadow-xl hover:scale-105 hover:from-green-500 hover:to-emerald-500 transition-transform duration-200">
+                </template>
+                <template #actions>
+                    <button
+                        @click="openModal(false)"
+                        class="inline-flex items-center justify-center bg-gradient-to-r from-emerald-400 to-green-500 text-slate-900 font-semibold py-3 px-6 rounded-full text-sm shadow-xl hover:scale-105 transition-transform duration-200"
+                    >
                         <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
                         </svg>
                         Tambah Customer
                     </button>
-                </div>
-            </div>
+                </template>
+            </AppPageHeader>
         </template>
 
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div
-                class="backdrop-blur-md bg-white/5 border border-white/10 rounded-2xl shadow-xl p-6 mb-6 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-                <div class="flex w-full lg:w-auto items-center gap-3">
-                    <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M21 21l-4.35-4.35M11 19a8 8 0 100-16 8 8 0 000 16z" />
-                    </svg>
-                    <TextInput v-model="search" type="text"
-                        class="w-full lg:w-72 bg-white/5 border-white/20 rounded-lg text-gray-200 focus:ring-blue-500 focus:border-blue-500"
-                        placeholder="Cari nama atau kode customer..." />
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
+            <AppPanel>
+                <div
+                    class="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between"
+                >
+                    <label class="flex w-full items-center gap-3 text-white/80">
+                        <svg class="w-5 h-5 text-emerald-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M21 21l-4.35-4.35M11 19a8 8 0 100-16 8 8 0 000 16z" />
+                        </svg>
+                        <TextInput v-model="search" type="text"
+                            class="flex-1 bg-white/5 border-white/20 rounded-xl text-gray-100 focus:ring-emerald-400 focus:border-emerald-400"
+                            placeholder="Cari nama, kode customer, atau nomor telepon..." />
+                    </label>
+
+                    <div v-if="storeProfile" class="flex items-center gap-3 text-sm text-gray-300">
+                        <div class="rounded-2xl bg-emerald-500/10 border border-emerald-400/30 px-4 py-2">
+                            <p class="text-xs uppercase tracking-wide text-emerald-300">Toko aktif</p>
+                            <p class="text-base font-semibold text-white">
+                                {{ storeProfile.name }}
+                            </p>
+                            <p class="text-xs text-gray-400" v-if="storeProfile.address">
+                                {{ storeProfile.address }}
+                            </p>
+                        </div>
+                    </div>
                 </div>
-            </div>
+            </AppPanel>
 
             <div v-if="customers.data.length">
-                <div class="backdrop-blur-md bg-white/5 border border-white/10 rounded-2xl shadow-xl overflow-hidden">
+                <AppPanel class="overflow-hidden">
                     <div v-if="viewMode === 'table'">
                         <div class="hidden lg:block overflow-x-auto">
                             <table class="min-w-full text-sm text-gray-200">
@@ -267,16 +292,17 @@
                             </div>
                         </div>
                     </div>
-                </div>
+                </AppPanel>
             </div>
-
-            <div v-else class="text-center py-12 backdrop-blur-md bg-white/5 border border-white/10 rounded-2xl">
-                <svg class="mx-auto h-12 w-12 text-gray-400 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                        d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-                </svg>
-                <h3 class="text-lg font-medium text-gray-300 mb-2">Belum ada customer</h3>
-                <p class="text-gray-400">Tambah customer baru untuk mengorganisir data pelanggan Anda.</p>
+            <div v-else>
+                <AppPanel>
+                    <InlineNotice variant="info" class="text-center">
+                        <p class="font-semibold">Belum ada customer yang tercatat.</p>
+                        <p class="mt-1 text-white/70">
+                            Gunakan tombol <strong>Tambah Customer</strong> untuk mengisi data pertama Anda.
+                        </p>
+                    </InlineNotice>
+                </AppPanel>
             </div>
 
             <Pagination v-if="customers.links" :links="customers.links" />
@@ -352,7 +378,7 @@
 </template>
 
 <script setup>
-import { ref, watch } from 'vue';
+import { ref, watch, computed } from 'vue';
 import { Head, usePage, router, useForm } from '@inertiajs/vue3';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import Modal from '@/Components/Modal.vue';
@@ -362,6 +388,9 @@ import InputError from '@/Components/InputError.vue';
 import Pagination from '@/Components/Pagination.vue';
 import CustomerCard from '@/Components/CustomerCard.vue';
 import { debounce } from "lodash";
+import AppPanel from '@/Components/AppPanel.vue';
+import AppPageHeader from '@/Components/AppPageHeader.vue';
+import InlineNotice from '@/Components/InlineNotice.vue';
 
 const props = defineProps({
     customers: Object,
@@ -370,6 +399,7 @@ const props = defineProps({
 });
 
 const page = usePage();
+const storeProfile = computed(() => props.store ?? null);
 
 const viewMode = ref('table');
 const search = ref(props.filters.search || ''); // Initialize search with filter value

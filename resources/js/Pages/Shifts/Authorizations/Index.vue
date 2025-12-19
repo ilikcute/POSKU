@@ -1,7 +1,7 @@
 <script setup>
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import Pagination from '@/Components/Pagination.vue';
-import { Head, Link } from '@inertiajs/vue3';
+import { Head, Link, router } from '@inertiajs/vue3';
 import { usePage } from '@inertiajs/vue3';
 
 const page = usePage();
@@ -24,6 +24,12 @@ const formatDateTime = (dateTime) => {
         second: '2-digit',
     };
     return new Date(dateTime).toLocaleDateString(undefined, options);
+};
+
+const deleteAuthorization = (authorization) => {
+    if (confirm(`Apakah Anda yakin ingin menghapus authorization "${authorization.name}"?`)) {
+        router.delete(route('shifts.authorizations.destroy', authorization.id));
+    }
 };
 </script>
 
@@ -120,15 +126,3 @@ const formatDateTime = (dateTime) => {
         </div>
     </AuthenticatedLayout>
 </template>
-
-<script>
-export default {
-    methods: {
-        deleteAuthorization(authorization) {
-            if (confirm(`Apakah Anda yakin ingin menghapus authorization "${authorization.name}"?`)) {
-                this.$inertia.delete(route('shifts.authorizations.destroy', authorization.id));
-            }
-        }
-    }
-}
-</script>
