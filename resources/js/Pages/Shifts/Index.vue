@@ -118,6 +118,12 @@ const getVarianceColor = (variance) => {
                             <tr>
                                 <th
                                     class="px-6 py-4 text-left text-xs uppercase tracking-wider font-semibold text-white/90">
+                                    Station</th>
+                                <th
+                                    class="px-6 py-4 text-left text-xs uppercase tracking-wider font-semibold text-white/90">
+                                    Device</th>
+                                <th
+                                    class="px-6 py-4 text-left text-xs uppercase tracking-wider font-semibold text-white/90">
                                     User</th>
                                 <th
                                     class="px-6 py-4 text-left text-xs uppercase tracking-wider font-semibold text-white/90">
@@ -142,6 +148,8 @@ const getVarianceColor = (variance) => {
                         <tbody class="divide-y divide-gray-700/50">
                             <tr v-for="shift in props.shifts.data" :key="shift.id"
                                 class="hover:bg-white/5 transition-all duration-200 group">
+                                <td class="px-6 py-4">{{ shift.station?.name ?? '-' }}</td>
+                                <td class="px-6 py-4">{{ shift.device_id ?? '-' }}</td>
                                 <td class="px-6 py-4">
                                     <div class="flex items-center">
                                         <div
@@ -165,7 +173,7 @@ const getVarianceColor = (variance) => {
                                         <div class="text-emerald-400">{{ formatCurrency(shift.initial_cash) }}</div>
                                         <div v-if="shift.final_cash" class="text-orange-400">{{
                                             formatCurrency(shift.final_cash)
-                                            }}</div>
+                                        }}</div>
                                     </div>
                                 </td>
                                 <td class="px-6 py-4 font-medium text-blue-400">

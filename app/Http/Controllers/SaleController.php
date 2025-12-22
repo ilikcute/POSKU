@@ -59,7 +59,9 @@ class SaleController extends Controller
     {
         $storeId = $this->currentStoreId();
 
-        $products = Product::with(['supplier', 'category', 'promotions' => function ($query) {
+        $products = Product::with(['supplier', 'category', 'stocks' => function ($query) use ($storeId) {
+            $query->where('store_id', $storeId);
+        }, 'promotions' => function ($query) {
             $query->active()->with(['tiers', 'bundles.getProduct', 'bundles.buyProduct']);
         }])
             ->whereHas('stocks', function ($query) use ($storeId) {
@@ -83,9 +85,12 @@ class SaleController extends Controller
         $customers = Customer::orderBy('name')->get();
 
         // Get active shift for current user and store
-        $activeShift = Shift::where('user_id', auth()->id())
+        $station = StationResolver::resolve();
+        $activeShift = Shift::query()
             ->where('store_id', $storeId)
+            ->where('station_id', $station->id)
             ->where('status', 'open')
+            ->latest('start_time')
             ->first();
 
         return Inertia::render('Sales/Create', [
@@ -96,6 +101,9 @@ class SaleController extends Controller
             'auth' => [
                 'user' => auth()->user(),
             ],
+            'shift_id' => $shift->id,
+            'station_id' => $station->id,
+
         ]);
     }
 
@@ -136,6 +144,12 @@ class SaleController extends Controller
 
         $customer = $validated['customer_id'] ? Customer::find($validated['customer_id']) : null;
         $station = StationResolver::resolve();
+        $shift = Shift::query()
+            ->where('store_id', $storeId)
+            ->where('station_id', $station->id)
+            ->where('status', 'open')
+            ->latest('start_time')
+            ->firstOrFail();
 
         DB::transaction(function () use ($validated, $itemsInput, $customer, $storeId, $station) {
             // Get customer for promotion calculation

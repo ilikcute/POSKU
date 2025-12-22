@@ -17,6 +17,7 @@ return new class extends Migration
             $table->string('shift_code');
             $table->string('name');
             $table->foreignId('store_id')->constrained();
+            $table->foreignId('station_id')->nullable()->constrained('stations');
             $table->timestamp('start_time');
             $table->timestamp('end_time')->nullable();
             $table->string('total_struk');

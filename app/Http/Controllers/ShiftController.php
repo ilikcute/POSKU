@@ -9,108 +9,143 @@ use App\Models\Sale;
 use App\Models\SalesReturn;
 use App\Models\Shift;
 use App\Models\StockMovement;
-use Carbon\Carbon;
+use App\Services\StationResolver;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
-use App\Services\StationResolver;
 
 class ShiftController extends Controller
 {
     public function index()
     {
-        $shifts = Shift::with('user', 'store')->latest()->paginate(10);
+        $shifts = Shift::query()
+            ->with(['user:id,name', 'store:id,name', 'station:id,name,device_identifier'])
+            ->latest()
+            ->paginate(10)
+            ->withQueryString();
 
         return Inertia::render('Shifts/Index', [
             'shifts' => $shifts,
         ]);
     }
 
-    public function create()
-    {
-        //
-    }
-
-    public function store(Request $request)
-    {
-        //
-    }
-
-    public function show(Shift $shift)
-    {
-        //
-    }
-
-    public function edit(Shift $shift)
-    {
-        //
-    }
-
-    public function update(Request $request, Shift $shift)
-    {
-        //
-    }
-
-    public function destroy(Shift $shift)
-    {
-        //
-    }
-
+    /**
+     * GET /shifts/open
+     * Rule:
+     * - Kalau ada shift hari sebelumnya (siapa pun) yang masih open => paksa ke close.
+     * - Kalau device/station ini sudah ada shift open (hari ini) => paksa ke close.
+     */
     public function showOpenShiftForm()
     {
         $user = Auth::user();
+        $todayStart = now()->startOfDay();
+
+        $hasUnclosedPrevShift = Shift::query()
+            ->where('store_id', $user->store_id)
+            ->where('status', 'open')
+            ->where('start_time', '<', $todayStart)
+            ->exists();
+
+        if ($hasUnclosedPrevShift) {
+            return redirect()
+                ->route('shifts.close.form')
+                ->with('warning', 'Ada shift hari sebelumnya yang belum ditutup. Tutup shift tersebut terlebih dahulu.');
+        }
+
         $station = StationResolver::resolve();
 
-        $openShiftToday = Shift::where('store_id', $user->store_id)
+        $openShiftOnThisStation = Shift::query()
+            ->where('store_id', $user->store_id)
             ->where('station_id', $station->id)
             ->where('status', 'open')
             ->first();
 
-        if ($openShiftToday) {
-            return redirect()->route('shifts.close.form')
+        if ($openShiftOnThisStation) {
+            return redirect()
+                ->route('shifts.close.form')
                 ->with('warning', 'Device ini sudah memiliki shift terbuka. Silakan tutup shift terlebih dahulu.');
         }
+
         return Inertia::render('Shifts/Open');
     }
 
-    // Menyimpan data shift baru
+    /**
+     * POST /shifts/open
+     * Membuka shift baru untuk user login pada station/device saat ini.
+     * Tidak boleh membuka shift jika masih ada shift hari sebelumnya yang open.
+     */
     public function storeOpenShift(Request $request)
     {
-        $request->validate([
-            'initial_cash' => 'required|numeric|min:0',
-            'authorization_password' => 'required|string',
+        $validated = $request->validate([
+            'name' => ['required', 'string', 'max:255'],
+            'initial_cash' => ['required', 'numeric', 'min:0'],
+            'authorization_password' => ['required', 'string'],
         ]);
 
         $user = Auth::user();
+        $todayStart = now()->startOfDay();
 
-        // Verifikasi Password
-        $auth = Authorization::where('name', 'Buka Shift')->where('store_id', $user->store_id)->first();
-        if (! $auth || ! Hash::check($request->authorization_password, $auth->password)) {
+        // Guard: harus bersih dari shift hari sebelumnya
+        $hasUnclosedPrevShift = Shift::query()
+            ->where('store_id', $user->store_id)
+            ->where('status', 'open')
+            ->where('start_time', '<', $todayStart)
+            ->exists();
+
+        if ($hasUnclosedPrevShift) {
+            return back()->with('warning', 'Masih ada shift hari sebelumnya yang belum ditutup.');
+        }
+
+        // Verifikasi otorisasi "Buka Shift"
+        $auth = Authorization::query()
+            ->where('name', 'Buka Shift')
+            ->where('store_id', $user->store_id)
+            ->first();
+
+        if (! $auth || ! Hash::check($validated['authorization_password'], $auth->password)) {
             throw ValidationException::withMessages([
                 'authorization_password' => 'Password verifikasi salah.',
             ]);
         }
 
         $station = StationResolver::resolve();
-        $todayCount = Shift::where('store_id', $user->store_id)
-            ->whereDate('start_time', Carbon::today())
+
+        // Guard: 1 shift open per station/device (sesuai implementasi Anda)
+        $alreadyOpenOnStation = Shift::query()
+            ->where('store_id', $user->store_id)
+            ->where('station_id', $station->id)
+            ->where('status', 'open')
+            ->exists();
+
+        if ($alreadyOpenOnStation) {
+            return redirect()
+                ->route('shifts.close.form')
+                ->with('warning', 'Device ini sudah memiliki shift terbuka. Silakan tutup shift terlebih dahulu.');
+        }
+
+        // Generate shift_code sederhana per hari (lebih aman: gunakan increment/uuid jika perlu)
+        $todayCount = Shift::query()
+            ->where('store_id', $user->store_id)
+            ->where('start_time', '>=', $todayStart)
             ->count();
-        $count = $todayCount + 1;
-        $nextNumber = ($count % 10) + 1;
-        $shiftCode  = 'SHIFT-' . $nextNumber;
+
+        $shiftCode = 'SHIFT-' . ($todayCount + 1);
 
         Shift::create([
             'user_id' => $user->id,
             'shift_code' => $shiftCode,
-            'name' => $request->name,
+            'name' => $validated['name'],
             'store_id' => $user->store_id,
             'station_id' => $station->id,
-            'start_time' => Carbon::now(),
+            'device_id' => $station->device_identifier,
+
+            'start_time' => now(),
             'end_time' => null,
+
             'total_struk' => 0,
-            'initial_cash' => $request->initial_cash,
+            'initial_cash' => $validated['initial_cash'],
             'final_cash' => 0,
             'total_sales' => 0,
             'total_discount' => 0,
@@ -121,114 +156,193 @@ class ShiftController extends Controller
             'total_stock_movements' => 0,
             'variance' => 0,
             'status' => 'open',
-            'device_id' => $station->device_identifier,
         ]);
 
-        return redirect()->route('dashboard')->with('success', 'Shift berhasil dibuka!');
+        return redirect()
+            ->route('dashboard')
+            ->with('success', 'Shift berhasil dibuka!');
     }
 
-    public function showCloseShiftForm()
+    /**
+     * GET /shifts/close
+     * Menampilkan daftar shift hari sebelumnya yang masih open (store-level).
+     * User yang login memilih shift mana yang ditutup.
+     */
+    public function showCloseShiftForm(Request $request)
     {
         $user = Auth::user();
-        $station = StationResolver::resolve();
+        $todayStart = now()->startOfDay();
 
-        $activeShift = Shift::where('store_id', $user->store_id)
-            ->where('station_id', $station->id)
+        // SHIFT KEMARIN (store-level)
+        $unclosedShifts = Shift::query()
+            ->where('store_id', $user->store_id)
             ->where('status', 'open')
-            ->first();
+            ->where('start_time', '<', $todayStart)
+            ->with(['user:id,name', 'station:id,name,device_identifier'])
+            ->orderBy('start_time')
+            ->get();
 
-        // Jika tidak ada shift aktif, kembalikan ke dashboard
-        if (! $activeShift) {
-            return redirect()->route('dashboard')->withErrors(['error' => 'Tidak ada shift yang sedang aktif.']);
+        // MODE A: jika ada shift kemarin yang open -> force close
+        if ($unclosedShifts->isNotEmpty()) {
+            $selectedShiftId = $request->integer('shift_id');
+
+            $activeShift = $selectedShiftId
+                ? $unclosedShifts->firstWhere('id', $selectedShiftId)
+                : $unclosedShifts->first();
+
+            if (! $activeShift) {
+                $activeShift = $unclosedShifts->first();
+            }
+
+            $summary = $this->buildShiftSummary($user->store_id, $activeShift);
+
+            return Inertia::render('Shifts/Close', [
+                'mode' => 'force_previous',
+                'unclosedShifts' => $unclosedShifts,
+                'activeShift' => $activeShift,
+                'summary' => $summary,
+            ]);
         }
 
-        // Hitung total penjualan selama shift ini berlangsung
-        $totalSales = Sale::where('user_id', $user->id)
-            ->where('created_at', '>=', $activeShift->start_time)
-            ->sum('final_amount');
+        // MODE B: tidak ada shift kemarin open -> close shift hari ini (station current)
+        $station = StationResolver::resolve();
 
-        // Kirim data ke frontend
+        $activeShiftToday = Shift::query()
+            ->where('store_id', $user->store_id)
+            ->where('station_id', $station->id)
+            ->where('status', 'open')
+            ->with(['user:id,name', 'station:id,name,device_identifier'])
+            ->first();
+
+        if (! $activeShiftToday) {
+            return redirect()
+                ->route('dashboard')
+                ->with('warning', 'Tidak ada shift yang sedang aktif.');
+        }
+
+        $summary = $this->buildShiftSummary($user->store_id, $activeShiftToday);
+
         return Inertia::render('Shifts/Close', [
-            'activeShift' => $activeShift,
-            'totalSales' => (float) $totalSales,
+            'mode' => 'normal_today',
+            'unclosedShifts' => [],
+            'activeShift' => $activeShiftToday,
+            'summary' => $summary,
         ]);
     }
 
+
+    /**
+     * POST /shifts/close
+     * Menutup shift hari sebelumnya (store-level gate), tapi perhitungan transaksi memakai pemilik shift (user B).
+     */
     public function storeCloseShift(Request $request)
     {
-        $request->validate([
-            'final_cash' => 'required|numeric|min:0',
-            'authorization_password' => 'required|string',
+        $validated = $request->validate([
+            'shift_id' => ['required', 'integer', 'exists:shifts,id'],
+            'final_cash' => ['required', 'numeric', 'min:0'],
+            'authorization_password' => ['required', 'string'],
         ]);
 
         $user = Auth::user();
+        $todayStart = now()->startOfDay();
 
-        // 1. Verifikasi Password
-        $auth = Authorization::where('name', 'Tutup Shift')->where('store_id', $user->store_id)->first();
-        if (! $auth || ! Hash::check($request->authorization_password, $auth->password)) {
+        // Verifikasi otorisasi "Tutup Shift"
+        $auth = Authorization::query()
+            ->where('name', 'Tutup Shift')
+            ->where('store_id', $user->store_id)
+            ->first();
+
+        if (! $auth || ! Hash::check($validated['authorization_password'], $auth->password)) {
             throw ValidationException::withMessages([
                 'authorization_password' => 'Password verifikasi salah.',
             ]);
         }
 
-        // 2. Ambil data shift aktif
-        $station = StationResolver::resolve();
-        $activeShift = Shift::where('store_id', $user->store_id)
-            ->where('station_id', $station->id)
-            ->where('status', 'open')->firstOrFail();
+        // Shift yang ditutup harus:
+        // - satu store
+        // - masih open
+        // - hari sebelumnya (start_time < today)
+        $activeShift = Shift::query()
+            ->where('id', $validated['shift_id'])
+            ->where('store_id', $user->store_id)
+            ->where('status', 'open')
+            ->firstOrFail();
 
+        $todayStart = now()->startOfDay();
+
+        $isPreviousDayShift = $activeShift->start_time < $todayStart;
+
+        // Jika shift hari ini, batasi hanya pemilik shift yang boleh close
+        if (! $isPreviousDayShift && $activeShift->user_id !== $user->id) {
+            throw ValidationException::withMessages([
+                'shift_id' => 'Anda tidak berwenang menutup shift user lain untuk hari ini.',
+            ]);
+        }
+
+        $ownerUserId = $activeShift->user_id;
         $startTime = $activeShift->start_time;
 
-        // 3. Lakukan Perhitungan untuk semua transaksi selama shift
-        // Total struk (jumlah penjualan)
-        $totalStruk = Sale::where('user_id', $user->id)
+        $totalStruk = Sale::query()
+            ->where('store_id', $user->store_id)
+            ->where('user_id', $ownerUserId)
             ->where('created_at', '>=', $startTime)
             ->count();
 
-        // Total sales
-        $totalSales = Sale::where('user_id', $user->id)
+        $totalSales = Sale::query()
+            ->where('store_id', $user->store_id)
+            ->where('user_id', $ownerUserId)
             ->where('created_at', '>=', $startTime)
             ->sum('final_amount');
 
-        // Total sales return
-        $totalSalesReturn = SalesReturn::where('user_id', $user->id)
+        $totalSalesReturn = SalesReturn::query()
+            ->where('store_id', $user->store_id)
+            ->where('user_id', $ownerUserId)
             ->where('created_at', '>=', $startTime)
             ->sum('final_amount');
 
-        // Total purchase
-        $totalPurchase = Purchase::where('user_id', $user->id)
+        $totalPurchase = Purchase::query()
+            ->where('store_id', $user->store_id)
+            ->where('user_id', $ownerUserId)
             ->where('created_at', '>=', $startTime)
             ->sum('final_amount');
 
-        // Total purchase return
-        $totalPurchaseReturn = PurchaseReturn::where('user_id', $user->id)
+        $totalPurchaseReturn = PurchaseReturn::query()
+            ->where('store_id', $user->store_id)
+            ->where('user_id', $ownerUserId)
             ->where('created_at', '>=', $startTime)
             ->sum('final_amount');
 
-        // Total stock movements (jumlah gerakan stok, misalnya opname, adjustment)
-        $totalStockMovements = StockMovement::whereHas('stock', function ($q) use ($user) {
-            $q->where('store_id', $user->store_id);
-        })->where('created_at', '>=', $startTime)->count();
-
-        // Total discount (dari sales)
-        $totalDiscount = Sale::where('user_id', $user->id)
+        $totalDiscount = Sale::query()
+            ->where('store_id', $user->store_id)
+            ->where('user_id', $ownerUserId)
             ->where('created_at', '>=', $startTime)
             ->sum('discount') ?? 0;
 
-        // Total tax (dari sales)
-        $totalTax = Sale::where('user_id', $user->id)
+        $totalTax = Sale::query()
+            ->where('store_id', $user->store_id)
+            ->where('user_id', $ownerUserId)
             ->where('created_at', '>=', $startTime)
             ->sum('tax') ?? 0;
 
-        // Expected cash sederhana: initial + sales - sales_return + purchase - purchase_return
-        $expectedCash = $activeShift->initial_cash + $totalSales - $totalSalesReturn + $totalPurchase - $totalPurchaseReturn;
-        $variance = $request->final_cash - $expectedCash;
+        $totalStockMovements = StockMovement::query()
+            ->whereHas('stock', function ($q) use ($user) {
+                $q->where('store_id', $user->store_id);
+            })
+            ->where('created_at', '>=', $startTime)
+            ->count();
 
-        // 4. Update data shift dengan semua totalan
+        $expectedCash = $activeShift->initial_cash
+            + $totalSales
+            - $totalSalesReturn
+            + $totalPurchase
+            - $totalPurchaseReturn;
+
+        $variance = $validated['final_cash'] - $expectedCash;
+
         $activeShift->update([
             'end_time' => now(),
-            'total_struk' => (string) $totalStruk, // Karena field string
-            'final_cash' => $request->final_cash,
+            'total_struk' => (string) $totalStruk,
+            'final_cash' => $validated['final_cash'],
             'total_sales' => $totalSales,
             'total_discount' => $totalDiscount,
             'total_tax' => $totalTax,
@@ -240,11 +354,54 @@ class ShiftController extends Controller
             'status' => 'closed',
         ]);
 
-        // 5. Logout user
-        Auth::logout();
-        $request->session()->invalidate();
-        $request->session()->regenerateToken();
+        // Setelah menutup shift kemarin, user login tetap lanjut open shift baru
+        if ($isPreviousDayShift) {
+            return redirect()->route('shifts.open.form')
+                ->with('success', 'Shift hari sebelumnya berhasil ditutup. Silakan buka shift baru.');
+        }
 
-        return redirect('/login')->with('success', 'Shift berhasil ditutup. Silakan login kembali untuk memulai shift baru.');
+        return redirect()->route('dashboard')
+            ->with('success', 'Shift hari ini berhasil ditutup.');
+    }
+
+    private function buildShiftSummary(int $storeId, Shift $shift): array
+    {
+        $ownerUserId = $shift->user_id;
+        $startTime = $shift->start_time;
+
+        $totalSales = Sale::query()
+            ->where('store_id', $storeId)
+            ->where('user_id', $ownerUserId)
+            ->where('created_at', '>=', $startTime)
+            ->sum('final_amount');
+
+        $totalSalesReturn = SalesReturn::query()
+            ->where('store_id', $storeId)
+            ->where('user_id', $ownerUserId)
+            ->where('created_at', '>=', $startTime)
+            ->sum('final_amount');
+
+        $totalPurchase = Purchase::query()
+            ->where('store_id', $storeId)
+            ->where('user_id', $ownerUserId)
+            ->where('created_at', '>=', $startTime)
+            ->sum('final_amount');
+
+        $totalPurchaseReturn = PurchaseReturn::query()
+            ->where('store_id', $storeId)
+            ->where('user_id', $ownerUserId)
+            ->where('created_at', '>=', $startTime)
+            ->sum('final_amount');
+
+        $expectedCash = $shift->initial_cash
+            + $totalSales
+            - $totalSalesReturn
+            + $totalPurchase
+            - $totalPurchaseReturn;
+
+        return [
+            'totalSales' => (float) $totalSales,
+            'expectedCash' => (float) $expectedCash,
+        ];
     }
 }

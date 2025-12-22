@@ -28,7 +28,7 @@ class SaleDetail extends Model
     protected static function boot()
     {
         parent::boot();
-        
+
         static::saving(function ($detail) {
             $detail->subtotal = ($detail->price_at_sale - $detail->discount_per_item) * $detail->quantity;
         });
@@ -47,7 +47,7 @@ class SaleDetail extends Model
     // Methods
     public function getUnitPriceAfterDiscount()
     {
-        return $this->price_at_sale - $detail->discount_per_item;
+        return $this->price_at_sale - $this->discount_per_item;
     }
 
     public function getTotalDiscount()

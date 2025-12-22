@@ -28,7 +28,7 @@ class PurchaseReturnController extends Controller
         if ($request->has('start_date') && $request->start_date) {
             $query->whereDate('return_date', '>=', $request->start_date);
         }
-        
+
         if ($request->has('end_date') && $request->end_date) {
             $query->whereDate('return_date', '<=', $request->end_date);
         }
@@ -51,7 +51,7 @@ class PurchaseReturnController extends Controller
         $storeId = $this->currentStoreId();
         $purchaseId = $request->get('purchase_id');
         $purchase = null;
-        
+
         if ($purchaseId) {
             $purchase = Purchase::with(['purchaseDetails.product'])
                 ->where('id', $purchaseId)
@@ -68,6 +68,9 @@ class PurchaseReturnController extends Controller
         return Inertia::render('PurchaseReturns/Create', [
             'purchase' => $purchase,
             'purchases' => $purchases,
+            'shift_id' => $shift->id,
+            'station_id' => $station->id,
+
         ]);
     }
 
@@ -88,7 +91,17 @@ class PurchaseReturnController extends Controller
         $storeId = $this->currentStoreId();
         $station = StationResolver::resolve();
         $purchase = Purchase::findOrFail($validated['purchase_id']);
-        
+
+        $station = StationResolver::resolve();
+
+        $shift = Shift::query()
+            ->where('store_id', $storeId)
+            ->where('station_id', $station->id)
+            ->where('status', 'open')
+            ->latest('start_time')
+            ->firstOrFail();
+
+
         // Validate that purchase belongs to current store
         if ($purchase->store_id !== $storeId) {
             return back()->withErrors(['purchase_id' => 'Invalid purchase selected.']);
@@ -148,7 +161,7 @@ class PurchaseReturnController extends Controller
                 $stock = Stock::where('product_id', $item['product_id'])
                     ->where('store_id', $purchase->store_id)
                     ->first();
-                    
+
                 if ($stock) {
                     $stock->reduceStock(
                         $item['quantity'],
@@ -172,8 +185,8 @@ class PurchaseReturnController extends Controller
     {
         $purchaseReturn->load([
             'purchase',
-            'user', 
-            'store', 
+            'user',
+            'store',
             'purchaseReturnDetails.product'
         ]);
 
@@ -222,7 +235,7 @@ class PurchaseReturnController extends Controller
                     ],
                     ['quantity' => 0]
                 );
-                
+
                 $stock->addStock(
                     $detail->quantity,
                     'Purchase Return Update - Revert',
@@ -283,7 +296,7 @@ class PurchaseReturnController extends Controller
                 $stock = Stock::where('product_id', $item['product_id'])
                     ->where('store_id', $purchaseReturn->store_id)
                     ->first();
-                    
+
                 if ($stock) {
                     $stock->reduceStock(
                         $item['quantity'],
@@ -315,7 +328,7 @@ class PurchaseReturnController extends Controller
                     ],
                     ['quantity' => 0]
                 );
-                
+
                 $stock->addStock(
                     $detail->quantity,
                     'Purchase Return Deleted',
@@ -350,7 +363,7 @@ class PurchaseReturnController extends Controller
         $purchaseReturns = PurchaseReturn::where('purchase_id', $purchase->id)
             ->with('purchaseReturnDetails')
             ->get();
-        
+
         foreach ($purchaseReturns as $return) {
             if ($excludeReturnId && $return->id === $excludeReturnId) {
                 continue;

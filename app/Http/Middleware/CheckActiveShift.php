@@ -2,51 +2,64 @@
 
 namespace App\Http\Middleware;
 
-use App\Models\Shift;
 use Closure;
+use App\Models\Shift;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
+use App\Services\StationResolver;
 use Symfony\Component\HttpFoundation\Response;
 
 class CheckActiveShift
 {
+    // App\Http\Middleware\CheckActiveShift.php
+
     public function handle(Request $request, Closure $next): Response
     {
-        $user = Auth::user();
+        $user = $request->user();
+        if (! $user) return $next($request);
 
-        // Jika user tidak login, middleware auth akan handle
-        if (! $user) {
+        // route yang boleh lewat apa pun kondisinya
+        if ($request->routeIs('logout', 'profile.*', 'store.profile.*')) {
             return $next($request);
         }
 
-        // Rute yang diizinkan diakses meskipun belum ada shift aktif
-        $allowedRoutes = [
-            'shifts.open.form',
-            'shifts.open.store',
-            'shifts.close.form',
-            'shifts.close.store',
-            'logout',
-            'profile.edit',
-            'profile.update',
-            'profile.destroy',
-        ];
+        $todayStart = now()->startOfDay();
 
-        // Cek apakah route saat ini diizinkan
-        $currentRoute = $request->route()->getName();
-
-        // Jika route diizinkan, lanjutkan tanpa pengecekan shift
-        if (in_array($currentRoute, $allowedRoutes)) {
-            return $next($request);
-        }
-
-        // Cek apakah ada shift yang sedang 'open' di toko user ini
-        $activeShift = Shift::where('store_id', $user->store_id)
+        // GATE 1: ada shift kemarin/before today yang masih open di store?
+        $hasUnclosedPrevShift = Shift::query()
+            ->where('store_id', $user->store_id)
             ->where('status', 'open')
+            ->where('start_time', '<', $todayStart)
             ->exists();
 
-        // Jika tidak ada shift aktif, redirect ke halaman buka shift
-        if (! $activeShift) {
-            // Jika request mengharapkan JSON (AJAX), kembalikan error JSON
+        if ($hasUnclosedPrevShift) {
+            // hanya izinkan close shift pages agar tidak loop
+            if (! $request->routeIs('shifts.close.*')) {
+                return redirect()
+                    ->route('shifts.close.form')
+                    ->with('warning', 'Ada shift hari sebelumnya yang belum ditutup. Harus ditutup terlebih dahulu.');
+            }
+            return $next($request);
+        }
+
+        // Kalau store bersih, shift open/close boleh diakses normal
+        if ($request->routeIs('shifts.open.*', 'shifts.close.*')) {
+            return $next($request);
+        }
+
+        if ($request->routeIs('logout', 'profile.*', 'store.profile.*', 'eod.*')) {
+            return $next($request);
+        }
+
+        // GATE 2: shift aktif hari ini tetap wajib per user (sesuai requirement awal)
+        $station = StationResolver::resolve();
+        $hasActiveShiftTodayForUser = Shift::query()
+            ->where('store_id', $user->store_id)
+            ->where('station_id', $station->id)
+            ->where('status', 'open')
+            ->where('start_time', '>=', $todayStart)
+            ->exists();
+
+        if (! $hasActiveShiftTodayForUser) {
             if ($request->expectsJson()) {
                 return response()->json([
                     'error' => 'Tidak ada shift aktif',
@@ -54,8 +67,8 @@ class CheckActiveShift
                 ], 403);
             }
 
-            // Redirect ke halaman buka shift dengan pesan
-            return redirect()->route('shifts.open.form')
+            return redirect()
+                ->route('shifts.open.form')
                 ->with('warning', 'Anda perlu membuka shift terlebih dahulu sebelum mengakses halaman ini.');
         }
 

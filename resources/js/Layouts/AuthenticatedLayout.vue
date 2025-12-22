@@ -19,11 +19,18 @@ const isUserManagementMenuActive = computed(() => route().current("admin.*"));
 const isUserManagementMenuOpen = ref(isUserManagementMenuActive.value);
 
 const isTransactionMenuActive = computed(() =>
-    route().current('sales.*|purchases.*|sales-returns.*|purchase-returns.*')
+    route().current('sales.*') ||
+    route().current('purchases.*') ||
+    route().current('sales-returns.*') ||
+    route().current('purchase-returns.*')
 );
+
 const isTransactionMenuOpen = ref(isTransactionMenuActive.value);
 
-const isInventoryMenuActive = computed(() => route().current('stock.*|inventory.*'));
+const isInventoryMenuActive = computed(() =>
+    route().current('stock.*') ||
+    route().current('inventory.*')
+);
 const isInventoryMenuOpen = ref(isInventoryMenuActive.value);
 
 const isReportMenuActive = computed(() => route().current('reports.*'));
@@ -34,8 +41,9 @@ const isShiftsMenuOpen = ref(isShiftsMenuActive.value);
 
 // Permissions
 const hasPermission = (permissions) => {
-    const userPermissions = page.props.auth.user.permissions || [];
-    const userRoles = page.props.auth.user.roles || [];
+    const authUser = page.props.auth?.user;
+    const userPermissions = authUser?.permissions ?? [];
+    const userRoles = authUser?.roles ?? [];
     if (userRoles.includes('Super Admin')) return true;
     if (Array.isArray(permissions)) {
         return permissions.some(p => userPermissions.includes(p));
@@ -57,6 +65,9 @@ const menuItems = [
             { route: 'shifts.close.form', label: 'Tutup Shift' },
             { route: 'shifts.index', label: 'Shift History' },
             { route: 'shifts.authorizations.index', label: 'Kelola Authorization' },
+            { route: 'eod.station-close.form', label: 'Tutup Kasir Harian' },
+            { route: 'eod.finalize.form', label: 'Tutup Harian Toko' },
+            { route: 'eod.index', label: 'Riwayat Tutup Harian' },
         ]
     },
     {
@@ -81,7 +92,7 @@ const menuItems = [
     },
     {
         can: canAccessTransactionMenu, isOpen: isTransactionMenuOpen, isActive: isTransactionMenuActive, toggle: () => isTransactionMenuOpen.value = !isTransactionMenuOpen.value, name: 'Transaksi', icon: '<svg class="h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3 3h2.25l1.5 12h12.75l1.5-12H21M6.75 3l1.5 12m0 0l2.25 3.75M6.75 15h6.75m0 0l-2.25 3.75m2.25-3.75h3.75l2.25 3.75M9 18.75h6" /></svg>', sub: [
-            { route: 'sales.create', label: 'Penjualan (POS)', can: hasPermission('create_sales') },
+            { route: 'sales.create', label: 'Penjualan (POS)', can: hasPermission('create_sales'), target: '_blank' },
             { route: 'purchases.create', label: 'Pembelian', can: hasPermission('create_purchases') },
             { route: 'sales.index', label: 'Daftar Penjualan', can: hasPermission('view_sales') },
             { route: 'purchases.index', label: 'Daftar Pembelian', can: hasPermission('view_purchases') },
@@ -125,20 +136,21 @@ const menuItems = [
                 <!-- Sidebar Header -->
                 <div class="flex items-center justify-center h-16 border-b border-white/10 flex-shrink-0 px-4">
                     <Link :href="route('dashboard')" class="flex items-center overflow-hidden">
-                    <div
-                        class="flex-shrink-0 w-10 h-10 bg-gradient-to-br from-blue-400 to-purple-600 rounded-xl flex items-center justify-center shadow-lg">
-                        <img v-if="store && store.logo_path" :src="`/storage/${store.logo_path}`"
-                            :alt="store?.name || 'Store Logo'" class="h-7 w-7 rounded-lg object-contain" />
-                        <svg v-else class="h-6 w-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4">
-                            </path>
-                        </svg>
-                    </div>
-                    <span :class="{ 'lg:hidden': isSidebarMinimized }"
-                        class="ml-3 font-bold text-lg text-white whitespace-nowrap transition-opacity duration-200">
-                        {{ store && store.name ? store.name : 'TOKOKU' }}
-                    </span>
+                        <div
+                            class="flex-shrink-0 w-10 h-10 bg-gradient-to-br from-blue-400 to-purple-600 rounded-xl flex items-center justify-center shadow-lg">
+                            <img v-if="store && store.logo_path" :src="`/storage/${store.logo_path}`"
+                                :alt="store?.name || 'Store Logo'" class="h-7 w-7 rounded-lg object-contain" />
+                            <svg v-else class="h-6 w-6 text-white" fill="none" stroke="currentColor"
+                                viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4">
+                                </path>
+                            </svg>
+                        </div>
+                        <span :class="{ 'lg:hidden': isSidebarMinimized }"
+                            class="ml-3 font-bold text-lg text-white whitespace-nowrap transition-opacity duration-200">
+                            {{ store && store.name ? store.name : 'TOKOKU' }}
+                        </span>
                     </Link>
                 </div>
 
@@ -180,7 +192,7 @@ const menuItems = [
                             <div v-if="menu.isOpen.value" :class="{ 'lg:pl-6': !isSidebarMinimized }"
                                 class="mt-2 space-y-1">
                                 <template v-for="item in menu.sub" :key="item.route">
-                                    <NavLink v-if="item.can !== false" :href="route(item.route)"
+                                    <NavLink v-if="item.can !== false" :href="route(item.route)" :target="item.target"
                                         :active="route().current(item.route)" :is-sidebar-link="true"
                                         class="group flex items-center px-3 py-2 text-sm rounded-lg transition-all duration-200 hover:bg-white/5 hover:backdrop-blur-sm"
                                         :class="route().current(item.route) ? 'text-white bg-white/10 border-l-2 border-purple-400' : 'text-gray-400 hover:text-white'">

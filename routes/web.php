@@ -1,408 +1,442 @@
 <?php
 
-use carbon\Carbon;
 use Inertia\Inertia;
-use App\Models\Shift;
 use App\Models\Store;
+
 use Illuminate\Support\Facades\Route;
-use Illuminate\Foundation\Application;
+
+use App\Http\Controllers\EodController;
 use App\Http\Controllers\SaleController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\PriceController;
 use App\Http\Controllers\ShiftController;
+
 use App\Http\Controllers\StockController;
+use App\Http\Controllers\ReportController;
+use App\Http\Controllers\BarcodeController;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\CustomerController;
 use App\Http\Controllers\PurchaseController;
+
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\PromotionController;
+
 use App\Http\Controllers\Master\RackController;
 use App\Http\Controllers\SalesReturnController;
+
 use App\Http\Controllers\CustomerTypeController;
 use App\Http\Controllers\StoreProfileController;
+
+use App\Http\Controllers\AuthorizationController;
 use App\Http\Controllers\PurchaseReturnController;
 use App\Http\Controllers\Master\CategoryController;
 use App\Http\Controllers\Master\DivisionController;
 use App\Http\Controllers\Master\SalesmanController;
+
 use App\Http\Controllers\Master\SupplierController;
 use App\Http\Controllers\Admin\RolePermissionController;
 
-
+// --- AKSES PUBLIK ---
 Route::get('/', function () {
-    // Cek apakah ada shift dengan status open dari hari sebelumnya
-    $unclosedShift = \App\Models\Shift::where('status', 'open')
-        ->whereDate('start_time', '<', \Carbon\Carbon::today())
-        ->first();
-    // Jika ada, redirect ke halaman tutup shift
-    if ($unclosedShift) {
-        // Tambahkan pesan flash untuk memberitahu pengguna
-        return redirect()->route('shifts.close.form')->with('warning', 'Anda memiliki shift yang belum ditutup dari hari sebelumnya. Silakan tutup shift terlebih dahulu.');
+    if (auth()->check()) {
+        return redirect()->route('dashboard');
     }
-    // Ambil logo dan hero image dari toko utama
+
     $mainStore = \App\Models\Store::where('is_main_store', true)->first();
     $logoUrl = $mainStore && $mainStore->logo_path ? '/storage/' . $mainStore->logo_path : '/logo-posku.svg';
     $heroImageUrl = $mainStore && $mainStore->heroimage_path ? '/storage/' . $mainStore->heroimage_path : '/hero-modern-pos.svg';
+
     return Inertia::render('Welcome', [
-        'canLogin' => Route::has('login'),
-        'canRegister' => Route::has('register'),
+        'canLogin' => \Illuminate\Support\Facades\Route::has('login'),
+        'canRegister' => \Illuminate\Support\Facades\Route::has('register'),
         'logoUrl' => $logoUrl,
-        'heroImageUrl' => $heroImageUrl
+        'heroImageUrl' => $heroImageUrl,
     ]);
 });
 
-// Routes yang membutuhkan authentication dan email verified tapi tidak memerlukan shift 
+
+// --- LEVEL 1: LOGIN + VERIFIED (SHIFT BELUM WAJIB) ---
 Route::middleware(['auth', 'verified'])->group(function () {
 
-    // Dashboard - Requires active shift
-    Route::get('/dashboard', [DashboardController::class, 'index'])
-        ->name('dashboard')
-        ->middleware('check.permission:view_dashboard');
-    // Store Profile routes - Tidak perlu shift aktif
-    Route::get('/store/profile', [StoreProfileController::class, 'edit'])->name('store.profile.edit');
-    Route::patch('/store/profile', [StoreProfileController::class, 'update'])->name('store.profile.update');
-    // Profile routes - Tidak perlu shift aktif
-    Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
-    Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
-    Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
-    // Shift management routes - Tidak perlu shift aktif (karena untuk membuka/tutup shift)
-    Route::get('/shifts/open', [ShiftController::class, 'showOpenShiftForm'])
-        ->name('shifts.open.form')
-        ->middleware('check.permission:open_shifts');
-    Route::post('/shifts/open', [ShiftController::class, 'storeOpenShift'])
-        ->name('shifts.open.store')
-        ->middleware('check.permission:open_shifts');
-    Route::get('/shifts/close', [ShiftController::class, 'showCloseShiftForm'])
-        ->name('shifts.close.form')
-        ->middleware('check.permission:close_shifts');
-    Route::post('/shifts/close', [ShiftController::class, 'storeCloseShift'])
-        ->name('shifts.close.store')
-        ->middleware('check.permission:close_shifts');
-    Route::get('/shifts', [ShiftController::class, 'index'])
-        ->name('shifts.index')
-        ->middleware('check.permission:view_shifts');
-    Route::resource('shifts/authorizations', \App\Http\Controllers\AuthorizationController::class)
-        ->names('shifts.authorizations')
-        ->middleware('check.permission:view_shifts');
-
-
-    Route::prefix('admin')->name('admin.')->group(function () {
-        Route::get('users', [UserController::class, 'index'])
-            ->middleware('check.permission:view_users')
-            ->name('users.index');
-
-        Route::post('users', [UserController::class, 'store'])
-            ->middleware('check.permission:create_users')
-            ->name('users.store');
-
-        Route::patch('users/{user}', [UserController::class, 'update'])
-            ->middleware('check.permission:edit_users')
-            ->name('users.update');
-
-        Route::delete('users/{user}', [UserController::class, 'destroy'])
-            ->middleware('check.permission:delete_users')
-            ->name('users.destroy');
-
-        Route::post('users/{user}/assign-role', [UserController::class, 'assignRole'])
-            ->middleware('check.permission:manage_roles')
-            ->name('users.assign-role');
-
-        Route::post('users/{user}/revoke-role', [UserController::class, 'revokeRole'])
-            ->middleware('check.permission:manage_roles')
-            ->name('users.revoke-role');
-
-        // Jika RolePermissionController harus diakses oleh admin, beri izin yang sesuai,
-        // misalnya 'manage_roles'
-        Route::resource('roles', App\Http\Controllers\Admin\RolePermissionController::class)
-            ->except(['show', 'edit', 'create'])
-            ->middleware('check.permission:manage_roles');
-    });
-});
-
-// Routes yang membutuhkan authentication + shift aktif
-Route::middleware('shift_required')->group(function () {
-
-    // Purchase Management Routes
-    Route::middleware('check.permission:view_purchases')->group(function () {
-        Route::get('purchases', [App\Http\Controllers\PurchaseController::class, 'index'])->name('purchases.index');
-        Route::get('purchases/create', [App\Http\Controllers\PurchaseController::class, 'create'])
-            ->name('purchases.create')
-            ->middleware('check.permission:create_purchases');
-        Route::get('purchases/{purchase}', [App\Http\Controllers\PurchaseController::class, 'show'])->name('purchases.show');
-        Route::get('purchases/{purchase}/print', [App\Http\Controllers\PurchaseController::class, 'print'])->name('purchases.print');
-        Route::get('purchases/{purchase}/pdf', [App\Http\Controllers\PurchaseController::class, 'generatePDF'])->name('purchases.pdf');
+    // Profile user
+    Route::controller(ProfileController::class)->group(function () {
+        Route::get('/profile', 'edit')->name('profile.edit');
+        Route::patch('/profile', 'update')->name('profile.update');
+        Route::delete('/profile', 'destroy')->name('profile.destroy');
     });
 
-    Route::post('purchases', [App\Http\Controllers\PurchaseController::class, 'store'])
-        ->name('purchases.store')
-        ->middleware('check.permission:create_purchases');
-    Route::get('purchases/{purchase}/edit', [App\Http\Controllers\PurchaseController::class, 'edit'])
-        ->name('purchases.edit')
-        ->middleware('check.permission:edit_purchases');
-    Route::patch('purchases/{purchase}', [App\Http\Controllers\PurchaseController::class, 'update'])
-        ->name('purchases.update')
-        ->middleware('check.permission:edit_purchases');
-    Route::delete('purchases/{purchase}', [App\Http\Controllers\PurchaseController::class, 'destroy'])
-        ->name('purchases.destroy')
-        ->middleware('check.permission:delete_purchases');
-
-    // Purchase Return Management Routes
-    Route::middleware('check.permission:view_purchase_returns')->group(function () {
-        Route::get('purchase-returns', [App\Http\Controllers\PurchaseReturnController::class, 'index'])->name('purchase-returns.index');
-        Route::get('purchase-returns/create', [App\Http\Controllers\PurchaseReturnController::class, 'create'])
-            ->name('purchase-returns.create')
-            ->middleware('check.permission:create_purchase_returns');
-        Route::get('purchase-returns/{purchaseReturn}', [App\Http\Controllers\PurchaseReturnController::class, 'show'])->name('purchase-returns.show');
-        Route::get('purchases/{purchase}/returnable-items', [App\Http\Controllers\PurchaseReturnController::class, 'getReturnableItems'])
-            ->name('purchases.returnable-items');
+    // Profile store
+    Route::controller(StoreProfileController::class)->group(function () {
+        Route::get('/store/profile', 'edit')->name('store.profile.edit');
+        Route::patch('/store/profile', 'update')->name('store.profile.update');
     });
 
-    Route::post('purchase-returns', [App\Http\Controllers\PurchaseReturnController::class, 'store'])
-        ->name('purchase-returns.store')
-        ->middleware('check.permission:create_purchase_returns');
-    Route::get('purchase-returns/{purchaseReturn}/edit', [App\Http\Controllers\PurchaseReturnController::class, 'edit'])
-        ->name('purchase-returns.edit')
-        ->middleware('check.permission:edit_purchase_returns');
-    Route::patch('purchase-returns/{purchaseReturn}', [App\Http\Controllers\PurchaseReturnController::class, 'update'])
-        ->name('purchase-returns.update')
-        ->middleware('check.permission:edit_purchase_returns');
-    Route::delete('purchase-returns/{purchaseReturn}', [App\Http\Controllers\PurchaseReturnController::class, 'destroy'])
-        ->name('purchase-returns.destroy')
-        ->middleware('check.permission:delete_purchase_returns');
+    Route::prefix('eod')->name('eod.')->group(function () {
+        Route::get('/', [\App\Http\Controllers\EodController::class, 'index'])->name('index');
 
-    // Sales Management Routes
-    Route::middleware('check.permission:view_sales')->group(function () {
-        Route::get('sales', [App\Http\Controllers\SaleController::class, 'index'])->name('sales.index');
-        Route::get('sales/create', [App\Http\Controllers\SaleController::class, 'create'])
-            ->name('sales.create')
-            ->middleware('check.permission:create_sales');
-        Route::get('sales/{sale}', [App\Http\Controllers\SaleController::class, 'show'])->name('sales.show');
-        Route::get('sales/{sale}/print', [App\Http\Controllers\SaleController::class, 'print'])->name('sales.print');
-        Route::get('sales/{sale}/pdf', [App\Http\Controllers\SaleController::class, 'generatePDF'])->name('sales.pdf');
-        Route::post('sales/{sale}/whatsapp', [App\Http\Controllers\SaleController::class, 'sendWhatsApp'])->name('sales.whatsapp');
-        Route::get('products/{product}/stock', [App\Http\Controllers\SaleController::class, 'getProductStock'])->name('products.stock');
+        Route::get('/station-close', [\App\Http\Controllers\EodController::class, 'showStationCloseForm'])->name('station-close.form');
+        Route::post('/station-close', [\App\Http\Controllers\EodController::class, 'storeStationClose'])->name('station-close.store');
+
+        Route::get('/finalize', [\App\Http\Controllers\EodController::class, 'showFinalizeForm'])->name('finalize.form');
+        Route::post('/finalize', [\App\Http\Controllers\EodController::class, 'storeFinalize'])->name('finalize.store');
     });
 
-    Route::post('sales', [App\Http\Controllers\SaleController::class, 'store'])
-        ->name('sales.store')
-        ->middleware('check.permission:create_sales');
-    Route::get('sales/{sale}/edit', [App\Http\Controllers\SaleController::class, 'edit'])
-        ->name('sales.edit')
-        ->middleware('check.permission:edit_sales');
-    Route::patch('sales/{sale}', [App\Http\Controllers\SaleController::class, 'update'])
-        ->name('sales.update')
-        ->middleware('check.permission:edit_sales');
-    Route::delete('sales/{sale}', [App\Http\Controllers\SaleController::class, 'destroy'])
-        ->name('sales.destroy')
-        ->middleware('check.permission:delete_sales');
 
-    // Sales Return Management Routes
-    Route::middleware('check.permission:view_sales_returns')->group(function () {
-        Route::get('sales-returns', [App\Http\Controllers\SalesReturnController::class, 'index'])->name('sales-returns.index');
-        Route::get('sales-returns/create', [App\Http\Controllers\SalesReturnController::class, 'create'])
-            ->name('sales-returns.create')
-            ->middleware('check.permission:create_sales_returns');
-        Route::get('sales-returns/{salesReturn}', [App\Http\Controllers\SalesReturnController::class, 'show'])->name('sales-returns.show');
-        Route::get('sales/{sale}/returnable-items', [App\Http\Controllers\SalesReturnController::class, 'getReturnableItems'])
-            ->name('sales.returnable-items');
+    // Shift (harus di luar check.shift agar tidak loop)
+    Route::prefix('shifts')->name('shifts.')->group(function () {
+        Route::controller(ShiftController::class)->group(function () {
+            Route::get('/open', 'showOpenShiftForm')->name('open.form');
+            Route::post('/open', 'storeOpenShift')->name('open.store');
+
+            Route::get('/close', 'showCloseShiftForm')->name('close.form');
+            Route::post('/close', 'storeCloseShift')->name('close.store');
+
+            Route::get('/', 'index')->name('index');
+        });
+
+        Route::resource('authorizations', AuthorizationController::class);
     });
 
-    Route::post('sales-returns', [App\Http\Controllers\SalesReturnController::class, 'store'])
-        ->name('sales-returns.store')
-        ->middleware('check.permission:create_sales_returns');
-    Route::get('sales-returns/{salesReturn}/edit', [App\Http\Controllers\SalesReturnController::class, 'edit'])
-        ->name('sales-returns.edit')
-        ->middleware('check.permission:edit_sales_returns');
-    Route::patch('sales-returns/{salesReturn}', [App\Http\Controllers\SalesReturnController::class, 'update'])
-        ->name('sales-returns.update')
-        ->middleware('check.permission:edit_sales_returns');
-    Route::delete('sales-returns/{salesReturn}', [App\Http\Controllers\SalesReturnController::class, 'destroy'])
-        ->name('sales-returns.destroy')
-        ->middleware('check.permission:delete_sales_returns');
+    // --- LEVEL 2: LOGIN + SHIFT AKTIF ---
+    Route::middleware(['check.shift'])->group(function () {
 
-    // Stock Management Routes
-    Route::middleware('check.permission:view_stock')->group(function () {
-        Route::get('stock', [App\Http\Controllers\StockController::class, 'index'])->name('stock.index');
-        Route::get('stock/movements', [App\Http\Controllers\StockController::class, 'movements'])->name('stock.movements');
-        Route::get('stock/opname', [App\Http\Controllers\StockController::class, 'opname'])
-            ->name('stock.opname')
-            ->middleware('check.permission:stock_opname');
-        Route::get('stock/{stock}', [App\Http\Controllers\StockController::class, 'show'])->name('stock.show');
-        Route::get('stock/alerts/low-stock', [App\Http\Controllers\StockController::class, 'lowStockAlerts'])->name('stock.low-stock-alerts');
-        Route::get('stock/summary', [App\Http\Controllers\StockController::class, 'summary'])->name('stock.summary');
-        Route::get('stock/export', [App\Http\Controllers\StockController::class, 'export'])
-            ->name('stock.export')
-            ->middleware('check.permission:export_stock');
-    });
+        Route::get('/dashboard', [DashboardController::class, 'index'])
+            ->name('dashboard')
+            ->middleware('check.permission:view_dashboard');
 
-    Route::post('stock/opname', [App\Http\Controllers\StockController::class, 'processOpname'])
-        ->name('stock.opname.process')
-        ->middleware('check.permission:stock_opname');
-    Route::patch('stock/{stock}/adjust', [App\Http\Controllers\StockController::class, 'adjust'])
-        ->name('stock.adjust')
-        ->middleware('check.permission:adjust_stock');
-    Route::post('stock/bulk-adjust', [App\Http\Controllers\StockController::class, 'bulkAdjust'])
-        ->name('stock.bulk-adjust')
-        ->middleware('check.permission:adjust_stock');
+        // ADMIN
+        Route::prefix('admin')->name('admin.')->group(function () {
+            Route::resource('users', UserController::class);
+            Route::post('users/{user}/assign-role', [UserController::class, 'assignRole'])->name('users.assign-role');
+            Route::post('users/{user}/revoke-role', [UserController::class, 'revokeRole'])->name('users.revoke-role');
 
-    // Stock Entry & Adjustment Routes
-    // Route::resource('stock-entries', \App\Http\Controllers\StockEntryController::class)->only(['index', 'create', 'store', 'show'])->middleware('check.permission:view_stock_entries');
-    // Route::resource('stock-adjustments', \App\Http\Controllers\StockAdjustmentController::class)->only(['index', 'create', 'store', 'show'])->middleware('check.permission:view_stock_adjustments');
-
-    // Reports Routes
-    Route::middleware('check.permission:view_reports')->group(function () {
-        Route::get('reports', [App\Http\Controllers\ReportController::class, 'index'])->name('reports.index');
-        Route::get('reports/sales', [App\Http\Controllers\ReportController::class, 'sales'])->name('reports.sales');
-        Route::get('reports/purchases', [App\Http\Controllers\ReportController::class, 'purchases'])->name('reports.purchases');
-        Route::get('reports/stock', [App\Http\Controllers\ReportController::class, 'stock'])->name('reports.stock');
-        Route::get('reports/stock-movements', [App\Http\Controllers\ReportController::class, 'stockMovements'])->name('reports.stock-movements');
-        Route::get('reports/profit-loss', [App\Http\Controllers\ReportController::class, 'profitLoss'])->name('reports.profit-loss');
-        Route::get('reports/export', [App\Http\Controllers\ReportController::class, 'export'])
-            ->name('reports.export')
-            ->middleware('check.permission:export_reports');
-    });
-
-    // Customer Types Routes
-    Route::resource('customer-types', CustomerTypeController::class);
-    Route::resource('customers', CustomerController::class);
-
-    // Promotions Routes
-    Route::resource('promotions', PromotionController::class);
-    Route::patch('promotions/{promotion}/clear', [PromotionController::class, 'clear'])->name('promotions.clear');
-    Route::get('promotions-active', [PromotionController::class, 'activePromotions']);
-
-    // Pricing Routes
-    Route::post('price/check', [PriceController::class, 'getProductPrice']);
-    Route::post('price/bulk-check', [PriceController::class, 'bulkPriceCheck']);
-
-    // Master data routes - Semua memerlukan shift aktif
-    Route::prefix('master')->name('master.')->group(function () {
-
-        // Products routes
-        Route::middleware('check.permission:view_products')->group(function () {
-            Route::get('products', [ProductController::class, 'index'])->name('products.index');
-            Route::get('products/export', [ProductController::class, 'export'])
-                ->name('products.export')
-                ->middleware('check.permission:export_products');
-            Route::get('products/import', [ProductController::class, 'showImportForm'])
-                ->name('products.import.form')
-                ->middleware('check.permission:import_products');
-            Route::get('products/import/template', [ProductController::class, 'downloadTemplate'])
-                ->name('products.import.template')
-                ->middleware('check.permission:import_products');
+            Route::resource('roles', RolePermissionController::class)
+                ->except(['show', 'edit', 'create']);
         });
 
-        Route::get('products/create', [ProductController::class, 'create'])->name('products.create')->middleware('check.permission:create_products');
+        // PURCHASES
+        Route::prefix('purchases')->name('purchases.')->controller(PurchaseController::class)->group(function () {
 
-        Route::post('products', [ProductController::class, 'store'])
-            ->name('products.store')
-            ->middleware('check.permission:create_products');
-        Route::patch('products/{product}', [ProductController::class, 'update'])
-            ->name('products.update')
-            ->middleware('check.permission:edit_products');
-        Route::delete('products/{product}', [ProductController::class, 'destroy'])
-            ->name('products.destroy')
-            ->middleware('check.permission:delete_products');
-        Route::post('products/import', [ProductController::class, 'import'])
-            ->name('products.import.store')
-            ->middleware('check.permission:import_products');
+            Route::middleware('check.permission:view_purchases')->group(function () {
+                Route::get('/', 'index')->name('index');
+                Route::get('/create', 'create')
+                    ->name('create')
+                    ->middleware('check.permission:create_purchases');
 
-        // Categories routes
-        Route::middleware('check.permission:view_categories')->group(function () {
-            Route::get('categories', [CategoryController::class, 'index'])->name('categories.index');
+                Route::get('/{purchase}', 'show')->name('show');
+                Route::get('/{purchase}/print', 'print')->name('print');
+                Route::get('/{purchase}/pdf', 'generatePDF')->name('pdf');
+            });
+
+            Route::post('/', 'store')
+                ->name('store')
+                ->middleware('check.permission:create_purchases');
+
+            Route::get('/{purchase}/edit', 'edit')
+                ->name('edit')
+                ->middleware('check.permission:edit_purchases');
+
+            Route::patch('/{purchase}', 'update')
+                ->name('update')
+                ->middleware('check.permission:edit_purchases');
+
+            Route::delete('/{purchase}', 'destroy')
+                ->name('destroy')
+                ->middleware('check.permission:delete_purchases');
         });
-        Route::post('categories', [CategoryController::class, 'store'])
-            ->name('categories.store')
-            ->middleware('check.permission:create_categories');
-        Route::patch('categories/{category}', [CategoryController::class, 'update'])
-            ->name('categories.update')
-            ->middleware('check.permission:edit_categories');
-        Route::delete('categories/{category}', [CategoryController::class, 'destroy'])
-            ->name('categories.destroy')
-            ->middleware('check.permission:delete_categories');
 
-        // Divisions routes
-        Route::middleware('check.permission:view_divisions')->group(function () {
-            Route::get('divisions', [DivisionController::class, 'index'])->name('divisions.index');
+        // PURCHASE RETURNS (pisah prefix supaya bersih)
+        Route::prefix('purchase-returns')->name('purchase-returns.')->controller(PurchaseReturnController::class)->group(function () {
+
+            Route::middleware('check.permission:view_purchase_returns')->group(function () {
+                Route::get('/', 'index')->name('index');
+                Route::get('/create', 'create')
+                    ->name('create')
+                    ->middleware('check.permission:create_purchase_returns');
+
+                Route::get('/{purchaseReturn}', 'show')->name('show');
+            });
+
+            // endpoint tambahan terkait purchase
+            Route::get('/purchases/{purchase}/returnable-items', 'getReturnableItems')
+                ->name('purchases.returnable-items')
+                ->middleware('check.permission:view_purchase_returns');
+
+            Route::post('/', 'store')
+                ->name('store')
+                ->middleware('check.permission:create_purchase_returns');
+
+            Route::get('/{purchaseReturn}/edit', 'edit')
+                ->name('edit')
+                ->middleware('check.permission:edit_purchase_returns');
+
+            Route::patch('/{purchaseReturn}', 'update')
+                ->name('update')
+                ->middleware('check.permission:edit_purchase_returns');
+
+            Route::delete('/{purchaseReturn}', 'destroy')
+                ->name('destroy')
+                ->middleware('check.permission:delete_purchase_returns');
         });
-        Route::post('divisions', [DivisionController::class, 'store'])
-            ->name('divisions.store')
-            ->middleware('check.permission:create_divisions');
-        Route::patch('divisions/{division}', [DivisionController::class, 'update'])
-            ->name('divisions.update')
-            ->middleware('check.permission:edit_divisions');
-        Route::delete('divisions/{division}', [DivisionController::class, 'destroy'])
-            ->name('divisions.destroy')
-            ->middleware('check.permission:delete_divisions');
 
-        // Racks routes
-        Route::middleware('check.permission:view_racks')->group(function () {
-            Route::get('racks', [RackController::class, 'index'])->name('racks.index');
+        // SALES
+        Route::prefix('sales')->name('sales.')->controller(SaleController::class)->group(function () {
+
+            Route::middleware('check.permission:view_sales')->group(function () {
+                Route::get('/', 'index')->name('index');
+
+                Route::get('/create', 'create')
+                    ->name('create')
+                    ->middleware('check.permission:create_sales');
+
+                Route::get('/{sale}', 'show')->name('show');
+                Route::get('/{sale}/print', 'print')->name('print');
+                Route::get('/{sale}/pdf', 'generatePDF')->name('pdf');
+                Route::post('/{sale}/whatsapp', 'sendWhatsApp')->name('whatsapp');
+
+                // jika memang mau berada di bawah /sales
+                Route::get('/products/{product}/stock', 'getProductStock')->name('products.stock');
+            });
+
+            Route::post('/', 'store')
+                ->name('store')
+                ->middleware('check.permission:create_sales');
+
+            Route::get('/{sale}/edit', 'edit')
+                ->name('edit')
+                ->middleware('check.permission:edit_sales');
+
+            Route::patch('/{sale}', 'update')
+                ->name('update')
+                ->middleware('check.permission:edit_sales');
+
+            Route::delete('/{sale}', 'destroy')
+                ->name('destroy')
+                ->middleware('check.permission:delete_sales');
         });
-        Route::post('racks', [RackController::class, 'store'])
-            ->name('racks.store')
-            ->middleware('check.permission:create_racks');
-        Route::patch('racks/{rack}', [RackController::class, 'update'])
-            ->name('racks.update')
-            ->middleware('check.permission:edit_racks');
-        Route::delete('racks/{rack}', [RackController::class, 'destroy'])
-            ->name('racks.destroy')
-            ->middleware('check.permission:delete_racks');
 
-        // Suppliers routes
-        Route::middleware('check.permission:view_suppliers')->group(function () {
-            Route::get('suppliers', [SupplierController::class, 'index'])->name('suppliers.index');
+        // SALES RETURNS
+        Route::prefix('sales-returns')->name('sales-returns.')->controller(SalesReturnController::class)->group(function () {
+
+            Route::middleware('check.permission:view_sales_returns')->group(function () {
+                Route::get('/', 'index')->name('index');
+
+                Route::get('/create', 'create')
+                    ->name('create')
+                    ->middleware('check.permission:create_sales_returns');
+
+                Route::get('/{salesReturn}', 'show')->name('show');
+                Route::get('/sales/{sale}/returnable-items', 'getReturnableItems')->name('sales.returnable-items');
+            });
+
+            Route::post('/', 'store')
+                ->name('store')
+                ->middleware('check.permission:create_sales_returns');
+
+            Route::get('/{salesReturn}/edit', 'edit')
+                ->name('edit')
+                ->middleware('check.permission:edit_sales_returns');
+
+            Route::patch('/{salesReturn}', 'update')
+                ->name('update')
+                ->middleware('check.permission:edit_sales_returns');
+
+            Route::delete('/{salesReturn}', 'destroy')
+                ->name('destroy')
+                ->middleware('check.permission:delete_sales_returns');
         });
-        Route::post('suppliers', [SupplierController::class, 'store'])
-            ->name('suppliers.store')
-            ->middleware('check.permission:create_suppliers');
-        Route::patch('suppliers/{supplier}', [SupplierController::class, 'update'])
-            ->name('suppliers.update')
-            ->middleware('check.permission:edit_suppliers');
-        Route::delete('suppliers/{supplier}', [SupplierController::class, 'destroy'])
-            ->name('suppliers.destroy')
-            ->middleware('check.permission:delete_suppliers');
 
-        // Members routes (now handled by CustomerController)
-        Route::middleware('check.permission:view_members')->group(function () {
-            Route::get('members', [CustomerController::class, 'index'])->name('members.index');
-            Route::get('members/{customer}/card', [CustomerController::class, 'generateCard'])
-                ->name('members.generate-card')
-                ->middleware('check.permission:view_members');
+        // STOCK
+        Route::prefix('stock')->name('stock.')->controller(StockController::class)->group(function () {
+
+            Route::middleware('check.permission:view_stock')->group(function () {
+                Route::get('/', 'index')->name('index');
+                Route::get('/movements', 'movements')->name('movements');
+
+                Route::get('/opname', 'opname')
+                    ->name('opname')
+                    ->middleware('check.permission:stock_opname');
+
+                Route::get('/{stock}', 'show')->name('show');
+
+                Route::get('/alerts/low-stock', 'lowStockAlerts')->name('low-stock-alerts');
+                Route::get('/summary', 'summary')->name('summary');
+
+                Route::get('/export', 'export')
+                    ->name('export')
+                    ->middleware('check.permission:export_stock');
+            });
+
+            Route::post('/opname', 'processOpname')
+                ->name('opname.process')
+                ->middleware('check.permission:stock_opname');
+
+            Route::patch('/{stock}/adjust', 'adjust')
+                ->name('adjust')
+                ->middleware('check.permission:adjust_stock');
+
+            Route::post('/bulk-adjust', 'bulkAdjust')
+                ->name('bulk-adjust')
+                ->middleware('check.permission:adjust_stock');
         });
-        Route::post('members', [CustomerController::class, 'store'])
-            ->name('members.store')
-            ->middleware('check.permission:create_members');
-        Route::patch('members/{customer}', [CustomerController::class, 'update'])
-            ->name('members.update')
-            ->middleware('check.permission:edit_members');
-        Route::delete('members/{customer}', [CustomerController::class, 'destroy'])
-            ->name('members.destroy')
-            ->middleware('check.permission:delete_members');
 
-        // Salesmen routes
-        Route::middleware('check.permission:view_salesmen')->group(function () {
-            Route::get('salesmen', [SalesmanController::class, 'index'])->name('salesmen.index');
+        // REPORTS
+        Route::prefix('reports')->name('reports.')->controller(ReportController::class)->group(function () {
+
+            Route::middleware('check.permission:view_reports')->group(function () {
+                Route::get('/', 'index')->name('index');
+                Route::get('/sales', 'sales')->name('sales');
+                Route::get('/purchases', 'purchases')->name('purchases');
+                Route::get('/stock', 'stock')->name('stock');
+                Route::get('/stock-movements', 'stockMovements')->name('stock-movements');
+                Route::get('/profit-loss', 'profitLoss')->name('profit-loss');
+
+                Route::get('/export', 'export')
+                    ->name('export')
+                    ->middleware('check.permission:export_reports');
+            });
         });
-        Route::post('salesmen', [SalesmanController::class, 'store'])
-            ->name('salesmen.store')
-            ->middleware('check.permission:create_salesmen');
-        Route::patch('salesmen/{salesman}', [SalesmanController::class, 'update'])
-            ->name('salesmen.update')
-            ->middleware('check.permission:edit_salesmen');
-        Route::delete('salesmen/{salesman}', [SalesmanController::class, 'destroy'])
-            ->name('salesmen.destroy')
-            ->middleware('check.permission:delete_salesmen');
 
-        // Barcode routes
-        Route::middleware('check.permission:view_products')->group(function () {
-            Route::get('barcodes', [App\Http\Controllers\BarcodeController::class, 'index'])->name('barcodes.index');
-            Route::post('barcodes/generate', [App\Http\Controllers\BarcodeController::class, 'generate'])->name('barcodes.generate');
-            Route::post('barcodes/print', [App\Http\Controllers\BarcodeController::class, 'print'])->name('barcodes.print');
-            Route::post('barcodes/generate-price-tags', [App\Http\Controllers\BarcodeController::class, 'generatePriceTags'])->name('barcodes.generate-price-tags');
-            Route::post('barcodes/print-price-tags', [App\Http\Controllers\BarcodeController::class, 'printPriceTags'])->name('barcodes.print-price-tags');
-            Route::post('barcodes/generate-customer-cards', [App\Http\Controllers\BarcodeController::class, 'generateCustomerCards'])->name('barcodes.generate-customer-cards');
-            Route::post('barcodes/print-customer-cards', [App\Http\Controllers\BarcodeController::class, 'printCustomerCards'])->name('barcodes.print-customer-cards');
+        // CUSTOMER + CUSTOMER TYPES
+        Route::resource('customer-types', CustomerTypeController::class);
+        Route::resource('customers', CustomerController::class);
+
+        // PROMOTIONS
+        Route::resource('promotions', PromotionController::class);
+        Route::patch('promotions/{promotion}/clear', [PromotionController::class, 'clear'])->name('promotions.clear');
+        Route::get('promotions-active', [PromotionController::class, 'activePromotions'])->name('promotions.active');
+
+        // PRICING
+        Route::post('price/check', [PriceController::class, 'getProductPrice'])->name('price.check');
+        Route::post('price/bulk-check', [PriceController::class, 'bulkPriceCheck'])->name('price.bulk-check');
+
+        // MASTER
+        Route::prefix('master')->name('master.')->group(function () {
+
+            // PRODUCTS
+            Route::prefix('products')->name('products.')->controller(ProductController::class)->group(function () {
+
+                Route::middleware('check.permission:view_products')->group(function () {
+                    Route::get('/', 'index')->name('index');
+
+                    Route::get('/export', 'export')
+                        ->name('export')
+                        ->middleware('check.permission:export_products');
+
+                    Route::get('/import', 'showImportForm')
+                        ->name('import.form')
+                        ->middleware('check.permission:import_products');
+
+                    Route::get('/import/template', 'downloadTemplate')
+                        ->name('import.template')
+                        ->middleware('check.permission:import_products');
+                });
+
+                Route::get('/create', 'create')
+                    ->name('create')
+                    ->middleware('check.permission:create_products');
+
+                Route::post('/', 'store')
+                    ->name('store')
+                    ->middleware('check.permission:create_products');
+
+                Route::patch('/{product}', 'update')
+                    ->name('update')
+                    ->middleware('check.permission:edit_products');
+
+                Route::delete('/{product}', 'destroy')
+                    ->name('destroy')
+                    ->middleware('check.permission:delete_products');
+
+                Route::post('/import', 'import')
+                    ->name('import.store')
+                    ->middleware('check.permission:import_products');
+            });
+
+            // CATEGORIES
+            Route::prefix('categories')->name('categories.')->controller(CategoryController::class)->group(function () {
+                Route::middleware('check.permission:view_categories')->group(function () {
+                    Route::get('/', 'index')->name('index');
+                });
+
+                Route::post('/', 'store')->name('store')->middleware('check.permission:create_categories');
+                Route::patch('/{category}', 'update')->name('update')->middleware('check.permission:edit_categories');
+                Route::delete('/{category}', 'destroy')->name('destroy')->middleware('check.permission:delete_categories');
+            });
+
+            // DIVISIONS
+            Route::prefix('divisions')->name('divisions.')->controller(DivisionController::class)->group(function () {
+                Route::middleware('check.permission:view_divisions')->group(function () {
+                    Route::get('/', 'index')->name('index');
+                });
+
+                Route::post('/', 'store')->name('store')->middleware('check.permission:create_divisions');
+                Route::patch('/{division}', 'update')->name('update')->middleware('check.permission:edit_divisions');
+                Route::delete('/{division}', 'destroy')->name('destroy')->middleware('check.permission:delete_divisions');
+            });
+
+            // RACKS
+            Route::prefix('racks')->name('racks.')->controller(RackController::class)->group(function () {
+                Route::middleware('check.permission:view_racks')->group(function () {
+                    Route::get('/', 'index')->name('index');
+                });
+
+                Route::post('/', 'store')->name('store')->middleware('check.permission:create_racks');
+                Route::patch('/{rack}', 'update')->name('update')->middleware('check.permission:edit_racks');
+                Route::delete('/{rack}', 'destroy')->name('destroy')->middleware('check.permission:delete_racks');
+            });
+
+            // SUPPLIERS
+            Route::prefix('suppliers')->name('suppliers.')->controller(SupplierController::class)->group(function () {
+                Route::middleware('check.permission:view_suppliers')->group(function () {
+                    Route::get('/', 'index')->name('index');
+                });
+
+                Route::post('/', 'store')->name('store')->middleware('check.permission:create_suppliers');
+                Route::patch('/{supplier}', 'update')->name('update')->middleware('check.permission:edit_suppliers');
+                Route::delete('/{supplier}', 'destroy')->name('destroy')->middleware('check.permission:delete_suppliers');
+            });
+
+            // SALESMEN
+            Route::prefix('salesmen')->name('salesmen.')->controller(SalesmanController::class)->group(function () {
+                Route::middleware('check.permission:view_salesmen')->group(function () {
+                    Route::get('/', 'index')->name('index');
+                });
+
+                Route::post('/', 'store')->name('store')->middleware('check.permission:create_salesmen');
+                Route::patch('/{salesman}', 'update')->name('update')->middleware('check.permission:edit_salesmen');
+                Route::delete('/{salesman}', 'destroy')->name('destroy')->middleware('check.permission:delete_salesmen');
+            });
+
+            // MEMBERS (mengarah ke CustomerController, dipertahankan sesuai desain Anda)
+            Route::prefix('members')->name('members.')->controller(CustomerController::class)->group(function () {
+                Route::middleware('check.permission:view_members')->group(function () {
+                    Route::get('/', 'index')->name('index');
+                    Route::get('/{customer}/card', 'generateCard')
+                        ->name('generate-card')
+                        ->middleware('check.permission:view_members');
+                });
+
+                Route::post('/', 'store')->name('store')->middleware('check.permission:create_members');
+                Route::patch('/{customer}', 'update')->name('update')->middleware('check.permission:edit_members');
+                Route::delete('/{customer}', 'destroy')->name('destroy')->middleware('check.permission:delete_members');
+            });
+
+            // BARCODES
+            Route::prefix('barcodes')->name('barcodes.')->controller(BarcodeController::class)->group(function () {
+                Route::middleware('check.permission:view_products')->group(function () {
+                    Route::get('/', 'index')->name('index');
+                    Route::post('/generate', 'generate')->name('generate');
+                    Route::post('/print', 'print')->name('print');
+
+                    Route::post('/generate-price-tags', 'generatePriceTags')->name('generate-price-tags');
+                    Route::post('/print-price-tags', 'printPriceTags')->name('print-price-tags');
+
+                    Route::post('/generate-customer-cards', 'generateCustomerCards')->name('generate-customer-cards');
+                    Route::post('/print-customer-cards', 'printCustomerCards')->name('print-customer-cards');
+                });
+            });
         });
     });
 });

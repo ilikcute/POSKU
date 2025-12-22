@@ -68,6 +68,9 @@ class SalesReturnController extends Controller
         return Inertia::render('SalesReturns/Create', [
             'sale' => $sale,
             'sales' => $sales,
+            'shift_id' => $shift->id,
+            'station_id' => $station->id,
+
         ]);
     }
 
@@ -88,7 +91,17 @@ class SalesReturnController extends Controller
         $storeId = $this->currentStoreId();
         $station = StationResolver::resolve();
         $sale = Sale::findOrFail($validated['sale_id']);
-        
+
+        $station = StationResolver::resolve();
+
+        $shift = Shift::query()
+            ->where('store_id', $storeId)
+            ->where('station_id', $station->id)
+            ->where('status', 'open')
+            ->latest('start_time')
+            ->firstOrFail();
+
+
         // Validate that sale belongs to current store
         if ($sale->store_id !== $storeId) {
             return back()->withErrors(['sale_id' => 'Invalid sale selected.']);

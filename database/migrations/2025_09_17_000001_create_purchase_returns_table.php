@@ -16,6 +16,7 @@ return new class extends Migration
             $table->foreignId('purchase_id')->constrained()->onDelete('cascade');
             $table->foreignId('user_id')->constrained();
             $table->foreignId('store_id')->constrained();
+            $table->foreignId('station_id')->nullable()->constrained('stations');
             $table->decimal('total_amount', 15, 2);
             $table->decimal('final_amount', 15, 2);
             $table->text('notes')->nullable();
@@ -25,6 +26,8 @@ return new class extends Migration
             $table->index('purchase_id');
             $table->index('user_id');
             $table->index('store_id');
+
+            $table->index(['store_id', 'station_id', 'return_date']);
         });
     }
 

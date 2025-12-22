@@ -67,6 +67,8 @@ class PurchaseController extends Controller
             'products' => $products,
             'suppliers' => $suppliers,
             'customers' => $customers,
+            'shift_id' => $shift->id,
+            'station_id' => $station->id,
         ]);
     }
 
@@ -89,6 +91,16 @@ class PurchaseController extends Controller
         $storeId = $this->currentStoreId();
         $station = StationResolver::resolve();
         $items = collect($validated['items']);
+
+        $station = StationResolver::resolve();
+
+        $shift = Shift::query()
+            ->where('store_id', $storeId)
+            ->where('station_id', $station->id)
+            ->where('status', 'open')
+            ->latest('start_time')
+            ->firstOrFail();
+
 
         DB::transaction(function () use ($validated, $items, $storeId, $station) {
             // Calculate totals

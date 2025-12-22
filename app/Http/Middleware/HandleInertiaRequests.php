@@ -12,38 +12,41 @@ class HandleInertiaRequests extends Middleware
 
     public function share(Request $request): array
     {
-        $user = $request->user();
-        $store = Store::where('is_main_store', true)->first() ?? Store::first();
-
         return [
             ...parent::share($request),
-            'csrf_token' => $request->session()->token(),
-            'auth' => [
-                'user' => $user ? [
-                    'id' => $user->id,
-                    'name' => $user->name,
-                    'email' => $user->email,
-                    'roles' => $user->getRoleNames()->toArray(),
-                    'permissions' => $user->getAllPermissions()->pluck('name')->toArray(),
+
+            // jika Anda memang butuh update token via Inertia props:
+            'csrf_token' => fn () => $request->session()->token(),
+
+            // Lazy auth props (lebih ringan)
+            'auth' => fn () => [
+                'user' => $request->user() ? [
+                    'id' => $request->user()->id,
+                    'name' => $request->user()->name,
+                    'email' => $request->user()->email,
+
+                    // Jika ini berat, jadikan lazy juga (atau batasi)
+                    'roles' => $request->user()->getRoleNames()->toArray(),
+                    'permissions' => $request->user()->getAllPermissions()->pluck('name')->toArray(),
                 ] : null,
             ],
-            'store' => $store ? [
-                'id' => $store->id,
-                'name' => $store->name,
-                'logo_path' => $store->logo_path,
-                'is_main_store' => $store->is_main_store,
-                // tambahkan field lain yang dibutuhkan
-            ] : null,
+
+            // Store info (minimal fields)
+            'store' => fn () => optional(
+                Store::query()
+                    ->select(['id', 'name', 'logo_path', 'is_main_store'])
+                    ->where('is_main_store', true)
+                    ->first()
+                ?? Store::query()->select(['id', 'name', 'logo_path', 'is_main_store'])->first()
+            )->only(['id', 'name', 'logo_path', 'is_main_store']),
+
+            // Flash (lengkap, termasuk warning)
             'flash' => [
                 'success' => fn () => $request->session()->get('success'),
                 'error' => fn () => $request->session()->get('error'),
+                'warning' => fn () => $request->session()->get('warning'),
                 'message' => fn () => $request->session()->get('message'),
             ],
         ];
-    }
-
-    public function version(Request $request): ?string
-    {
-        return parent::version($request);
     }
 }

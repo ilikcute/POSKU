@@ -1,56 +1,56 @@
 <script setup>
-import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
-import { Head, usePage } from '@inertiajs/vue3';
-import { Bar } from 'vue-chartjs';
-import { Chart as ChartJS, Title, Tooltip, Legend, BarElement, CategoryScale, LinearScale } from 'chart.js';
-import { computed } from 'vue';
+import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout.vue";
+import { Head, Link, usePage } from "@inertiajs/vue3";
+import { Bar } from "vue-chartjs";
+import {
+    Chart as ChartJS,
+    Title,
+    Tooltip,
+    Legend,
+    BarElement,
+    CategoryScale,
+    LinearScale,
+} from "chart.js";
+import { computed, ref } from "vue";
 
 ChartJS.register(Title, Tooltip, Legend, BarElement, CategoryScale, LinearScale);
 
 const props = defineProps({
-    totalSalesToday: Number,
-    transactionCountToday: Number,
-    newCustomersThisMonth: Number,
-    topProducts: Array,
-    salesChart: Object,
-    lowStockProducts: Array,
+    totalSalesToday: { type: Number, default: 0 },
+    transactionCountToday: { type: Number, default: 0 },
+    newCustomersThisMonth: { type: Number, default: 0 },
+    topProducts: { type: Array, default: () => [] }, // [{ name, total_quantity }]
+    salesChart: { type: Object, default: () => ({}) },
+    lowStockProducts: { type: Array, default: () => [] },
 });
 
-const user = usePage().props.auth.user;
+const page = usePage();
+const user = computed(() => page.props.auth?.user ?? { name: "-" });
 
-// Format currency
+const viewTop = ref("month"); // future ready (month/today/etc)
+
+// ===== Utils
+const toNumber = (v) => Number(v ?? 0);
+
 const formatCurrency = (amount) => {
-    return new Intl.NumberFormat('id-ID', {
-        style: 'currency',
-        currency: 'IDR',
+    return new Intl.NumberFormat("id-ID", {
+        style: "currency",
+        currency: "IDR",
         minimumFractionDigits: 0,
-    }).format(amount);
+    }).format(toNumber(amount));
 };
 
-// Dynamic stats from database
-const stats = computed(() => [
-    {
-        name: 'Total Penjualan Hari Ini',
-        value: formatCurrency(props.totalSalesToday || 0),
-        icon: 'cash'
-    },
-    {
-        name: 'Total Transaksi',
-        value: props.transactionCountToday?.toString() || '0',
-        icon: 'receipt'
-    },
-    {
-        name: 'Produk Terlaris',
-        value: props.topProducts?.length > 0 ? props.topProducts[0].name : 'Belum ada data',
-        icon: 'star'
-    },
-    {
-        name: 'Stok Menipis',
-        value: `${props.lowStockProducts?.length || 0} Produk`,
-        icon: 'warning'
-    },
-]);
+// ===== Data adapters (hindari mismatch field)
+const topProducts = computed(() => props.topProducts ?? []);
 
+const topProductsTable = computed(() =>
+    topProducts.value.map((p) => ({
+        name: p?.name ?? "-",
+        qty: toNumber(p?.total_quantity ?? p?.sold ?? 0), // kompatibel jika backend pakai total_quantity
+    }))
+);
+
+// ===== UI Cards
 const icons = {
     cash: `<svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" /></svg>`,
     receipt: `<svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>`,
@@ -59,76 +59,74 @@ const icons = {
 };
 
 const cardColors = [
-    'from-blue-500 to-blue-600',
-    'from-green-500 to-green-600',
-    'from-yellow-500 to-yellow-600',
-    'from-red-500 to-red-600',
+    "from-blue-500 to-blue-600",
+    "from-green-500 to-green-600",
+    "from-yellow-500 to-yellow-600",
+    "from-red-500 to-red-600",
 ];
 
-// Get top 5 products data from database
-const topProducts = computed(() => {
-    return props.topProducts || [];
+const stats = computed(() => {
+    const bestProduct = topProductsTable.value.length ? topProductsTable.value[0].name : "Belum ada data";
+
+    return [
+        {
+            name: "Total Penjualan Hari Ini",
+            value: formatCurrency(props.totalSalesToday),
+            icon: "cash",
+        },
+        {
+            name: "Total Transaksi",
+            value: String(props.transactionCountToday ?? 0),
+            icon: "receipt",
+        },
+        {
+            name: "Produk Terlaris",
+            value: bestProduct,
+            icon: "star",
+        },
+        {
+            name: "Stok Menipis",
+            value: `${props.lowStockProducts?.length ?? 0} Produk`,
+            icon: "warning",
+        },
+    ];
 });
 
-// Chart data for top products
+// ===== Chart
 const chartData = computed(() => ({
-    labels: topProducts.value.map(p => p.name),
+    labels: topProductsTable.value.map((p) => p.name),
     datasets: [
         {
-            label: 'Jumlah Terjual',
-            backgroundColor: 'rgba(74, 144, 226, 0.5)',
-            borderColor: 'rgba(74, 144, 226, 1)',
+            label: "Jumlah Terjual",
+            data: topProductsTable.value.map((p) => p.qty),
             borderWidth: 1,
-            hoverBackgroundColor: 'rgba(74, 144, 226, 0.8)',
-            hoverBorderColor: 'rgba(74, 144, 226, 1)',
-            data: topProducts.value.map(p => p.total_quantity),
             borderRadius: 4,
         },
     ],
 }));
 
-const chartOptions = {
+const chartOptions = computed(() => ({
     responsive: true,
     maintainAspectRatio: false,
     plugins: {
-        legend: {
-            display: false,
-        },
+        legend: { display: false },
         tooltip: {
-            backgroundColor: 'rgba(0, 0, 0, 0.7)',
-            titleColor: '#ffffff',
-            bodyColor: '#ffffff',
             callbacks: {
-                label: function (context) {
-                    return context.parsed.y + ' unit terjual';
-                }
-            }
-        }
+                label: (ctx) => `${ctx.parsed.y} unit terjual`,
+            },
+        },
     },
     scales: {
         y: {
             beginAtZero: true,
-            grid: {
-                color: 'rgba(255, 255, 255, 0.1)',
-            },
-            ticks: {
-                color: '#cbd5e1',
-                stepSize: 1,
-            },
+            ticks: { stepSize: 1 },
         },
         x: {
-            grid: {
-                display: false,
-            },
-            ticks: {
-                color: '#cbd5e1',
-                maxRotation: 45,
-                minRotation: 45,
-            },
+            grid: { display: false },
+            ticks: { maxRotation: 45, minRotation: 45 },
         },
     },
-};
-
+}));
 </script>
 
 <template>
@@ -137,18 +135,15 @@ const chartOptions = {
 
     <AuthenticatedLayout>
         <template #header>
-            <h2 class="font-semibold text-xl text-white leading-tight">
-                Dashboard
-            </h2>
+            <h2 class="font-semibold text-xl text-white leading-tight">Dashboard</h2>
         </template>
 
         <div class="space-y-6 animate-fade-in-up">
+            <!-- Welcome -->
             <div class="bg-white/10 backdrop-blur-md border border-white/10 rounded-2xl shadow-lg p-6">
-                <h3 class="text-xl font-bold text-white">
-                    Selamat Datang Kembali, {{ user.name }}!
-                </h3>
+                <h3 class="text-xl font-bold text-white">Selamat Datang Kembali, {{ user.name }}!</h3>
                 <p class="mt-2 text-sm text-gray-300">
-                    Berikut adalah ringkasan aktivitas toko Anda hari ini. Semoga harimu menyenangkan!
+                    Berikut adalah ringkasan aktivitas toko Anda hari ini.
                 </p>
             </div>
 
@@ -158,13 +153,12 @@ const chartOptions = {
                     :class="`bg-gradient-to-br ${cardColors[index % cardColors.length]}`"
                     class="p-6 rounded-2xl shadow-lg text-white transition-all duration-300 hover:scale-105 hover:shadow-2xl">
                     <div class="flex items-center">
-                        <div
-                            class="flex-shrink-0 bg-white/20 rounded-full p-3 transform group-hover:rotate-12 transition-transform duration-300">
+                        <div class="flex-shrink-0 bg-white/20 rounded-full p-3 transition-transform duration-300">
                             <div v-html="icons[stat.icon]"></div>
                         </div>
-                        <div class="ml-4">
+                        <div class="ml-4 min-w-0">
                             <p class="text-sm font-medium truncate">{{ stat.name }}</p>
-                            <p class="text-2xl font-bold">{{ stat.value }}</p>
+                            <p class="text-2xl font-bold truncate">{{ stat.value }}</p>
                         </div>
                     </div>
                 </div>
@@ -175,11 +169,13 @@ const chartOptions = {
                 <div class="p-6 border-b border-white/10">
                     <h3 class="text-lg font-bold text-white">Aksi Cepat</h3>
                 </div>
+
                 <div class="p-6 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-                    <a :href="route('sales.create')"
+                    <!-- pakai <Link> agar Inertia navigation konsisten -->
+                    <Link :href="route('sales.create')"
                         class="flex flex-col items-center justify-center p-4 bg-white/5 hover:bg-blue-500/20 rounded-xl transition-all duration-300 group transform hover:-translate-y-1">
                         <div
-                            class="p-3 bg-blue-500/10 rounded-full mb-2 border border-blue-500/30 group-hover:bg-blue-500/20 transition-colors">
+                            class="p-3 bg-blue-500/10 rounded-full mb-2 border border-blue-500/30 group-hover:bg-blue-500/20">
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-blue-400" fill="none"
                                 viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                 <path stroke-linecap="round" stroke-linejoin="round"
@@ -187,11 +183,12 @@ const chartOptions = {
                             </svg>
                         </div>
                         <span class="text-sm font-medium text-gray-200 group-hover:text-white">POS Baru</span>
-                    </a>
-                    <a :href="route('master.products.create')"
+                    </Link>
+
+                    <Link :href="route('master.products.create')"
                         class="flex flex-col items-center justify-center p-4 bg-white/5 hover:bg-green-500/20 rounded-xl transition-all duration-300 group transform hover:-translate-y-1">
                         <div
-                            class="p-3 bg-green-500/10 rounded-full mb-2 border border-green-500/30 group-hover:bg-green-500/20 transition-colors">
+                            class="p-3 bg-green-500/10 rounded-full mb-2 border border-green-500/30 group-hover:bg-green-500/20">
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-green-400" fill="none"
                                 viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                 <path stroke-linecap="round" stroke-linejoin="round"
@@ -199,11 +196,12 @@ const chartOptions = {
                             </svg>
                         </div>
                         <span class="text-sm font-medium text-gray-200 group-hover:text-white">Tambah Produk</span>
-                    </a>
-                    <a :href="route('purchases.create')"
+                    </Link>
+
+                    <Link :href="route('purchases.create')"
                         class="flex flex-col items-center justify-center p-4 bg-white/5 hover:bg-yellow-500/20 rounded-xl transition-all duration-300 group transform hover:-translate-y-1">
                         <div
-                            class="p-3 bg-yellow-500/10 rounded-full mb-2 border border-yellow-500/30 group-hover:bg-yellow-500/20 transition-colors">
+                            class="p-3 bg-yellow-500/10 rounded-full mb-2 border border-yellow-500/30 group-hover:bg-yellow-500/20">
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-yellow-400" fill="none"
                                 viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                 <path stroke-linecap="round" stroke-linejoin="round"
@@ -211,11 +209,12 @@ const chartOptions = {
                             </svg>
                         </div>
                         <span class="text-sm font-medium text-gray-200 group-hover:text-white">Tambah Pembelian</span>
-                    </a>
-                    <a :href="route('reports.sales')"
+                    </Link>
+
+                    <Link :href="route('reports.sales')"
                         class="flex flex-col items-center justify-center p-4 bg-white/5 hover:bg-purple-500/20 rounded-xl transition-all duration-300 group transform hover:-translate-y-1">
                         <div
-                            class="p-3 bg-purple-500/10 rounded-full mb-2 border border-purple-500/30 group-hover:bg-purple-500/20 transition-colors">
+                            class="p-3 bg-purple-500/10 rounded-full mb-2 border border-purple-500/30 group-hover:bg-purple-500/20">
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-purple-400" fill="none"
                                 viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                 <path stroke-linecap="round" stroke-linejoin="round"
@@ -223,19 +222,27 @@ const chartOptions = {
                             </svg>
                         </div>
                         <span class="text-sm font-medium text-gray-200 group-hover:text-white">Laporan Penjualan</span>
-                    </a>
+                    </Link>
                 </div>
             </div>
 
-            <!-- Top Selling Products -->
+            <!-- Top Products -->
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 <!-- Chart -->
                 <div class="lg:col-span-2 bg-white/10 backdrop-blur-md border border-white/10 rounded-2xl shadow-lg">
-                    <div class="p-6 border-b border-white/10">
+                    <div class="p-6 border-b border-white/10 flex items-center justify-between">
                         <h3 class="text-lg font-bold text-white">5 Produk Terlaris Bulan Ini</h3>
+                        <!-- hook future: filter -->
+                        <span class="text-xs text-gray-300 bg-white/10 border border-white/10 rounded-full px-3 py-1">
+                            View: {{ viewTop }}
+                        </span>
                     </div>
+
                     <div class="p-6 h-96">
-                        <Bar :data="chartData" :options="chartOptions" />
+                        <Bar v-if="topProductsTable.length" :data="chartData" :options="chartOptions" />
+                        <div v-else class="h-full flex items-center justify-center text-gray-300">
+                            Belum ada data produk terlaris.
+                        </div>
                     </div>
                 </div>
 
@@ -244,6 +251,7 @@ const chartOptions = {
                     <div class="p-6 border-b border-white/10">
                         <h3 class="text-lg font-bold text-white">Peringkat Produk</h3>
                     </div>
+
                     <div class="p-6">
                         <table class="w-full text-white">
                             <thead>
@@ -253,19 +261,25 @@ const chartOptions = {
                                     <th class="py-3 text-right">Terjual</th>
                                 </tr>
                             </thead>
+
                             <tbody>
-                                <tr v-for="(product, index) in topProducts" :key="product.name"
+                                <tr v-for="(product, index) in topProductsTable" :key="product.name"
                                     class="border-t border-white/10">
                                     <td class="py-3 text-gray-300">{{ index + 1 }}</td>
                                     <td class="py-3 font-medium">{{ product.name }}</td>
-                                    <td class="py-3 text-right font-semibold">{{ product.sold }}</td>
+                                    <td class="py-3 text-right font-semibold">{{ product.qty }}</td>
+                                </tr>
+
+                                <tr v-if="!topProductsTable.length">
+                                    <td colspan="3" class="py-6 text-center text-gray-300">
+                                        Belum ada data.
+                                    </td>
                                 </tr>
                             </tbody>
                         </table>
                     </div>
                 </div>
             </div>
-
         </div>
     </AuthenticatedLayout>
 </template>

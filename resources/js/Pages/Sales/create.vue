@@ -1,18 +1,15 @@
 <script setup>
 import { Head, useForm } from "@inertiajs/vue3";
-import { ref, computed, onMounted, watch } from "vue";
-import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout.vue";
+import { ref, computed, onMounted, nextTick } from "vue";
+import RawLayout from "@/Layouts/RawLayout.vue";
 import Modal from "@/Components/Modal.vue";
-import AppPanel from "@/Components/AppPanel.vue";
-import AppPageHeader from "@/Components/AppPageHeader.vue";
-import InlineNotice from "@/Components/InlineNotice.vue";
 
 const props = defineProps({
     products: Array,
     customers: Array,
     activeShift: Object,
     promotions: Array,
-    stocks: Array,
+    store: Object, // Added store prop
 });
 
 // Form state
@@ -30,50 +27,37 @@ const selectedCustomer = ref(null);
 const searchTerm = ref("");
 const showPaymentModal = ref(false);
 const showReceiptModal = ref(false);
-const selectedPaymentMethod = ref("cash");
+const showSearchModal = ref(false); // New modal for search
 const receiptData = ref(null);
 const currentTime = ref("");
 const currentDate = ref("");
 const currentShift = ref("");
 const cashierName = ref("");
 const barcodeInput = ref("");
-const categoryFilter = ref("all");
+const qtyInput = ref(1); // Default Quantity
 const notification = ref({ show: false, message: "", type: "info" });
+const lastAddedItem = ref(null);
+const showLastItemToast = ref(false);
+
+const barcodeInputRef = ref(null);
+const searchInputRef = ref(null);
+const paymentInputRef = ref(null);
+
 
 // Computed values
-const categoryOptions = computed(() => {
-    const unique = new Set();
-    (props.products || []).forEach((product) => {
-        if (product.category?.name) {
-            unique.add(product.category.name);
-        }
-    });
-    return Array.from(unique);
-});
-
 const filteredProducts = computed(() => {
-    let filtered = props.products || [];
+    if (!searchTerm.value) return [];
 
-    if (searchTerm.value) {
-        const search = searchTerm.value.toLowerCase();
-        filtered = filtered.filter(
-            (p) =>
-                p.name.toLowerCase().includes(search) ||
-                p.barcode?.includes(search)
-        );
-    }
-
-    if (categoryFilter.value !== "all") {
-        filtered = filtered.filter((product) => {
-            const categoryName = product.category?.name ?? "Tanpa Kategori";
-            return categoryName === categoryFilter.value;
-        });
-    }
-
-    return filtered;
+    const search = searchTerm.value.toLowerCase();
+    // Return all matches
+    return (props.products || []).filter(
+        (p) =>
+            p.name.toLowerCase().includes(search) ||
+            p.barcode?.includes(search) ||
+            p.product_code?.toLowerCase().includes(search)
+    ).slice(0, 50); // Warning: limit search results for perf
 });
 
-const limitedProducts = computed(() => filteredProducts.value.slice(0, 7));
 
 const calculateSubtotal = computed(() => {
     return cart.value
@@ -117,6 +101,7 @@ const showNotification = (message, type = "info") => {
 };
 
 const getPriceWithPromotion = (product, quantity = 1) => {
+    // Logic copied from previous efficient implementation
     const basePrice = product.selling_price;
     let finalPrice = basePrice;
     let discountAmount = 0;
@@ -182,12 +167,24 @@ const getPriceWithPromotion = (product, quantity = 1) => {
     };
 };
 
+const autoPrint = ref(true);
+const receiptWidth = ref("80mm"); // "58mm" or "80mm"
+
 // Cart operations
 const addProductToCart = (product) => {
-    const stockQuantity = product.stocks?.[0]?.quantity ?? 0;
+    console.log("Adding product to cart:", product);
+    if (!props.activeShift) {
+        console.error("Shift not open");
+        alert("SHIFT BELUM DIBUKA! Harap kembali ke Dashboard/Buka Shift.");
+        showNotification("Shift belum dibuka!", "error");
+        return;
+    }
 
-    if (stockQuantity < 1) {
-        showNotification(`Stok ${product.name} tidak tersedia`, "error");
+    const stockQuantity = product.stocks?.[0]?.quantity ?? 0;
+    const qtyToAdd = parseInt(qtyInput.value) || 1;
+
+    if (stockQuantity < qtyToAdd) {
+        showNotification(`Stok ${product.name} tidak cukup`, "error");
         return;
     }
 
@@ -195,31 +192,38 @@ const addProductToCart = (product) => {
         (item) => item.id === product.id && item.type === "product"
     );
 
-    if (existing) {
-        if (existing.quantity + 1 > stockQuantity) {
-            showNotification(`Stok maksimal: ${stockQuantity}`, "warning");
-            return;
-        }
-        existing.quantity++;
+    let currentQty = existing ? existing.quantity : 0;
+    let newQty = currentQty + qtyToAdd;
 
+    if (newQty > stockQuantity) {
+        showNotification(`Stok maksimal: ${stockQuantity}`, "warning");
+        return;
+    }
+
+    if (existing) {
+        existing.quantity = newQty;
         if (existing.active_promotion) {
             const pricing = getPriceWithPromotion(existing, existing.quantity);
             existing.final_price = pricing.final_price;
             existing.discount_amount = pricing.discount_amount;
         }
-    } else {
-        const pricing = getPriceWithPromotion(product, 1);
 
-        cart.value.push({
+        lastAddedItem.value = existing;
+    } else {
+        const pricing = getPriceWithPromotion(product, qtyToAdd);
+
+        const newItem = {
             ...product,
-            quantity: 1,
+            quantity: qtyToAdd,
             type: "product",
             original_price: pricing.original_price,
             final_price: pricing.final_price,
             discount_amount: pricing.discount_amount,
             promotion_name: product.active_promotion?.name || null,
             bundled_products: pricing.bundled_products,
-        });
+        };
+
+        cart.value.push(newItem);
 
         pricing.bundled_products.forEach((bundled) => {
             cart.value.push({
@@ -229,53 +233,30 @@ const addProductToCart = (product) => {
             });
         });
 
-        showNotification(`${product.name} ditambahkan`, "success");
+        lastAddedItem.value = newItem;
     }
+
+    // Reset inputs
+    qtyInput.value = 1;
+    barcodeInput.value = "";
+
+    nextTick(() => {
+        barcodeInputRef.value?.focus();
+    });
+
+    // Show toast for last item
+    showLastItemToast.value = true;
+    setTimeout(() => showLastItemToast.value = false, 2000);
 
     updateFormItems();
 };
 
 const removeFromCart = (id) => {
-    const item = cart.value.find((i) => i.id === id);
     cart.value = cart.value.filter(
         (item) => item.id !== id && item.bundled_from !== id
     );
-    if (item) showNotification(`${item.name} dihapus`, "info");
     updateFormItems();
-};
-
-const updateQuantity = (id, quantity) => {
-    const item = cart.value.find((item) => item.id === id);
-    if (!item) return;
-
-    const newQuantity = Math.max(1, parseInt(quantity));
-    const stockQuantity = item.stocks?.[0]?.quantity ?? 0;
-
-    if (newQuantity > stockQuantity) {
-        showNotification(`Stok maksimal: ${stockQuantity}`, "warning");
-        return;
-    }
-
-    item.quantity = newQuantity;
-
-    if (item.active_promotion) {
-        const pricing = getPriceWithPromotion(item, newQuantity);
-        item.final_price = pricing.final_price;
-        item.discount_amount = pricing.discount_amount;
-
-        cart.value = cart.value.filter(
-            (cartItem) => cartItem.bundled_from !== id
-        );
-        pricing.bundled_products.forEach((bundled) => {
-            cart.value.push({
-                ...bundled,
-                type: "bundled",
-                bundled_from: id,
-            });
-        });
-    }
-
-    updateFormItems();
+    barcodeInputRef.value?.focus();
 };
 
 const updateFormItems = () => {
@@ -291,48 +272,55 @@ const updateFormItems = () => {
 // Payment operations
 const openPaymentModal = () => {
     if (cart.value.length === 0) {
-        showNotification("Keranjang masih kosong", "warning");
+        showNotification("Keranjang kosong", "warning");
         return;
     }
-    selectedPaymentMethod.value = "cash";
-    form.amount_paid = calculateTotal.value;
+
+    form.amount_paid = 0; // Reset or smart default
     showPaymentModal.value = true;
+
+    nextTick(() => {
+        paymentInputRef.value?.focus();
+    });
 };
 
 const confirmPayment = () => {
     if (form.amount_paid < calculateTotal.value) {
-        showNotification("Jumlah pembayaran kurang", "error");
+        showNotification("Pembayaran kurang!", "error");
         return;
     }
 
-    form.payment_method = selectedPaymentMethod.value;
+    form.payment_method = "cash";
     form.customer_id = selectedCustomer.value?.id || null;
 
     form.post(route("sales.store"), {
         onSuccess: (response) => {
             receiptData.value = {
-                sale: response.sale || {},
-                items: cart.value,
-                subtotal: calculateSubtotal.value,
-                discount: calculateDiscount.value,
+                // ... populate receipt data similar to before ...
                 total: calculateTotal.value,
                 amount_paid: form.amount_paid,
                 change: changeAmount.value,
-                payment_method: selectedPaymentMethod.value,
-                customer: selectedCustomer.value,
+                payment_method: "cash",
                 date: new Date().toLocaleString("id-ID"),
+                items: JSON.parse(JSON.stringify(cart.value)) // Snapshot
             };
 
             showPaymentModal.value = false;
             showReceiptModal.value = true;
+
+            if (autoPrint.value) {
+                setTimeout(() => {
+                    window.print();
+                    closeReceiptModal(); // Auto-close after print dialog finishes
+                }, 500);
+            }
+
             cart.value = [];
             selectedCustomer.value = null;
             form.reset();
-            showNotification("Transaksi berhasil", "success");
         },
-        onError: (errors) => {
-            showNotification("Transaksi gagal", "error");
-            console.error("Form submission errors:", errors);
+        onError: () => {
+            showNotification("Gagal memproses transaksi", "error");
         },
     });
 };
@@ -344,22 +332,41 @@ const printReceipt = () => {
 const closeReceiptModal = () => {
     showReceiptModal.value = false;
     receiptData.value = null;
+    barcodeInputRef.value?.focus();
 };
 
-// Barcode scanner
+// Barcode scanner logic
 const scanBarcode = () => {
-    const barcode = barcodeInput.value.trim();
-    if (!barcode) return;
+    const code = barcodeInput.value?.trim();
+    if (!code) return;
 
-    const product = props.products?.find((p) => p.barcode === barcode);
+    console.log("Searching for:", code);
+
+    const product = (props.products || []).find((p) => {
+        const barcodeMatch = p.barcode && String(p.barcode).toLowerCase() === String(code).toLowerCase();
+        const codeMatch = p.product_code && String(p.product_code).toLowerCase() === String(code).toLowerCase();
+        return barcodeMatch || codeMatch;
+    });
+
     if (product) {
         addProductToCart(product);
-        barcodeInput.value = "";
-        showNotification("Produk ditemukan", "success");
+        showNotification("Item ditambahkan", "success");
     } else {
+        console.warn("Product not found");
+        showNotification(`Barang tidak ditemukan: ${code}`, "error");
         barcodeInput.value = "";
-        showNotification("Barcode tidak ditemukan", "error");
     }
+
+    // Ensure focus remains on input
+    nextTick(() => {
+        barcodeInputRef.value?.focus();
+    });
+};
+
+const selectProductFromSearch = (product) => {
+    addProductToCart(product);
+    showSearchModal.value = false;
+    searchTerm.value = "";
 };
 
 // Time and date updates
@@ -371,24 +378,15 @@ const updateDateTime = () => {
         second: "2-digit",
     });
     currentDate.value = now.toLocaleDateString("id-ID", {
-        weekday: "long",
+        weekday: "short",
         year: "numeric",
-        month: "long",
+        month: "short",
         day: "numeric",
     });
 
     if (props.activeShift) {
         currentShift.value = props.activeShift.shift_code;
-        cashierName.value = props.activeShift.name;
-    } else {
-        const hour = now.getHours();
-        currentShift.value =
-            hour >= 6 && hour < 14
-                ? "Pagi"
-                : hour >= 14 && hour < 22
-                    ? "Siang"
-                    : "Malam";
-        cashierName.value = "Kasir";
+        cashierName.value = props.activeShift.name || props.activeShift.user?.name || "Kasir";
     }
 };
 
@@ -396,12 +394,16 @@ const updateDateTime = () => {
 const handleKeyPress = (e) => {
     if (e.key === "F1") {
         e.preventDefault();
-        document.querySelector('input[type="text"]')?.focus();
+        showSearchModal.value = true;
+        nextTick(() => searchInputRef.value?.focus());
     } else if (e.key === "F2") {
         e.preventDefault();
         openPaymentModal();
     } else if (e.key === "Escape") {
-        showPaymentModal.value = false;
+        if (showSearchModal.value) showSearchModal.value = false;
+        else if (showPaymentModal.value) showPaymentModal.value = false;
+        else if (showReceiptModal.value) showReceiptModal.value = false;
+        else barcodeInputRef.value?.focus();
     }
 };
 
@@ -410,742 +412,664 @@ onMounted(() => {
     updateDateTime();
     setInterval(updateDateTime, 1000);
     window.addEventListener("keydown", handleKeyPress);
-
-    window.addEventListener("beforeunload", (e) => {
-        if (cart.value.length > 0) {
-            e.preventDefault();
-            e.returnValue = "";
-        }
-    });
+    barcodeInputRef.value?.focus();
 });
 </script>
 
 <template>
-    <AuthenticatedLayout>
+    <RawLayout>
+        <div class="flex flex-col h-screen overflow-hidden bg-gray-200">
 
-        <Head title="Point of Sale" />
+            <Head title="Point of Sale" />
 
-        <template #header>
-            <AppPageHeader title="Point of Sale" description="Pantau inventory dan transaksi dari satu layar.">
-                <template #actions>
-                    <div class="w-full max-w-3xl ml-auto grid grid-cols-1 gap-2 text-white sm:grid-cols-3">
-                        <div
-                            class="bg-white/10 px-3 py-2 rounded-xl backdrop-blur border border-white/10 shadow-sm flex flex-col gap-0.5">
-                            <p class="text-[10px] uppercase tracking-wide text-gray-300">
-                                Waktu
-                            </p>
-                            <p class="text-xs font-semibold truncate">
-                                {{ currentDate }}
-                            </p>
-                            <p class="text-sm font-semibold">{{ currentTime }}</p>
-                        </div>
-                        <div
-                            class="bg-white/10 px-3 py-2 rounded-xl backdrop-blur border border-white/10 shadow-sm flex flex-col gap-0.5">
-                            <p class="text-[10px] uppercase tracking-wide text-gray-300">
-                                Shift
-                            </p>
-                            <p class="text-lg font-bold text-emerald-300 leading-tight">
-                                {{ currentShift }}
-                            </p>
-                            <p class="text-[11px] text-gray-300 truncate">
-                                {{ props.activeShift?.name || "Belum Aktif" }}
-                            </p>
-                        </div>
-                        <div
-                            class="bg-white/10 px-3 py-2 rounded-xl backdrop-blur border border-white/10 shadow-sm flex flex-col gap-0.5">
-                            <p class="text-[10px] uppercase tracking-wide text-gray-300">
-                                Kasir
-                            </p>
-                            <p class="text-sm font-semibold truncate">
-                                {{ cashierName }}
-                            </p>
-                        </div>
+            <!-- Top Header Info Bar -->
+            <div
+                class="bg-blue-900 text-white p-2 text-sm font-mono border-b border-white/20 flex justify-between items-center select-none shadow-md z-10 relative shrink-0 h-16">
+
+                <!-- Left: Logo & Station -->
+                <div class="flex items-center gap-4">
+                    <Link :href="route('dashboard')"
+                        class="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded font-bold transition flex items-center gap-2"
+                        title="Keluar / Kembali ke Dashboard">
+                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                    </svg>
+                    EXIT
+                    </Link>
+                    <div class="flex flex-col">
+                        <span class="font-bold text-lg leading-tight tracking-wider">POS SYSTEM v1.0</span>
+                        <span class="text-xs text-blue-200 uppercase">{{ store?.name || 'STORE NAME' }} - STATION
+                            01</span>
                     </div>
-                </template>
-            </AppPageHeader>
-        </template>
+                </div>
 
-        <!-- Notification Toast -->
-        <Transition enter-active-class="transition ease-out duration-300" enter-from-class="opacity-0 translate-y-2"
-            enter-to-class="opacity-100 translate-y-0" leave-active-class="transition ease-in duration-200"
-            leave-from-class="opacity-100" leave-to-class="opacity-0">
-            <div v-if="notification.show" class="fixed top-20 right-4 z-50 max-w-sm">
-                <div class="bg-white rounded-lg shadow-lg p-4 flex items-center gap-3" :class="{
-                    'border-l-4 border-green-500':
-                        notification.type === 'success',
-                    'border-l-4 border-red-500':
-                        notification.type === 'error',
-                    'border-l-4 border-yellow-500':
-                        notification.type === 'warning',
-                    'border-l-4 border-blue-500':
-                        notification.type === 'info',
-                }">
-                    <div class="flex-shrink-0">
-                        <svg v-if="notification.type === 'success'" class="w-5 h-5 text-green-500" fill="currentColor"
-                            viewBox="0 0 20 20">
-                            <path fill-rule="evenodd"
-                                d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-                                clip-rule="evenodd" />
-                        </svg>
-                        <svg v-else-if="notification.type === 'error'" class="w-5 h-5 text-red-500" fill="currentColor"
-                            viewBox="0 0 20 20">
-                            <path fill-rule="evenodd"
-                                d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
-                                clip-rule="evenodd" />
-                        </svg>
-                        <svg v-else-if="notification.type === 'warning'" class="w-5 h-5 text-yellow-500"
-                            fill="currentColor" viewBox="0 0 20 20">
-                            <path fill-rule="evenodd"
-                                d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
-                                clip-rule="evenodd" />
-                        </svg>
-                        <svg v-else class="w-5 h-5 text-blue-500" fill="currentColor" viewBox="0 0 20 20">
-                            <path fill-rule="evenodd"
-                                d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
-                                clip-rule="evenodd" />
-                        </svg>
+                <!-- Center: Clock -->
+                <div class="flex flex-col items-center">
+                    <span class="text-xl font-bold bg-black/30 px-4 py-1 rounded border border-white/10">{{
+                        currentTime
+                    }}</span>
+                    <span class="text-xs text-blue-200">{{ currentDate }}</span>
+                </div>
+
+                <!-- Right: Status & Shift -->
+                <div class="text-right flex flex-col items-end">
+                    <div class="flex items-center gap-2">
+                        <span class="bg-green-600 px-2 rounded text-xs font-bold">ONLINE</span>
+                        <span class="font-bold">{{ cashierName }}</span>
                     </div>
-                    <p class="text-sm font-medium text-gray-900">
-                        {{ notification.message }}
-                    </p>
+                    <span class="text-xs text-blue-200">Shift: {{ currentShift || '-' }}</span>
                 </div>
             </div>
-        </Transition>
 
-        <div class="max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
-            <InlineNotice v-if="!props.activeShift" variant="warning">
-                <template #icon>!</template>
-                Shift belum dibuka. Silakan buka shift terlebih dahulu agar
-                transaksi tercatat pada perangkat ini.
-            </InlineNotice>
+            <!-- Main Workspace -->
+            <div class="flex-1 flex overflow-hidden font-sans text-sm relative">
 
-            <div class="grid gap-6 lg:grid-cols-[2fr_1fr] min-h-[calc(100vh-220px)]">
-                <!-- Left Panel -->
-                <AppPanel class="flex flex-col min-h-[60vh] space-y-4">
-                    <div class="grid gap-3 md:grid-cols-2">
-                        <label class="relative">
-                            <svg class="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" fill="none"
-                                stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                    d="M21 21l-4.35-4.35M11 19a8 8 0 100-16 8 8 0 000 16z" />
-                            </svg>
-                            <input v-model="searchTerm" type="text" placeholder="Cari produk... (F1)"
-                                class="w-full pl-12 pr-4 py-3 bg-white/10 border border-white/20 rounded-2xl text-gray-200 placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all" />
-                        </label>
-                        <label class="relative">
-                            <svg class="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" fill="none"
-                                stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                    d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z" />
-                            </svg>
-                            <input v-model="barcodeInput" @keydown.enter="scanBarcode" type="text"
-                                placeholder="Scan barcode..."
-                                class="w-full pl-12 pr-4 py-3 bg-white/10 border border-white/20 rounded-2xl text-gray-200 placeholder-gray-400 focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all" />
-                        </label>
+                <!-- LEFT PANEL: Promotions & Shortcuts -->
+                <div class="w-64 bg-gray-100 flex flex-col border-r border-gray-300 shadow-inner hidden md:flex">
+                    <!-- Promo Header -->
+                    <div
+                        class="bg-emerald-700 text-white px-3 py-2 font-bold text-xs uppercase tracking-wide flex items-center gap-2">
+                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z" />
+                        </svg>
+                        Info Promosi
                     </div>
 
-                    <div class="flex flex-wrap items-center gap-2 text-sm text-white/80">
-                        <button @click="categoryFilter = 'all'" :class="[
-                            'px-3 py-1 rounded-full border transition-all',
-                            categoryFilter === 'all'
-                                ? 'bg-emerald-500/20 border-emerald-400 text-white'
-                                : 'border-white/10 hover:border-emerald-200/50',
-                        ]">
-                            Semua
-                        </button>
-                        <button v-for="category in categoryOptions" :key="category" @click="categoryFilter = category"
-                            :class="[
-                                'px-3 py-1 rounded-full border transition-all capitalize',
-                                categoryFilter === category
-                                    ? 'bg-emerald-500/20 border-emerald-400 text-white'
-                                    : 'border-white/10 hover:border-emerald-200/50',
-                            ]">
-                            {{ category }}
-                        </button>
-                    </div>
-
-                    <div class="flex items-center justify-between text-xs text-gray-400">
-                        <span>
-                            Menampilkan {{ filteredProducts.length }} produk
-                        </span>
-                        <span>Stok terakhir diperbarui realtime</span>
-                    </div>
-
-                    <div class="flex-1 overflow-y-auto pr-2 custom-scrollbar">
-                        <div v-if="limitedProducts.length === 0" class="text-center text-gray-400 py-20">
-                            <svg class="mx-auto h-16 w-16 text-gray-500 mb-4" fill="none" viewBox="0 0 24 24"
-                                stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                    d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
-                            </svg>
-                            <p class="text-lg font-medium mb-1">
-                                Tidak ada produk
-                            </p>
-                            <p class="text-sm text-gray-500">
-                                Coba kata kunci pencarian lain
-                            </p>
-                        </div>
-                        <div v-else class="space-y-3">
-                            <div class="overflow-hidden rounded-2xl border border-white/10 bg-white/5">
-                                <table class="min-w-full text-sm text-white/80">
-                                    <thead class="bg-white/10 text-xs">
-                                        <tr>
-                                            <th class="px-4 py-3 text-left">
-                                                Produk
-                                            </th>
-                                            <th class="px-4 py-3 text-left">
-                                                Harga
-                                            </th>
-                                            <th class="px-4 py-3 text-center">
-                                                Stok
-                                            </th>
-                                            <th class="px-4 py-3 text-right">
-                                                Aksi
-                                            </th>
-                                        </tr>
-                                    </thead>
-                                    <tbody class="divide-y divide-white/5">
-                                        <tr v-for="product in limitedProducts" :key="product.id"
-                                            class="hover:bg-white/5">
-                                            <td class="px-4 py-3">
-                                                <p class="font-semibold text-white">
-                                                    {{ product.name }}
-                                                </p>
-                                                <p class="text-xs text-gray-400">
-                                                    {{
-                                                        product.category?.name ||
-                                                        "Tanpa Kategori"
-                                                    }}
-                                                </p>
-                                                <span v-if="
-                                                    product.active_promotion
-                                                "
-                                                    class="inline-flex items-center mt-1 text-[10px] uppercase px-2 py-0.5 rounded-full bg-pink-500/20 text-pink-300">
-                                                    Promo
-                                                </span>
-                                            </td>
-                                            <td class="px-4 py-3">
-                                                <p
-                                                    class="text-sm font-bold bg-gradient-to-r from-blue-400 to-emerald-400 bg-clip-text text-transparent">
-                                                    {{
-                                                        formatCurrency(
-                                                            getPriceWithPromotion(
-                                                                product,
-                                                                1
-                                                            ).final_price
-                                                        )
-                                                    }}
-                                                </p>
-                                                <p v-if="
-                                                    product.active_promotion
-                                                " class="text-xs text-gray-500 line-through">
-                                                    {{
-                                                        formatCurrency(
-                                                            product.selling_price
-                                                        )
-                                                    }}
-                                                </p>
-                                            </td>
-                                            <td class="px-4 py-3 text-center text-xs text-gray-300">
-                                                {{
-                                                    product.stocks?.[0]
-                                                        ?.quantity ?? 0
-                                                }}
-                                            </td>
-                                            <td class="px-4 py-3 text-right">
-                                                <button @click="
-                                                    addProductToCart(
-                                                        product
-                                                    )
-                                                    "
-                                                    class="inline-flex items-center px-3 py-1 text-xs font-semibold rounded-full bg-emerald-500/20 text-emerald-200 hover:bg-emerald-500/30 transition-colors">
-                                                    Tambah
-                                                </button>
-                                            </td>
-                                        </tr>
-                                    </tbody>
-                                </table>
+                    <!-- Promo List -->
+                    <div class="flex-1 overflow-y-auto p-2 space-y-2 bg-gray-200/50">
+                        <div v-for="promo in promotions || []" :key="promo.id"
+                            class="bg-white border border-gray-300 p-2 rounded shadow-sm text-xs">
+                            <div class="font-bold text-emerald-700 mb-1 border-b border-gray-200 pb-1">{{ promo.name
+                            }}
                             </div>
-
-                            <InlineNotice v-if="
-                                filteredProducts.length >
-                                limitedProducts.length
-                            " variant="info">
-                                Menampilkan 7 produk teratas. Gunakan pencarian
-                                atau filter kategori untuk menemukan produk
-                                lainnya.
-                            </InlineNotice>
+                            <p class="text-gray-600 leading-snug">{{ promo.description }}</p>
+                            <div class="mt-1 text-[10px] text-gray-500 italic">Berlaku sampai: {{ new
+                                Date(promo.end_date).toLocaleDateString() }}</div>
                         </div>
-                    </div>
-                </AppPanel>
-
-                <!-- Right Panel -->
-                <AppPanel class="flex flex-col min-h-[60vh] space-y-0">
-                    <div class="p-4 border-b border-white/10 flex-shrink-0">
-                        <label class="block text-sm font-medium text-gray-300 mb-2">
-                            <svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                    d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                            </svg>
-                            Pelanggan
-                        </label>
-                        <select v-model="selectedCustomer"
-                            class="w-full bg-white/10 border border-white/20 rounded-xl text-gray-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent px-4 py-3 transition-all">
-                            <option :value="null">Pelanggan Umum</option>
-                            <option v-for="customer in props.customers" :key="customer.id" :value="customer">
-                                {{ customer.name }}
-                                {{ customer.phone ? `(${customer.phone})` : "" }}
-                            </option>
-                        </select>
-                        <div class="mt-3 text-xs text-gray-400" v-if="props.activeShift">
-                            Shift aktif: {{ props.activeShift.shift_code }} •
-                            Awal kas:
-                            {{ formatCurrency(props.activeShift.initial_cash) }}
+                        <div v-if="(!promotions || promotions.length === 0)"
+                            class="text-center text-gray-400 italic py-4">
+                            Tidak ada promosi aktif
                         </div>
                     </div>
 
-                    <div class="flex-1 overflow-y-auto px-4 py-4 custom-scrollbar min-h-0">
-                        <div v-if="cart.length === 0" class="text-center text-gray-400 mt-20">
-                            <svg class="mx-auto h-20 w-20 text-gray-600 mb-4" fill="none" viewBox="0 0 24 24"
-                                stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
-                                    d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 100-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
-                            </svg>
-                            <p class="text-lg font-semibold text-gray-300 mb-1">
-                                Keranjang Kosong
-                            </p>
-                            <p class="text-sm text-gray-500">
-                                Pilih produk untuk memulai transaksi
-                            </p>
+                    <!-- Shortcuts Legend -->
+                    <div
+                        class="bg-gray-800 text-gray-300 p-3 text-[10px] space-y-1.5 font-mono border-t border-gray-600">
+                        <div class="flex justify-between"><span>[F1]</span> <span>Cari Barang</span></div>
+                        <div class="flex justify-between"><span>[F2]</span> <span>Bayar</span></div>
+                        <!-- F4 Pending not implemented yet but shown as placeholder -->
+                        <!-- <div class="flex justify-between"><span>[F4]</span> <span>Pending</span></div> -->
+                        <div class="flex justify-between"><span>[ESC]</span> <span>Batal / Kembali</span></div>
+                    </div>
+                </div>
+
+                <!-- CENTER PANEL: Transaction Table -->
+                <div class="flex-1 flex flex-col bg-white overflow-hidden relative">
+                    <!-- Main Input Area -->
+                    <div class="p-4 bg-gray-100 border-b border-gray-300 shadow-sm z-10">
+                        <div class="flex gap-2">
+                            <div class="flex-1 relative">
+                                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                    <svg class="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24"
+                                        stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z" />
+                                    </svg>
+                                </div>
+                                <input ref="barcodeInputRef" v-model="barcodeInput" @keydown.enter="scanBarcode"
+                                    type="text"
+                                    class="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg leading-5 bg-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-lg font-bold font-mono tracking-wide shadow-inner"
+                                    placeholder="Scan Barcode / Input Kode" autofocus>
+                            </div>
+                            <div class="w-24 flex items-center relative">
+                                <span class="absolute left-2 text-xs text-gray-500 font-bold z-10">QTY</span>
+                                <input v-model="qtyInput" type="number" min="1"
+                                    class="block w-full pl-8 pr-2 py-3 border border-gray-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 font-bold text-lg text-center">
+                            </div>
                         </div>
+                    </div>
 
-                        <div v-else class="space-y-3">
-                            <div v-for="item in cart" :key="`${item.id}-${item.type}`"
-                                class="group relative bg-white/5 border border-white/10 rounded-xl p-4 hover:bg-white/10 transition-all"
-                                :class="{ 'opacity-60 border-dashed': item.type === 'bundled' }">
-                                <div class="flex items-start gap-3">
-                                    <!-- Product Icon -->
-                                    <div
-                                        class="flex-shrink-0 w-12 h-12 bg-gradient-to-br from-blue-500/20 to-purple-500/20 rounded-lg flex items-center justify-center">
-                                        <svg class="w-6 h-6 text-white/70" fill="none" stroke="currentColor"
-                                            viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
-                                        </svg>
-                                    </div>
+                    <!-- Table Header -->
+                    <div
+                        class="flex bg-gray-200 border-b border-gray-300 text-gray-700 font-bold text-xs uppercase px-1 py-2 select-none">
+                        <div class="w-10 text-center">No.</div>
+                        <div class="w-32 pl-2">Kode Item</div>
+                        <div class="flex-1 pl-2">Deskripsi Item</div>
+                        <div class="w-16 text-center">Qty</div>
+                        <div class="w-24 text-right pr-2">Harga</div>
+                        <div class="w-24 text-right pr-2">Diskon</div>
+                        <div class="w-28 text-right pr-4">Total</div>
+                        <div class="w-10 text-center">Act</div>
+                    </div>
 
-                                    <!-- Item Details -->
-                                    <div class="flex-1 min-w-0">
-                                        <div class="flex items-start justify-between gap-2">
-                                            <div class="flex-1 min-w-0">
-                                                <p class="font-semibold text-white text-sm truncate">
-                                                    {{ item.name }}
-                                                    <span v-if="item.type === 'bundled'"
-                                                        class="text-xs text-blue-300 ml-1">(Bundled)</span>
-                                                </p>
-                                                <div class="text-xs text-gray-400 mt-1">
-                                                    <span v-if="item.discount_amount > 0" class="line-through">
-                                                        {{ formatCurrency(item.original_price) }}
-                                                    </span>
-                                                    <span class="ml-1"
-                                                        :class="item.discount_amount > 0 ? 'text-green-400 font-semibold' : ''">
-                                                        {{ formatCurrency(item.final_price) }}
-                                                    </span>
-                                                </div>
-                                                <div v-if="item.promotion_name"
-                                                    class="inline-block mt-1 px-2 py-0.5 bg-purple-500/20 text-purple-300 text-xs rounded-full">
-                                                    {{ item.promotion_name }}
-                                                </div>
-                                            </div>
-
-                                            <!-- Remove Button -->
+                    <!-- Table Body -->
+                    <div class="flex-1 overflow-y-auto bg-white custom-scrollbar">
+                        <table class="w-full text-sm border-collapse">
+                            <tbody>
+                                <template v-for="(item, index) in cart" :key="item.id + index">
+                                    <tr class="border-b border-gray-100 last:border-0 hover:bg-blue-50 transition-colors cursor-default"
+                                        :class="{ 'bg-gray-50/50': index % 2 === 0, 'bg-yellow-50': item.type === 'bundled' }">
+                                        <td class="py-2 w-10 text-center text-gray-400 text-xs">{{ index + 1 }}</td>
+                                        <td class="py-2 w-32 pl-2 font-mono text-xs text-gray-500 truncate">{{
+                                            item.barcode
+                                            || item.product_code || '-' }}</td>
+                                        <td class="py-2 pl-2">
+                                            <div class="font-semibold text-gray-800">{{ item.name }}</div>
+                                            <div v-if="item.type === 'bundled'"
+                                                class="text-[10px] text-blue-600 italic">
+                                                Included in Bundle</div>
+                                        </td>
+                                        <td class="py-2 w-16 text-center">
+                                            <span class="font-bold bg-gray-200 rounded px-1.5 py-0.5">{{
+                                                item.quantity
+                                            }}</span>
+                                        </td>
+                                        <td class="py-2 w-24 text-right pr-2 font-mono text-gray-600">{{
+                                            formatCurrency(item.original_price) }}</td>
+                                        <td class="py-2 w-24 text-right pr-2 font-mono text-red-500 text-xs">
+                                            {{ item.discount_amount > 0 ? formatCurrency(item.discount_amount *
+                                                item.quantity) : '-' }}
+                                        </td>
+                                        <td class="py-2 w-28 text-right pr-4 font-bold font-mono text-gray-900">
+                                            {{ formatCurrency(item.final_price * item.quantity) }}
+                                        </td>
+                                        <td class="py-2 w-10 text-center">
                                             <button v-if="item.type === 'product'" @click="removeFromCart(item.id)"
-                                                class="text-red-400 hover:text-red-300 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                <svg class="w-5 h-5" fill="none" stroke="currentColor"
-                                                    viewBox="0 0 24 24">
+                                                class="text-gray-400 hover:text-red-500 focus:outline-none p-1 rounded hover:bg-red-50 transition-colors"
+                                                title="Hapus [Del]">
+                                                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24"
+                                                    stroke="currentColor">
                                                     <path stroke-linecap="round" stroke-linejoin="round"
-                                                        stroke-width="2"
-                                                        d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                                        stroke-width="2" d="M6 18L18 6M6 6l12 12" />
                                                 </svg>
                                             </button>
+                                        </td>
+                                    </tr>
+                                </template>
+                                <tr v-if="cart.length === 0">
+                                    <td colspan="8" class="h-64 text-center text-gray-300 select-none">
+                                        <div class="flex flex-col items-center justify-center h-full">
+                                            <svg class="w-16 h-16 opacity-20 mb-2" fill="none" viewBox="0 0 24 24"
+                                                stroke="currentColor">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                                                    d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+                                            </svg>
+                                            <span class="text-2xl font-bold opacity-20 tracking-widest">TRANSAKSI
+                                                KOSONG</span>
+                                            <span class="text-sm mt-1 opacity-50">Silakan scan produk atau tekan F1
+                                                untuk
+                                                cari</span>
                                         </div>
-
-                                        <!-- Quantity Controls -->
-                                        <div class="flex items-center justify-between mt-3">
-                                            <div v-if="item.type !== 'bundled'"
-                                                class="flex items-center gap-2 bg-white/10 rounded-lg p-1">
-                                                <button @click="updateQuantity(item.id, item.quantity - 1)"
-                                                    class="w-7 h-7 flex items-center justify-center text-gray-300 hover:text-white hover:bg-white/10 rounded transition-all">
-                                                    <svg class="w-4 h-4" fill="none" stroke="currentColor"
-                                                        viewBox="0 0 24 24">
-                                                        <path stroke-linecap="round" stroke-linejoin="round"
-                                                            stroke-width="2" d="M20 12H4" />
-                                                    </svg>
-                                                </button>
-                                                <input type="number" :value="item.quantity"
-                                                    @input="updateQuantity(item.id, $event.target.value)"
-                                                    class="w-14 text-center bg-transparent border-0 text-white font-semibold focus:ring-0"
-                                                    min="1" />
-                                                <button @click="updateQuantity(item.id, item.quantity + 1)"
-                                                    class="w-7 h-7 flex items-center justify-center text-gray-300 hover:text-white hover:bg-white/10 rounded transition-all">
-                                                    <svg class="w-4 h-4" fill="none" stroke="currentColor"
-                                                        viewBox="0 0 24 24">
-                                                        <path stroke-linecap="round" stroke-linejoin="round"
-                                                            stroke-width="2" d="M12 4v16m8-8H4" />
-                                                    </svg>
-                                                </button>
-                                            </div>
-                                            <div v-else class="text-xs text-gray-400">
-                                                Qty: {{ item.quantity }}
-                                            </div>
-
-                                            <!-- Subtotal -->
-                                            <div class="text-right">
-                                                <p class="text-white font-bold">
-                                                    {{ formatCurrency(item.final_price * item.quantity) }}
-                                                </p>
-                                                <p v-if="item.discount_amount > 0" class="text-xs text-green-400">
-                                                    Hemat
-                                                    {{ formatCurrency(item.discount_amount * item.quantity) }}
-                                                </p>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
                     </div>
 
-                    <div
-                        class="p-4 border-t border-white/10 bg-gradient-to-b from-transparent to-white/5 flex-shrink-0">
-                        <!-- Summary -->
-                        <div class="space-y-2 mb-4">
-                            <div class="flex justify-between text-sm text-gray-300">
-                                <span>Subtotal</span>
-                                <span class="font-semibold">{{ formatCurrency(calculateSubtotal) }}</span>
-                            </div>
-                            <div v-if="calculateDiscount > 0" class="flex justify-between text-sm">
-                                <span class="text-green-400">Diskon Total</span>
-                                <span class="text-green-400 font-semibold">-{{ formatCurrency(calculateDiscount)
-                                }}</span>
-                            </div>
-                            <div class="flex justify-between items-center border-t border-white/20 pt-3 mt-3">
-                                <span class="text-base font-semibold text-white">Total Bayar</span>
-                                <span
-                                    class="text-2xl font-bold bg-gradient-to-r from-blue-400 to-emerald-400 bg-clip-text text-transparent">
-                                    {{ formatCurrency(calculateTotal) }}
-                                </span>
-                            </div>
+                    <!-- Last Item Toast (Bottom Overlay) -->
+                    <div v-if="lastAddedItem"
+                        class="absolute bottom-4 left-4 right-4 bg-gray-900/90 text-white p-3 rounded-lg shadow-xl backdrop-blur flex justify-between items-center transition-all duration-300 transform"
+                        :class="showLastItemToast ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-0 pointer-events-none'">
+                        <div class="flex flex-col">
+                            <span class="text-[10px] text-gray-400 uppercase tracking-widest">Terakhir
+                                Ditambahkan</span>
+                            <span class="font-bold text-lg text-emerald-400 line-clamp-1">{{ lastAddedItem.name }}
+                                (x{{
+                                    lastAddedItem.quantity }})</span>
                         </div>
-
-                        <!-- Notes -->
-                        <textarea v-model="form.notes" placeholder="Catatan transaksi (opsional)..."
-                            class="w-full bg-white/5 border border-white/20 rounded-xl text-gray-200 placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:border-transparent px-4 py-2.5 mb-4 transition-all resize-none text-sm"
-                            rows="2"></textarea>
-
-                        <!-- Payment Button -->
-                        <button @click="openPaymentModal" :disabled="cart.length === 0"
-                            class="w-full bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 disabled:from-gray-600 disabled:to-gray-700 text-white font-bold py-4 rounded-xl text-base shadow-lg hover:shadow-xl disabled:shadow-none transition-all duration-300 disabled:cursor-not-allowed group">
-                            <div class="flex items-center justify-center gap-2">
-                                <svg class="w-5 h-5 group-hover:scale-110 transition-transform" fill="none"
-                                    stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                        d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
-                                </svg>
-                                <span>PROSES PEMBAYARAN (F2)</span>
-                            </div>
-                        </button>
+                        <span class="text-2xl font-bold font-mono">{{ formatCurrency(lastAddedItem.final_price *
+                            lastAddedItem.quantity)
+                        }}</span>
                     </div>
-                </AppPanel>
-
-            </div>
-        </div>
-
-        <!-- Payment Modal -->
-        <Modal :show="showPaymentModal" @close="showPaymentModal = false">
-            <div
-                class="bg-gradient-to-br from-gray-900 to-gray-800 border border-white/20 rounded-3xl shadow-2xl max-w-lg mx-auto text-white overflow-hidden">
-                <div class="bg-gradient-to-r from-blue-600 to-purple-600 px-6 py-4">
-                    <h2 class="text-xl font-bold text-center">Pembayaran</h2>
                 </div>
 
-                <div class="p-6 space-y-6">
-                    <!-- Payment Methods -->
-                    <div>
-                        <label class="block text-sm font-medium text-gray-300 mb-3">Metode Pembayaran</label>
-                        <div class="grid grid-cols-2 gap-3">
-                            <label class="relative cursor-pointer">
-                                <input type="radio" v-model="selectedPaymentMethod" value="cash" class="peer sr-only" />
-                                <div
-                                    class="bg-white/5 border-2 border-white/10 peer-checked:border-green-500 peer-checked:bg-green-500/10 rounded-xl p-4 transition-all hover:bg-white/10">
-                                    <svg class="w-8 h-8 mx-auto mb-2 text-gray-400 peer-checked:text-green-400"
-                                        fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                            d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
-                                    </svg>
-                                    <p class="text-center font-semibold">
-                                        Tunai
-                                    </p>
-                                </div>
-                            </label>
-                            <label class="relative cursor-pointer">
-                                <input type="radio" v-model="selectedPaymentMethod" value="debit"
-                                    class="peer sr-only" />
-                                <div
-                                    class="bg-white/5 border-2 border-white/10 peer-checked:border-blue-500 peer-checked:bg-blue-500/10 rounded-xl p-4 transition-all hover:bg-white/10">
-                                    <svg class="w-8 h-8 mx-auto mb-2 text-gray-400 peer-checked:text-blue-400"
-                                        fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                            d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
-                                    </svg>
-                                    <p class="text-center font-semibold">
-                                        Debit
-                                    </p>
-                                </div>
-                            </label>
-                            <label class="relative cursor-pointer">
-                                <input type="radio" v-model="selectedPaymentMethod" value="credit"
-                                    class="peer sr-only" />
-                                <div
-                                    class="bg-white/5 border-2 border-white/10 peer-checked:border-purple-500 peer-checked:bg-purple-500/10 rounded-xl p-4 transition-all hover:bg-white/10">
-                                    <svg class="w-8 h-8 mx-auto mb-2 text-gray-400 peer-checked:text-purple-400"
-                                        fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                            d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
-                                    </svg>
-                                    <p class="text-center font-semibold">
-                                        Kredit
-                                    </p>
-                                </div>
-                            </label>
-                            <label class="relative cursor-pointer">
-                                <input type="radio" v-model="selectedPaymentMethod" value="transfer"
-                                    class="peer sr-only" />
-                                <div
-                                    class="bg-white/5 border-2 border-white/10 peer-checked:border-yellow-500 peer-checked:bg-yellow-500/10 rounded-xl p-4 transition-all hover:bg-white/10">
-                                    <svg class="w-8 h-8 mx-auto mb-2 text-gray-400 peer-checked:text-yellow-400"
-                                        fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                            d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
-                                    </svg>
-                                    <p class="text-center font-semibold">
-                                        Transfer
-                                    </p>
-                                </div>
-                            </label>
-                        </div>
+                <!-- RIGHT PANEL: Summary & Big Totals -->
+                <div class="w-80 bg-gray-100 border-l border-gray-300 flex flex-col shadow-xl z-20">
+                    <!-- Big Total Display -->
+                    <div
+                        class="bg-gray-800 text-white p-5 text-right flex flex-col justify-end h-36 border-b-4 border-emerald-500 shadow-md">
+                        <span class="text-xs text-gray-400 uppercase tracking-widest mb-1">Total Bayar</span>
+                        <span class="text-4xl font-mono font-bold text-emerald-400 tracking-tighter leading-none">{{
+                            formatCurrency(calculateTotal) }}</span>
                     </div>
 
-                    <!-- Amount Input -->
-                    <div>
-                        <label class="block text-sm font-medium text-gray-300 mb-2">Jumlah Bayar</label>
+                    <!-- Customer Select -->
+                    <div class="p-4 bg-white border-b border-gray-200">
+                        <label class="block text-[10px] font-bold text-gray-500 uppercase mb-1">Pelanggan</label>
                         <div class="relative">
-                            <span class="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400">Rp</span>
-                            <input type="number" v-model.number="form.amount_paid"
-                                class="w-full pl-12 pr-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white text-lg font-semibold focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                                :placeholder="calculateTotal.toString()" />
-                        </div>
-
-                        <!-- Quick Amount Buttons -->
-                        <div class="grid grid-cols-4 gap-2 mt-3">
-                            <button v-for="amount in [
-                                50000, 100000, 200000, 500000,
-                            ]" :key="amount" @click="
-                                form.amount_paid = calculateTotal + amount
-                                "
-                                class="bg-white/5 hover:bg-white/10 border border-white/20 rounded-lg py-2 text-xs font-semibold transition-all">
-                                +{{ (amount / 1000).toFixed(0) }}k
-                            </button>
+                            <select v-model="selectedCustomer"
+                                class="w-full text-sm border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500 bg-gray-50 py-2 pl-2 pr-8">
+                                <option :value="null">-- Pelanggan Umum --</option>
+                                <option v-for="c in customers" :key="c.id" :value="c">{{ c.name }}</option>
+                            </select>
                         </div>
                     </div>
 
-                    <!-- Summary -->
-                    <div class="bg-white/5 rounded-xl p-4 space-y-2">
-                        <div class="flex justify-between text-sm">
-                            <span class="text-gray-400">Total Belanja</span>
-                            <span class="font-semibold">{{
-                                formatCurrency(calculateTotal)
-                                }}</span>
+                    <!-- Summary Details -->
+                    <div class="p-4 space-y-3 bg-gray-50 flex-1 overflow-y-auto">
+                        <div
+                            class="flex justify-between text-sm text-gray-600 border-b border-gray-200 pb-2 border-dashed">
+                            <span>Total Item</span>
+                            <span class="font-bold text-gray-800">{{cart.reduce((acc, item) => acc + (item.type ===
+                                'product'
+                                ?
+                                item.quantity : 0), 0)}}</span>
                         </div>
-                        <div class="flex justify-between text-sm">
-                            <span class="text-gray-400">Jumlah Bayar</span>
-                            <span class="font-semibold">{{
-                                formatCurrency(form.amount_paid || 0)
-                                }}</span>
+                        <div
+                            class="flex justify-between text-sm text-gray-600 border-b border-gray-200 pb-2 border-dashed">
+                            <span>Subtotal</span>
+                            <span class="font-mono text-gray-800">{{ formatCurrency(calculateSubtotal) }}</span>
                         </div>
-                        <div class="flex justify-between text-lg font-bold border-t border-white/20 pt-2">
-                            <span>Kembalian</span>
-                            <span class="text-green-400">{{
-                                formatCurrency(changeAmount)
-                                }}</span>
+                        <div
+                            class="flex justify-between text-sm text-red-500 border-b border-gray-200 pb-2 border-dashed">
+                            <span>Potongan</span>
+                            <span class="font-mono">{{ formatCurrency(calculateDiscount) }}</span>
+                        </div>
+
+                        <div class="border border-blue-100 bg-blue-50 rounded p-2 text-center mt-4">
+                            <span class="text-xs text-blue-500 font-bold block mb-1">SHIFT STATUS</span>
+                            <span v-if="!activeShift"
+                                class="text-xs text-red-500 bg-red-100 px-2 py-0.5 rounded">TUTUP</span>
+                            <span v-else class="text-xs text-blue-800 font-mono font-bold">{{ activeShift.shift_code
+                            }}</span>
                         </div>
                     </div>
 
                     <!-- Action Buttons -->
-                    <div class="flex gap-3">
-                        <button @click="showPaymentModal = false"
-                            class="flex-1 bg-gray-600 hover:bg-gray-700 text-white font-bold py-3 rounded-xl transition-all">
-                            Batal
-                        </button>
-                        <button @click="confirmPayment" :disabled="form.processing ||
-                            form.amount_paid < calculateTotal
-                            "
-                            class="flex-1 bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 disabled:from-gray-600 disabled:to-gray-700 text-white font-bold py-3 rounded-xl transition-all disabled:cursor-not-allowed">
-                            {{
-                                form.processing ? "Memproses..." : "Konfirmasi"
-                            }}
+                    <div class="p-4 bg-white border-t border-gray-300 space-y-3">
+                        <button @click="openPaymentModal"
+                            class="w-full bg-blue-700 hover:bg-blue-800 text-white font-bold py-4 rounded shadow-lg text-lg flex items-center justify-center gap-2 transition-all active:scale-[0.98] outline-none focus:ring-4 focus:ring-blue-300"
+                            :disabled="!cart.length || !activeShift"
+                            :class="{ 'opacity-50 cursor-not-allowed grayscale': !cart.length || !activeShift }">
+                            <span>BAYAR</span>
+                            <span
+                                class="bg-blue-900/50 px-2 py-0.5 rounded text-xs text-blue-100 border border-blue-500/30">[F2]</span>
                         </button>
                     </div>
                 </div>
+
             </div>
-        </Modal>
 
-        <!-- Receipt Modal -->
-        <Modal :show="showReceiptModal" @close="closeReceiptModal">
-            <div class="bg-white rounded-3xl shadow-2xl max-w-md mx-auto text-gray-900 overflow-hidden">
-                <div class="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-6 py-8 text-center">
-                    <svg class="w-16 h-16 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                    <h2 class="text-2xl font-bold mb-1">Transaksi Berhasil!</h2>
-                    <p class="text-blue-100 text-sm">{{ receiptData?.date }}</p>
-                </div>
-
-                <div class="p-6">
-                    <!-- Items -->
-                    <div class="mb-4 max-h-60 overflow-y-auto">
-                        <div v-for="item in receiptData?.items?.filter(
-                            (i) => i.type === 'product'
-                        )" :key="item.id" class="mb-3 pb-3 border-b border-gray-200">
-                            <div class="flex justify-between items-start mb-1">
-                                <span class="font-semibold flex-1">{{
-                                    item.name
-                                    }}</span>
-                                <span class="font-bold ml-2">{{
-                                    formatCurrency(
-                                        item.final_price * item.quantity
-                                    )
-                                }}</span>
-                            </div>
-                            <div class="flex justify-between text-sm text-gray-600">
-                                <span>{{ item.quantity }} ×
-                                    {{ formatCurrency(item.final_price) }}</span>
-                                <span v-if="item.discount_amount > 0" class="text-green-600">
-                                    Hemat
-                                    {{
-                                        formatCurrency(
-                                            item.discount_amount * item.quantity
-                                        )
-                                    }}
-                                </span>
-                            </div>
-                            <div v-if="item.promotion_name" class="text-xs text-purple-600 mt-1">
-                                🎁 {{ item.promotion_name }}
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Summary -->
-                    <div class="bg-gray-50 rounded-xl p-4 mb-4 space-y-2">
-                        <div class="flex justify-between text-sm">
-                            <span class="text-gray-600">Subtotal</span>
-                            <span class="font-semibold">{{
-                                formatCurrency(receiptData?.subtotal)
-                                }}</span>
-                        </div>
-                        <div v-if="receiptData?.discount > 0" class="flex justify-between text-sm text-green-600">
-                            <span>Diskon</span>
-                            <span class="font-semibold">-{{
-                                formatCurrency(receiptData?.discount)
-                            }}</span>
-                        </div>
-                        <div class="flex justify-between text-lg font-bold border-t border-gray-300 pt-2">
-                            <span>Total</span>
-                            <span>{{
-                                formatCurrency(receiptData?.total)
-                                }}</span>
-                        </div>
-                        <div class="flex justify-between text-sm">
-                            <span class="text-gray-600">Bayar ({{
-                                receiptData?.payment_method === "cash"
-                                    ? "Tunai"
-                                    : receiptData?.payment_method
-                            }})</span>
-                            <span class="font-semibold">{{
-                                formatCurrency(receiptData?.amount_paid)
-                                }}</span>
-                        </div>
-                        <div class="flex justify-between text-sm text-green-600">
-                            <span>Kembalian</span>
-                            <span class="font-semibold">{{
-                                formatCurrency(receiptData?.change)
-                                }}</span>
-                        </div>
-                    </div>
-
-                    <!-- Customer Info -->
-                    <div v-if="receiptData?.customer" class="text-center text-sm text-gray-600 mb-4">
-                        Pelanggan:
-                        <span class="font-semibold">{{
-                            receiptData.customer.name
-                            }}</span>
-                    </div>
-
-                    <!-- Actions -->
-                    <div class="flex gap-3">
-                        <button @click="printReceipt"
-                            class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl transition-all flex items-center justify-center gap-2">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <!-- Hidden Search Functionality (triggered by keyboard or fallback if needed) -->
+            <div v-if="showSearchModal"
+                class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
+                @click.self="showSearchModal = false">
+                <div
+                    class="bg-white rounded-lg shadow-2xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[80vh] animate-scale-in">
+                    <div class="p-4 border-b border-gray-200 flex justify-between items-center bg-gray-50">
+                        <h3 class="font-bold text-lg text-gray-800 flex items-center gap-2">
+                            <svg class="w-5 h-5 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                    d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+                                    d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                             </svg>
-                            <span>Cetak</span>
-                        </button>
-                        <button @click="closeReceiptModal"
-                            class="flex-1 bg-gray-600 hover:bg-gray-700 text-white font-bold py-3 rounded-xl transition-all">
-                            Selesai
-                        </button>
+                            Cari Produk
+                        </h3>
+                        <button @click="showSearchModal = false"
+                            class="text-gray-400 hover:text-gray-700 font-bold px-2 py-1 rounded hover:bg-gray-200 transition-colors">ESC</button>
+                    </div>
+                    <div class="p-4 border-b border-gray-200 bg-white">
+                        <input ref="searchInputRef" v-model="searchTerm" type="text"
+                            class="w-full text-lg border-gray-300 rounded p-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 shadow-inner"
+                            placeholder="Ketik nama / kode barang..." autocomplete="off">
+                    </div>
+                    <div class="flex-1 overflow-y-auto p-0 bg-white">
+                        <table class="w-full text-sm">
+                            <thead class="bg-gray-50 text-gray-500 border-b font-xs uppercase sticky top-0">
+                                <tr>
+                                    <th class="p-3 text-left w-32">Kode</th>
+                                    <th class="p-3 text-left">Nama Produk</th>
+                                    <th class="p-3 text-right w-20">Stok</th>
+                                    <th class="p-3 text-right w-32">Harga</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-gray-100">
+                                <tr v-for="(p, idx) in filteredProducts" :key="p.id" @click="selectProductFromSearch(p)"
+                                    class="hover:bg-blue-50 cursor-pointer transition-colors"
+                                    :class="{ 'bg-red-50 hover:bg-red-100': p.stocks?.[0]?.quantity <= 0, 'bg-gray-50/30': idx % 2 !== 0 }">
+                                    <td class="p-3 font-mono text-xs text-gray-500">{{ p.product_code || p.barcode
+                                        || '-' }}
+                                    </td>
+                                    <td class="p-3 font-semibold text-gray-800">{{ p.name }}</td>
+                                    <td class="p-3 text-right"
+                                        :class="p.stocks?.[0]?.quantity <= 0 ? 'text-red-600 font-bold' : 'text-gray-600'">
+                                        {{
+                                            p.stocks?.[0]?.quantity || 0 }}</td>
+                                    <td class="p-3 text-right font-mono text-emerald-600">{{
+                                        formatCurrency(p.selling_price)
+                                    }}</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                        <div v-if="filteredProducts.length === 0" class="p-8 text-center text-gray-400">
+                            <p>Tidak ada produk ditemukan untuk "{{ searchTerm }}"</p>
+                        </div>
                     </div>
                 </div>
             </div>
-        </Modal>
-    </AuthenticatedLayout>
+
+            <Teleport to="body">
+                <!-- Payment Modal -->
+                <Modal :show="showPaymentModal" @close="showPaymentModal = false">
+                    <div
+                        class="bg-white text-gray-900 shadow-2xl max-w-lg mx-auto overflow-hidden rounded-lg font-sans border border-gray-200">
+                        <div
+                            class="bg-blue-800 text-white px-5 py-4 font-bold flex justify-between items-center text-lg">
+                            <span>PEMBAYARAN</span>
+                            <button @click="showPaymentModal = false"
+                                class="text-xs bg-blue-900 hover:bg-blue-950 py-1.5 px-3 rounded text-blue-100 transition-colors">[ESC]
+                                BATAL</button>
+                        </div>
+                        <div class="p-6">
+                            <div class="flex justify-between items-end mb-6 border-b border-gray-200 pb-4">
+                                <span class="text-gray-500 font-medium">Total Tagihan</span>
+                                <span class="text-4xl font-bold font-mono text-gray-900 tracking-tight">{{
+                                    formatCurrency(calculateTotal) }}</span>
+                            </div>
+
+                            <label class="block text-sm font-bold text-gray-700 mb-2 uppercase">Uang Tunai
+                                (Cash)</label>
+                            <div class="relative mb-6">
+                                <span
+                                    class="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 text-lg font-bold">Rp</span>
+                                <input ref="paymentInputRef" type="number" v-model="form.amount_paid"
+                                    @keyup.enter="confirmPayment"
+                                    class="w-full text-3xl font-bold font-mono pl-12 pr-4 py-3 border-2 border-blue-500 rounded-lg focus:outline-none focus:ring-4 focus:ring-blue-100 text-right shadow-inner"
+                                    placeholder="0">
+                            </div>
+
+                            <!-- Quick Amount Buttons -->
+                            <div class="grid grid-cols-4 gap-2 mb-6">
+                                <button @click="form.amount_paid = calculateTotal; $refs.paymentInputRef.focus()"
+                                    class="bg-gray-100 hover:bg-gray-200 text-gray-600 font-bold py-2 rounded text-xs">PAS</button>
+                                <button @click="form.amount_paid = 50000; $refs.paymentInputRef.focus()"
+                                    class="bg-gray-100 hover:bg-gray-200 text-gray-600 font-bold py-2 rounded text-xs">50k</button>
+                                <button @click="form.amount_paid = 100000; $refs.paymentInputRef.focus()"
+                                    class="bg-gray-100 hover:bg-gray-200 text-gray-600 font-bold py-2 rounded text-xs">100k</button>
+                                <button @click="form.amount_paid = 200000; $refs.paymentInputRef.focus()"
+                                    class="bg-gray-100 hover:bg-gray-200 text-gray-600 font-bold py-2 rounded text-xs">200k</button>
+                            </div>
+
+                            <div
+                                class="flex justify-between items-center bg-gray-100 p-4 rounded-lg mb-6 border border-gray-200">
+                                <span class="font-bold text-gray-600">KEMBALIAN</span>
+                                <span class="font-bold text-2xl font-mono transition-colors"
+                                    :class="changeAmount >= 0 ? 'text-blue-700' : 'text-red-500'">{{
+                                        formatCurrency(Math.max(0,
+                                            changeAmount)) }}</span>
+                            </div>
+
+                            <!-- Auto Print Checkbox -->
+                            <div class="flex items-center mb-4">
+                                <input id="autoPrint" type="checkbox" v-model="autoPrint"
+                                    class="w-5 h-5 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500">
+                                <label for="autoPrint" class="ml-2 text-sm font-bold text-gray-700">Cetak Struk
+                                    Otomatis
+                                    (Langsung)</label>
+                            </div>
+
+                            <button @click="confirmPayment"
+                                class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-4 rounded-lg text-lg shadow-lg transform active:scale-[0.98] transition-all">
+                                PROSES SELESAI [ENTER]
+                            </button>
+                        </div>
+                    </div>
+                </Modal>
+
+                <!-- Receipt Info Modal -->
+                <Modal :show="showReceiptModal" @close="closeReceiptModal">
+                    <div class="bg-white p-8 text-center max-w-sm mx-auto rounded-xl">
+                        <div
+                            class="w-20 h-20 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-4 animate-bounce-short">
+                            <svg class="w-10 h-10" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M5 13l4 4L19 7" />
+                            </svg>
+                        </div>
+                        <h2 class="text-2xl font-bold mb-2 text-gray-800">Transaksi Berhasil!</h2>
+                        <p class="text-gray-500 mb-6 text-sm">Pembayaran telah dikonfirmasi.</p>
+
+                        <div class="bg-gray-50 border border-gray-100 rounded-lg p-4 mb-6">
+                            <div class="flex justify-between text-sm mb-2">
+                                <span class="text-gray-500">Total</span>
+                                <span class="font-bold">{{ formatCurrency(receiptData?.total) }}</span>
+                            </div>
+                            <div class="flex justify-between text-sm mb-2">
+                                <span class="text-gray-500">Bayar</span>
+                                <span class="font-bold">{{ formatCurrency(receiptData?.amount_paid) }}</span>
+                            </div>
+                            <div class="border-t border-dashed border-gray-200 my-2"></div>
+                            <div class="flex justify-between text-base">
+                                <span class="text-gray-800 font-bold">Kembalian</span>
+                                <span class="text-emerald-600 font-bold">{{ formatCurrency(receiptData?.change)
+                                }}</span>
+                            </div>
+                        </div>
+
+                        <div class="flex flex-col gap-3">
+                            <button @click="printReceipt"
+                                class="w-full bg-gray-900 hover:bg-black text-white py-3 rounded-lg font-bold shadow transition-colors flex items-center justify-center gap-2">
+                                <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+                                </svg>
+                                CETAK STRUK
+                            </button>
+                            <button @click="closeReceiptModal"
+                                class="w-full bg-white border-2 border-gray-200 text-gray-700 py-3 rounded-lg font-bold hover:bg-gray-50 transition-colors">
+                                TRANSAKSI BARU
+                            </button>
+                        </div>
+                    </div>
+                </Modal>
+            </Teleport>
+
+            <!-- Notification Toast -->
+            <div v-if="notification.show" class="fixed top-16 right-4 z-50 animate-slide-in">
+                <div class="bg-gray-800 text-white px-4 py-3 rounded shadow-xl flex items-center gap-3 border-l-4"
+                    :class="notification.type === 'error' ? 'border-red-500' : 'border-emerald-500'">
+                    <span v-if="notification.type === 'error'" class="text-red-400 font-bold">!</span>
+                    <span v-else class="text-emerald-400 font-bold">✓</span>
+                    <span class="font-medium text-sm">{{ notification.message }}</span>
+                </div>
+            </div>
+
+            <!-- Hidden Receipt Template -->
+            <!-- Hidden Receipt Template -->
+            <Teleport to="body">
+                <!-- Receipt Container with dynamic width -->
+                <div id="receipt" class="hidden print:block bg-white text-black font-mono leading-tight"
+                    :style="{ width: receiptWidth, padding: '5mm', fontSize: receiptWidth === '58mm' ? '10px' : '12px' }">
+
+                    <!-- Header -->
+                    <div class="text-center mb-2">
+                        <h2 class="font-bold uppercase tracking-wide mb-1"
+                            :class="receiptWidth === '58mm' ? 'text-sm' : 'text-base'">
+                            {{ props.auth?.user?.store?.name || 'POSKU STORE' }}
+                        </h2>
+                        <p class="mb-0.5">{{ props.auth?.user?.store?.address || 'Jl. Contoh Alamat No. 123' }}</p>
+                        <p>Telp: 0812-3456-7890</p>
+                    </div>
+
+                    <!-- Meta Info -->
+                    <div class="border-b border-dashed border-black my-2"></div>
+                    <div class="flex justify-between mb-1">
+                        <span>{{ new Date().toLocaleString('id-ID', {
+                            day: 'numeric', month: 'numeric', year: '2-digit',
+                            hour:
+                                '2-digit', minute: '2-digit'
+                        }) }}</span>
+                        <span>Kasir: {{ props.auth?.user?.name?.split(' ')[0] || 'Admin' }}</span>
+                    </div>
+                    <div class="flex justify-between mb-1">
+                        <span>Inv: {{ receiptData?.invoice_number }}</span>
+                    </div>
+                    <div class="border-b border-dashed border-black my-2"></div>
+
+                    <!-- Items -->
+                    <div class="space-y-1 mb-2">
+                        <div v-for="item in receiptData?.items" :key="item.id">
+                            <!-- Format: Name on top, Qty x Price = Total on bottom (or same line if 80mm) -->
+                            <div class="font-bold mb-0.5">{{ item.name }}</div>
+                            <div class="flex justify-between pl-2">
+                                <span>{{ item.quantity }} x {{ formatCurrency(item.final_price).replace('Rp', '')
+                                }}</span>
+                                <span>{{ formatCurrency(item.final_price * item.quantity).replace('Rp', '')
+                                }}</span>
+                            </div>
+                            <div v-if="item.discount_amount > 0" class="text-xs text-right italic">
+                                (Disc: -{{ formatCurrency(item.discount_amount * item.quantity).replace('Rp', '')
+                                }})
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Totals -->
+                    <div class="border-top border-dashed border-black my-2 pt-2"></div>
+                    <div class="flex justify-between font-bold mb-1">
+                        <span>TOTAL</span>
+                        <span>{{ formatCurrency(receiptData?.total) }}</span>
+                    </div>
+                    <div class="flex justify-between mb-1">
+                        <span>TUNAI</span>
+                        <span>{{ formatCurrency(receiptData?.amount_paid) }}</span>
+                    </div>
+                    <div class="flex justify-between mb-1">
+                        <span>KEMBALI</span>
+                        <span>{{ formatCurrency(receiptData?.change) }}</span>
+                    </div>
+                    <div class="border-b border-dashed border-black my-2"></div>
+
+                    <!-- Footer -->
+                    <div class="text-center mt-4 space-y-1">
+                        <p class="font-bold">TERIMA KASIH</p>
+                        <p>Barang yang sudah dibeli tidak dapat ditukar/dikembalikan</p>
+                        <p class="mt-2 text-[10px] uppercase">-- {{ receiptData?.payment_method || 'CASH' }} --</p>
+                    </div>
+                </div>
+            </Teleport>
+
+        </div>
+    </RawLayout>
 </template>
 
+<style>
+/* Global Print Styles to override everything */
+@media print {
+
+    /* Hide everything by default */
+    body>* {
+        display: none !important;
+    }
+
+    /* Only show the receipt */
+    #receipt,
+    #receipt * {
+        display: block !important;
+        visibility: visible !important;
+    }
+
+    /* Ensure receipt layout */
+    #receipt {
+        display: block !important;
+        position: absolute !important;
+        left: 0 !important;
+        top: 0 !important;
+        width: 100% !important;
+        margin: 0 !important;
+        padding: 0 !important;
+    }
+}
+</style>
+
 <style scoped>
+/* Ensure custom scrollbars for specific sections */
 .custom-scrollbar::-webkit-scrollbar {
     width: 6px;
+    height: 6px;
 }
 
 .custom-scrollbar::-webkit-scrollbar-track {
-    background: rgba(255, 255, 255, 0.05);
-    border-radius: 10px;
+    background: transparent;
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, 0.2);
-    border-radius: 10px;
+    background: #cbd5e1;
+    border-radius: 3px;
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-    background: rgba(255, 255, 255, 0.3);
+    background: #94a3b8;
 }
 
+@keyframes slide-in {
+    0% {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+
+    100% {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+.animate-slide-in {
+    animation: slide-in 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes scale-in {
+    0% {
+        transform: scale(0.95);
+        opacity: 0;
+    }
+
+    100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+.animate-scale-in {
+    animation: scale-in 0.2s ease-out;
+}
+
+@keyframes bounce-short {
+
+    0%,
+    100% {
+        transform: translateY(0);
+    }
+
+    50% {
+        transform: translateY(-10px);
+    }
+}
+
+.animate-bounce-short {
+    animation: bounce-short 0.5s ease-in-out;
+}
+
+/* Typography Tweaks for POS numeric readiness */
+.font-mono {
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.02em;
+}
+
+/* Hide number input spinners */
+input[type=number]::-webkit-inner-spin-button,
+input[type=number]::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+input[type=number] {
+    -moz-appearance: textfield;
+}
+
+/* Print Specific */
 @media print {
-    body * {
-        visibility: hidden;
-    }
-
-    #receipt,
-    #receipt * {
-        visibility: visible;
-    }
-
-    #receipt {
-        position: absolute;
-        left: 0;
-        top: 0;
-    }
+    /* handled in global style above */
 }
 </style>
