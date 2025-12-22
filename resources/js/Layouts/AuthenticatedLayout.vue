@@ -119,27 +119,26 @@ const menuItems = [
 </script>
 
 <template>
-    <div class="relative h-screen flex overflow-hidden bg-slate-900 font-sans">
-        <!-- Background Pattern -->
-        <div class="absolute inset-0 bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900"></div>
-        <div
-            class="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-purple-800/20 via-slate-900/50 to-slate-900">
-        </div>
+    <div class="relative h-screen overflow-hidden bg-[#e6e6e6] font-[Tahoma] text-[#1f1f1f] flex">
+        <!-- Desktop Background -->
+        <div class="absolute inset-0 bg-[#e6e6e6]"></div>
 
         <!-- Sidebar -->
         <aside :class="[
             sidebarOpen ? 'translate-x-0' : '-translate-x-full',
-            isSidebarMinimized ? 'w-20' : 'w-64',
         ]"
-            class="fixed inset-y-0 left-0 z-50 bg-white/10 backdrop-blur-md border-r border-white/10 transition-all duration-300 ease-in-out lg:translate-x-0 lg:static lg:inset-0 flex-shrink-0">
+            class="fixed inset-y-0 left-0 z-50 bg-[#1f7bd7] border-r border-[#0b4f9b] transition-all duration-300 ease-in-out lg:translate-x-0 lg:static lg:inset-0 flex-shrink-0"
+            :style="{
+                width: isSidebarMinimized ? '80px' : '256px',
+            }">
             <div class="flex flex-col h-full">
                 <!-- Sidebar Header -->
-                <div class="flex items-center justify-center h-16 border-b border-white/10 flex-shrink-0 px-4">
+                <div class="flex items-center justify-center h-16 border-b border-[#0b4f9b] flex-shrink-0 px-4">
                     <Link :href="route('dashboard')" class="flex items-center overflow-hidden">
                         <div
-                            class="flex-shrink-0 w-10 h-10 bg-gradient-to-br from-blue-400 to-purple-600 rounded-xl flex items-center justify-center shadow-lg">
+                            class="flex-shrink-0 w-10 h-10 bg-[#f7f7f7] border border-[#0b4f9b] rounded flex items-center justify-center shadow-sm">
                             <img v-if="store && store.logo_path" :src="`/storage/${store.logo_path}`"
-                                :alt="store?.name || 'Store Logo'" class="h-7 w-7 rounded-lg object-contain" />
+                                :alt="store?.name || 'Store Logo'" class="h-7 w-7 object-contain" />
                             <svg v-else class="h-6 w-6 text-white" fill="none" stroke="currentColor"
                                 viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -156,10 +155,10 @@ const menuItems = [
 
                 <!-- Navigation Menu -->
                 <nav
-                    class="mt-6 px-3 space-y-2 flex-grow overflow-y-auto scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent">
+                    class="mt-4 px-3 space-y-2 flex-grow overflow-y-auto scrollbar-thin scrollbar-thumb-white/30 scrollbar-track-transparent">
                     <NavLink :href="route('dashboard')" :active="route().current('dashboard')" :is-sidebar-link="true"
-                        class="group flex items-center px-3 py-3 text-sm font-medium rounded-xl transition-all duration-200 hover:bg-white/10 hover:backdrop-blur-sm hover:scale-105"
-                        :class="route().current('dashboard') ? 'bg-gradient-to-r from-blue-500/20 to-purple-600/20 text-white border border-white/20 shadow-lg' : 'text-gray-300 hover:text-white'">
+                        class="group flex items-center px-3 py-2 text-sm font-medium rounded border border-transparent transition-all duration-200 hover:bg-white/10"
+                        :class="route().current('dashboard') ? 'bg-white/10 text-white border border-white/30' : 'text-white/90 hover:text-white'">
                         <template #icon>
                             <svg class="h-5 w-5 transition-transform duration-200 group-hover:scale-110"
                                 xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5"
@@ -175,8 +174,8 @@ const menuItems = [
                     <div v-for="menu in menuItems" :key="menu.name" class="space-y-1">
                         <div v-if="menu.can">
                             <button @click="menu.toggle"
-                                class="group w-full flex items-center px-3 py-3 text-sm font-medium rounded-xl transition-all duration-200 hover:bg-white/10 hover:backdrop-blur-sm hover:scale-105 focus:outline-none focus:ring-2 focus:ring-purple-500/50"
-                                :class="{ 'bg-gradient-to-r from-blue-500/20 to-purple-600/20 text-white border border-white/20 shadow-lg': menu.isActive, 'text-gray-300 hover:text-white': !menu.isActive }">
+                                class="group w-full flex items-center px-3 py-2 text-sm font-medium rounded border border-transparent transition-all duration-200 hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-white/40"
+                                :class="{ 'bg-white/10 text-white border border-white/30': menu.isActive, 'text-white/90 hover:text-white': !menu.isActive }">
                                 <span v-html="menu.icon"
                                     class="transition-transform duration-200 group-hover:scale-110"></span>
                                 <span :class="{ 'lg:hidden': isSidebarMinimized }" class="ml-3 whitespace-nowrap">{{
@@ -194,8 +193,8 @@ const menuItems = [
                                 <template v-for="item in menu.sub" :key="item.route">
                                     <NavLink v-if="item.can !== false" :href="route(item.route)" :target="item.target"
                                         :active="route().current(item.route)" :is-sidebar-link="true"
-                                        class="group flex items-center px-3 py-2 text-sm rounded-lg transition-all duration-200 hover:bg-white/5 hover:backdrop-blur-sm"
-                                        :class="route().current(item.route) ? 'text-white bg-white/10 border-l-2 border-purple-400' : 'text-gray-400 hover:text-white'">
+                                        class="group flex items-center px-3 py-2 text-sm rounded border border-transparent transition-all duration-200 hover:bg-white/10"
+                                        :class="route().current(item.route) ? 'text-white bg-white/10 border border-white/30' : 'text-white/80 hover:text-white'">
                                         <span :class="{ 'lg:hidden': isSidebarMinimized }"
                                             class="ml-6 whitespace-nowrap transition-opacity duration-200">{{ item.label
                                             }}</span>
@@ -207,9 +206,9 @@ const menuItems = [
                 </nav>
 
                 <!-- Sidebar Toggle -->
-                <div class="flex-shrink-0 border-t border-white/10 p-4">
+                <div class="flex-shrink-0 border-t border-[#0b4f9b] p-4">
                     <button @click="isSidebarMinimized = !isSidebarMinimized"
-                        class="hidden lg:flex items-center justify-center w-full h-10 text-gray-400 hover:text-white hover:bg-white/10 rounded-lg transition-all duration-200">
+                        class="hidden lg:flex items-center justify-center w-full h-10 text-white/80 hover:text-white hover:bg-white/10 rounded transition-all duration-200">
                         <svg v-if="!isSidebarMinimized" class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none"
                             viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M11 19l-7-7 7-7m8 14l-7-7 7-7" />
@@ -227,16 +226,16 @@ const menuItems = [
         <div class="flex-1 flex flex-col relative">
             <!-- Header -->
             <header
-                class="flex justify-between items-center h-16 bg-white/5 backdrop-blur-md border-b border-white/10 px-4 sm:px-6 lg:px-8 flex-shrink-0 z-10">
+                class="flex justify-between items-center h-16 bg-white border-b border-[#9c9c9c] px-4 sm:px-6 lg:px-8 flex-shrink-0 z-10">
                 <button @click="sidebarOpen = !sidebarOpen"
-                    class="text-gray-300 hover:text-white focus:outline-none lg:hidden transition-colors duration-200">
+                    class="text-[#1f1f1f] hover:text-[#111] focus:outline-none lg:hidden transition-colors duration-200">
                     <svg class="h-6 w-6" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                         <path d="M4 6h16M4 12h16M4 18h16" stroke="currentColor" stroke-width="2" stroke-linecap="round"
                             stroke-linejoin="round"></path>
                     </svg>
                 </button>
                 <div class="flex-1">
-                    <div v-if="$slots.header" class="font-semibold text-xl text-white leading-tight">
+                    <div v-if="$slots.header" class="font-semibold text-lg text-[#1f1f1f] leading-tight">
                         <slot name="header" />
                     </div>
                 </div>
@@ -245,9 +244,9 @@ const menuItems = [
                         <template #trigger>
                             <span class="inline-flex rounded-md">
                                 <button type="button"
-                                    class="inline-flex items-center rounded-xl border border-white/20 bg-white/10 backdrop-blur-sm px-4 py-2 text-sm font-medium leading-4 text-white hover:bg-white/20 hover:border-white/30 focus:outline-none focus:ring-2 focus:ring-purple-500/50 transition-all duration-200">
+                                    class="inline-flex items-center rounded border border-[#9c9c9c] bg-[#f7f7f7] px-3 py-2 text-sm font-medium leading-4 text-[#1f1f1f] hover:bg-white focus:outline-none focus:ring-2 focus:ring-blue-400 transition-all duration-200">
                                     <div
-                                        class="w-8 h-8 bg-gradient-to-br from-blue-400 to-purple-600 rounded-full flex items-center justify-center mr-3">
+                                        class="w-8 h-8 bg-[#e0e0e0] border border-[#9c9c9c] rounded-full flex items-center justify-center mr-3">
                                         <span class="text-white font-semibold text-sm">{{
                                             $page.props.auth.user.name.charAt(0).toUpperCase() }}</span>
                                     </div>
@@ -262,12 +261,12 @@ const menuItems = [
                             </span>
                         </template>
                         <template #content>
-                            <div class="bg-white/10 backdrop-blur-md border border-white/20 rounded-lg">
+                            <div class="bg-white border border-[#9c9c9c] rounded">
                                 <DropdownLink :href="route('profile.edit')"
-                                    class="text-white hover:bg-white/10 focus:bg-white/10">
+                                    class="text-[#1f1f1f] hover:bg-[#efefef] focus:bg-[#efefef]">
                                     Profile </DropdownLink>
                                 <DropdownLink :href="route('logout')" method="post" as="button"
-                                    class="text-white hover:bg-white/10 focus:bg-white/10"> Log Out </DropdownLink>
+                                    class="text-[#1f1f1f] hover:bg-[#efefef] focus:bg-[#efefef]"> Log Out </DropdownLink>
                             </div>
                         </template>
                     </Dropdown>
@@ -275,7 +274,7 @@ const menuItems = [
             </header>
 
             <!-- Page Content -->
-            <main class="flex-1 overflow-y-auto p-6 relative">
+            <main class="flex-1 overflow-y-auto p-4 relative bg-[#e6e6e6]">
                 <slot />
             </main>
         </div>

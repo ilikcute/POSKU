@@ -1,6 +1,5 @@
 <template>
     <AuthenticatedLayout>
-
         <Head title="Master Customer" />
 
         <template #header>
@@ -9,14 +8,14 @@
                 description="Kelola data pelanggan dengan tampilan yang konsisten dan nyaman."
             >
                 <template #filters>
-                    <div class="flex bg-white/10 rounded-full p-1 backdrop-blur-sm">
+                    <div class="flex bg-[#f7f7f7] border border-[#9c9c9c] rounded p-1">
                         <button
                             @click="viewMode = 'table'"
                             :class="[
-                                'flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold transition-all',
+                                'flex items-center gap-2 px-4 py-2 rounded text-xs font-semibold transition-colors',
                                 viewMode === 'table'
-                                    ? 'bg-white text-slate-900 shadow-lg'
-                                    : 'text-white/70 hover:text-white hover:bg-white/10',
+                                    ? 'bg-white text-[#1f1f1f]'
+                                    : 'text-[#555] hover:text-[#1f1f1f] hover:bg-white',
                             ]"
                         >
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -32,10 +31,10 @@
                         <button
                             @click="viewMode = 'cards'"
                             :class="[
-                                'flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold transition-all',
+                                'flex items-center gap-2 px-4 py-2 rounded text-xs font-semibold transition-colors',
                                 viewMode === 'cards'
-                                    ? 'bg-white text-slate-900 shadow-lg'
-                                    : 'text-white/70 hover:text-white hover:bg-white/10',
+                                    ? 'bg-white text-[#1f1f1f]'
+                                    : 'text-[#555] hover:text-[#1f1f1f] hover:bg-white',
                             ]"
                         >
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -53,7 +52,7 @@
                 <template #actions>
                     <button
                         @click="openModal(false)"
-                        class="inline-flex items-center justify-center bg-gradient-to-r from-emerald-400 to-green-500 text-slate-900 font-semibold py-3 px-6 rounded-full text-sm shadow-xl hover:scale-105 transition-transform duration-200"
+                        class="inline-flex items-center justify-center bg-[#e9e9e9] text-[#1f1f1f] border border-[#9c9c9c] font-semibold py-3 px-6 rounded text-xs hover:bg-white transition-colors"
                     >
                         <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
@@ -66,26 +65,24 @@
 
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
             <AppPanel>
-                <div
-                    class="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between"
-                >
-                    <label class="flex w-full items-center gap-3 text-white/80">
-                        <svg class="w-5 h-5 text-emerald-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div class="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
+                    <label class="flex w-full items-center gap-3 text-[#555]">
+                        <svg class="w-5 h-5 text-[#555]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                 d="M21 21l-4.35-4.35M11 19a8 8 0 100-16 8 8 0 000 16z" />
                         </svg>
                         <TextInput v-model="search" type="text"
-                            class="flex-1 bg-white/5 border-white/20 rounded-xl text-gray-100 focus:ring-emerald-400 focus:border-emerald-400"
+                            class="flex-1 bg-white border-[#9c9c9c] rounded text-[#1f1f1f] focus:ring-blue-500 focus:border-blue-500"
                             placeholder="Cari nama, kode customer, atau nomor telepon..." />
                     </label>
 
-                    <div v-if="storeProfile" class="flex items-center gap-3 text-sm text-gray-300">
-                        <div class="rounded-2xl bg-emerald-500/10 border border-emerald-400/30 px-4 py-2">
-                            <p class="text-xs uppercase tracking-wide text-emerald-300">Toko aktif</p>
-                            <p class="text-base font-semibold text-white">
+                    <div v-if="storeProfile" class="flex items-center gap-3 text-xs text-[#555]">
+                        <div class="rounded bg-[#f7f7f7] border border-[#9c9c9c] px-4 py-2">
+                            <p class="text-xs uppercase tracking-wide text-[#555]">Toko aktif</p>
+                            <p class="text-sm font-semibold text-[#1f1f1f]">
                                 {{ storeProfile.name }}
                             </p>
-                            <p class="text-xs text-gray-400" v-if="storeProfile.address">
+                            <p class="text-xs text-[#555]" v-if="storeProfile.address">
                                 {{ storeProfile.address }}
                             </p>
                         </div>
@@ -93,86 +90,65 @@
                 </div>
             </AppPanel>
 
-            <div v-if="customers.data.length">
+            <div v-if="customers?.data?.length">
                 <AppPanel class="overflow-hidden">
                     <div v-if="viewMode === 'table'">
                         <div class="hidden lg:block overflow-x-auto">
-                            <table class="min-w-full text-sm text-gray-200">
-                                <thead
-                                    class="bg-gradient-to-r from-purple-600/30 to-blue-600/30 backdrop-blur-sm border-b border-white/20">
+                            <table class="min-w-full text-xs text-[#1f1f1f]">
+                                <thead class="bg-[#efefef] border-b border-[#9c9c9c]">
                                     <tr>
-                                        <th
-                                            class="px-6 py-4 text-left text-xs uppercase tracking-wider font-semibold text-white/90">
-                                            Kode Customer</th>
-                                        <th
-                                            class="px-6 py-4 text-left text-xs uppercase tracking-wider font-semibold text-white/90">
-                                            Nama</th>
-                                        <th
-                                            class="px-6 py-4 text-left text-xs uppercase tracking-wider font-semibold text-white/90">
-                                            Telepon</th>
-                                        <th
-                                            class="px-6 py-4 text-left text-xs uppercase tracking-wider font-semibold text-white/90">
-                                            Alamat</th>
-                                        <th
-                                            class="px-6 py-4 text-right text-xs uppercase tracking-wider font-semibold text-white/90">
-                                            Aksi</th>
+                                        <th class="px-6 py-4 text-left text-xs uppercase tracking-wider font-semibold text-[#1f1f1f]">
+                                            Kode Customer
+                                        </th>
+                                        <th class="px-6 py-4 text-left text-xs uppercase tracking-wider font-semibold text-[#1f1f1f]">
+                                            Nama
+                                        </th>
+                                        <th class="px-6 py-4 text-left text-xs uppercase tracking-wider font-semibold text-[#1f1f1f]">
+                                            Telepon
+                                        </th>
+                                        <th class="px-6 py-4 text-left text-xs uppercase tracking-wider font-semibold text-[#1f1f1f]">
+                                            Alamat
+                                        </th>
+                                        <th class="px-6 py-4 text-right text-xs uppercase tracking-wider font-semibold text-[#1f1f1f]">
+                                            Aksi
+                                        </th>
                                     </tr>
                                 </thead>
-
-                                <tbody class="divide-y divide-gray-700/50">
-                                    <tr v-for="customer in customers.data" :key="customer.id"
-                                        class="hover:bg-white/5 transition-all duration-200 group">
+                                <tbody class="divide-y divide-[#d0d0d0]">
+                                    <tr v-for="customer in customers.data" :key="customer.id" class="hover:bg-white transition-colors duration-150">
                                         <td class="px-6 py-4">
                                             <div class="flex items-center gap-3">
-                                                <div
-                                                    class="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-sm font-bold">
+                                                <div class="w-10 h-10 rounded bg-[#dbe7ff] flex items-center justify-center text-xs font-bold">
                                                     {{ (customer.member_code || 'C').charAt(0).toUpperCase() }}
                                                 </div>
                                                 <div>
-                                                    <p class="font-mono font-semibold text-white">{{
-                                                        customer.member_code || '-' }}</p>
+                                                    <p class="font-mono font-semibold text-[#1f1f1f]">{{ customer.member_code || '-' }}</p>
                                                 </div>
                                             </div>
                                         </td>
                                         <td class="px-6 py-4">
-                                            <p class="font-semibold text-white">{{ customer.name }}</p>
+                                            <p class="font-semibold text-[#1f1f1f]">{{ customer.name }}</p>
                                         </td>
                                         <td class="px-6 py-4">
-                                            <p class="text-gray-400">{{ customer.phone || '-' }}</p>
+                                            <p class="text-[#555]">{{ customer.phone || '-' }}</p>
                                         </td>
                                         <td class="px-6 py-4">
-                                            <p class="text-gray-400 truncate max-w-xs" :title="customer.address">{{
-                                                customer.address || '-' }}</p>
+                                            <p class="text-[#555] truncate max-w-xs" :title="customer.address">{{ customer.address || '-' }}</p>
                                         </td>
                                         <td class="px-6 py-4">
                                             <div class="flex justify-end gap-2">
-                                                <button title="Cetak Kartu Customer" @click="printCard(customer)"
-                                                    class="inline-flex items-center px-4 py-2 rounded-full text-xs font-bold bg-gradient-to-r from-blue-400 to-sky-400 text-white shadow-lg hover:scale-105 hover:from-blue-500 hover:to-sky-500 transition-transform duration-200">
-                                                    <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor"
-                                                        viewBox="0 0 24 24">
-                                                        <path stroke-linecap="round" stroke-linejoin="round"
-                                                            stroke-width="2"
-                                                            d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2z">
-                                                        </path>
-                                                    </svg>
-                                                    Kartu
-                                                </button>
                                                 <button @click="openModal(true, customer)"
-                                                    class="inline-flex items-center px-4 py-2 rounded-full text-xs font-bold bg-gradient-to-r from-blue-400 to-blue-500 text-white shadow-lg hover:scale-105 hover:from-blue-500 hover:to-blue-600 transition-transform duration-200">
-                                                    <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor"
-                                                        viewBox="0 0 24 24">
-                                                        <path stroke-linecap="round" stroke-linejoin="round"
-                                                            stroke-width="2"
+                                                    class="inline-flex items-center px-4 py-2 rounded text-xs font-bold bg-[#e9e9e9] text-[#1f1f1f] border border-[#9c9c9c] hover:bg-white transition-colors">
+                                                    <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                                             d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                                                     </svg>
                                                     Edit
                                                 </button>
                                                 <button @click="deleteCustomer(customer.id)"
-                                                    class="inline-flex items-center px-4 py-2 rounded-full text-xs font-bold bg-gradient-to-r from-red-400 to-red-500 text-white shadow-lg hover:scale-105 hover:from-red-500 hover:to-red-600 transition-transform duration-200">
-                                                    <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor"
-                                                        viewBox="0 0 24 24">
-                                                        <path stroke-linecap="round" stroke-linejoin="round"
-                                                            stroke-width="2"
+                                                    class="inline-flex items-center px-4 py-2 rounded text-xs font-bold bg-[#e9e9e9] text-[#1f1f1f] border border-[#9c9c9c] hover:bg-white transition-colors">
+                                                    <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                                             d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                                                     </svg>
                                                     Hapus
@@ -185,35 +161,28 @@
                         </div>
 
                         <div class="lg:hidden overflow-x-auto">
-                            <table class="min-w-full text-xs text-gray-200">
-                                <thead
-                                    class="bg-gradient-to-r from-purple-600/30 to-blue-600/30 backdrop-blur-sm border-b border-white/20">
+                            <table class="min-w-full text-xs text-[#1f1f1f]">
+                                <thead class="bg-[#efefef] border-b border-[#9c9c9c]">
                                     <tr>
-                                        <th class="px-3 py-3 text-left font-semibold text-white/90">Customer</th>
-                                        <th class="px-3 py-3 text-left font-semibold text-white/90">Aksi</th>
+                                        <th class="px-3 py-3 text-left font-semibold text-[#1f1f1f]">Customer</th>
+                                        <th class="px-3 py-3 text-left font-semibold text-[#1f1f1f]">Aksi</th>
                                     </tr>
                                 </thead>
-                                <tbody class="divide-y divide-gray-700/50">
-                                    <tr v-for="customer in customers.data" :key="customer.id" class="hover:bg-white/5">
+                                <tbody class="divide-y divide-[#d0d0d0]">
+                                    <tr v-for="customer in customers.data" :key="customer.id" class="hover:bg-white">
                                         <td class="px-3 py-3">
-                                            <div class="font-semibold text-white text-sm">{{ customer.name }}</div>
-                                            <div class="font-mono text-xs text-gray-400">{{ customer.member_code || '-'
-                                            }}
-                                            </div>
-                                            <div class="text-xs text-gray-500">{{ customer.phone || '-' }}</div>
+                                            <div class="font-semibold text-[#1f1f1f] text-xs">{{ customer.name }}</div>
+                                            <div class="font-mono text-xs text-[#555]">{{ customer.member_code || '-' }}</div>
+                                            <div class="text-xs text-[#555]">{{ customer.phone || '-' }}</div>
                                         </td>
                                         <td class="px-3 py-3">
                                             <div class="flex flex-col gap-2">
-                                                <button title="Cetak Kartu Customer" @click="printCard(customer)"
-                                                    class="inline-flex items-center justify-center px-3 py-2 rounded-full text-[11px] font-bold bg-gradient-to-r from-blue-400 to-sky-400 text-white shadow-lg">
-                                                    Kartu
-                                                </button>
                                                 <button @click="openModal(true, customer)"
-                                                    class="inline-flex items-center justify-center px-3 py-2 rounded-full text-[11px] font-bold bg-gradient-to-r from-blue-400 to-blue-500 text-white shadow-lg">
+                                                    class="inline-flex items-center justify-center px-3 py-2 rounded text-[11px] font-bold bg-[#e9e9e9] text-[#1f1f1f] border border-[#9c9c9c]">
                                                     Edit
                                                 </button>
                                                 <button @click="deleteCustomer(customer.id)"
-                                                    class="inline-flex items-center justify-center px-3 py-2 rounded-full text-[11px] font-bold bg-gradient-to-r from-red-400 to-red-500 text-white shadow-lg">
+                                                    class="inline-flex items-center justify-center px-3 py-2 rounded text-[11px] font-bold bg-[#e9e9e9] text-[#1f1f1f] border border-[#9c9c9c]">
                                                     Hapus
                                                 </button>
                                             </div>
@@ -227,53 +196,41 @@
                     <div v-else>
                         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 p-6">
                             <div v-for="customer in customers.data" :key="customer.id"
-                                class="backdrop-blur-md bg-white/5 border border-white/10 rounded-2xl p-6 shadow-xl hover:shadow-2xl hover:bg-white/10 transition-all duration-300 hover:-translate-y-1">
+                                class="bg-[#f7f7f7] border border-[#9c9c9c] rounded p-6 shadow-sm hover:bg-white transition-colors">
                                 <div class="flex items-center justify-between mb-4">
                                     <div class="flex items-center gap-4">
-                                        <div
-                                            class="w-12 h-12 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-lg font-bold">
+                                        <div class="w-12 h-12 rounded bg-[#dbe7ff] flex items-center justify-center text-sm font-bold">
                                             {{ (customer.member_code || 'C').charAt(0).toUpperCase() }}
                                         </div>
                                         <div>
-                                            <h3 class="font-semibold text-white">{{ customer.name }}</h3>
-                                            <p class="font-mono text-sm text-gray-400">{{ customer.member_code || '-' }}
-                                            </p>
+                                            <h3 class="font-semibold text-[#1f1f1f]">{{ customer.name }}</h3>
+                                            <p class="font-mono text-xs text-[#555]">{{ customer.member_code || '-' }}</p>
                                         </div>
                                     </div>
                                 </div>
 
                                 <div class="space-y-2 mb-4">
                                     <div class="flex items-center gap-2">
-                                        <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor"
-                                            viewBox="0 0 24 24">
+                                        <svg class="w-4 h-4 text-[#555]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                                 d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
                                         </svg>
-                                        <p class="text-sm text-gray-300">{{ customer.phone || '-' }}</p>
+                                        <p class="text-xs text-[#555]">{{ customer.phone || '-' }}</p>
                                     </div>
                                     <div class="flex items-start gap-2">
-                                        <svg class="w-4 h-4 text-gray-400 mt-0.5" fill="none" stroke="currentColor"
-                                            viewBox="0 0 24 24">
+                                        <svg class="w-4 h-4 text-[#555] mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                                 d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                                 d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
                                         </svg>
-                                        <p class="text-sm text-gray-300">{{ customer.address || '-' }}</p>
+                                        <p class="text-xs text-[#555]">{{ customer.address || '-' }}</p>
                                     </div>
                                 </div>
 
-                                <div class="flex flex-wrap gap-3 pt-4 border-t border-gray-800/60 mt-4">
-                                    <button title="Cetak Kartu Customer" @click="printCard(customer)"
-                                        class="inline-flex items-center px-4 py-2 rounded-full text-xs font-bold bg-gradient-to-r from-blue-400 to-sky-400 text-white shadow-lg hover:scale-105 hover:from-blue-500 hover:to-sky-500 transition-transform duration-200">
-                                        <svg class="w-3 h-3 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2z" />
-                                        </svg>
-                                        Kartu
-                                    </button>
+                                <div class="flex flex-wrap gap-3 pt-4 border-t border-[#d0d0d0] mt-4">
                                     <button @click="openModal(true, customer)"
-                                        class="inline-flex items-center px-4 py-2 rounded-full text-xs font-bold bg-gradient-to-r from-blue-400 to-blue-500 text-white shadow-lg hover:scale-105 hover:from-blue-500 hover:to-blue-600 transition-transform duration-200">
+                                        class="inline-flex items-center px-4 py-2 rounded text-xs font-bold bg-[#e9e9e9] text-[#1f1f1f] border border-[#9c9c9c] hover:bg-white transition-colors">
                                         <svg class="w-3 h-3 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                                 d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
@@ -281,7 +238,7 @@
                                         Edit Customer
                                     </button>
                                     <button @click="deleteCustomer(customer.id)"
-                                        class="inline-flex items-center px-4 py-2 rounded-full text-xs font-bold bg-gradient-to-r from-red-400 to-red-500 text-white shadow-lg hover:scale-105 hover:from-red-500 hover:to-red-600 transition-transform duration-200">
+                                        class="inline-flex items-center px-4 py-2 rounded text-xs font-bold bg-[#e9e9e9] text-[#1f1f1f] border border-[#9c9c9c] hover:bg-white transition-colors">
                                         <svg class="w-3 h-3 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                                 d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -294,65 +251,65 @@
                     </div>
                 </AppPanel>
             </div>
+
             <div v-else>
                 <AppPanel>
                     <InlineNotice variant="info" class="text-center">
                         <p class="font-semibold">Belum ada customer yang tercatat.</p>
-                        <p class="mt-1 text-white/70">
+                        <p class="mt-1 text-[#555]">
                             Gunakan tombol <strong>Tambah Customer</strong> untuk mengisi data pertama Anda.
                         </p>
                     </InlineNotice>
                 </AppPanel>
             </div>
 
-            <Pagination v-if="customers.links" :links="customers.links" />
+            <Pagination v-if="customers?.links" :links="customers.links" />
         </div>
-        <!-- </div> -->
+
         <Modal :show="isModalOpen" @close="closeModal">
-            <div
-                class="p-8 bg-gray-900/70 backdrop-blur-md border border-white/10 rounded-2xl shadow-lg max-w-4xl mx-auto space-y-6 text-white">
-                <h2 class="text-lg font-semibold">
-                    {{ isEditMode ? "Edit Customer" : "Tambah Customer Baru" }}
+            <div class="p-8 bg-[#f7f7f7] border border-[#9c9c9c] rounded shadow-sm max-w-4xl mx-auto space-y-6 text-[#1f1f1f]">
+                <h2 class="text-sm font-semibold">
+                    {{ isEditMode ? 'Edit Customer' : 'Tambah Customer Baru' }}
                 </h2>
                 <form @submit.prevent="saveCustomer" class="mt-6 grid grid-cols-1 gap-6">
                     <div>
-                        <InputLabel for="member_code" value="Kode Customer" class="text-gray-300" />
+                        <InputLabel for="member_code" value="Kode Customer" class="text-[#1f1f1f]" />
                         <TextInput id="member_code" v-model="form.member_code"
-                            class="mt-1 block w-full font-mono bg-white/5 border-white/20 rounded-lg text-gray-200 focus:ring-blue-500 focus:border-blue-500"
+                            class="mt-1 block w-full font-mono bg-white border-[#9c9c9c] rounded text-[#1f1f1f] focus:ring-blue-500 focus:border-blue-500"
                             placeholder="Contoh: CUST001" required />
-                        <InputError :message="form.errors.member_code" class="mt-2 text-red-400" />
+                        <InputError :message="form.errors.member_code" class="mt-2 text-red-600" />
                     </div>
                     <div>
-                        <InputLabel for="name" value="Nama Customer" class="text-gray-300" />
+                        <InputLabel for="name" value="Nama Customer" class="text-[#1f1f1f]" />
                         <TextInput id="name" v-model="form.name"
-                            class="mt-1 block w-full bg-white/5 border-white/20 rounded-lg text-gray-200 focus:ring-blue-500 focus:border-blue-500"
+                            class="mt-1 block w-full bg-white border-[#9c9c9c] rounded text-[#1f1f1f] focus:ring-blue-500 focus:border-blue-500"
                             placeholder="Nama lengkap customer" required />
-                        <InputError :message="form.errors.name" class="mt-2 text-red-400" />
+                        <InputError :message="form.errors.name" class="mt-2 text-red-600" />
                     </div>
                     <div>
-                        <InputLabel for="phone" value="Telepon" class="text-gray-300" />
+                        <InputLabel for="phone" value="Telepon" class="text-[#1f1f1f]" />
                         <TextInput id="phone" v-model="form.phone"
-                            class="mt-1 block w-full bg-white/5 border-white/20 rounded-lg text-gray-200 focus:ring-blue-500 focus:border-blue-500"
+                            class="mt-1 block w-full bg-white border-[#9c9c9c] rounded text-[#1f1f1f] focus:ring-blue-500 focus:border-blue-500"
                             placeholder="Nomor telepon" />
-                        <InputError :message="form.errors.phone" class="mt-2 text-red-400" />
+                        <InputError :message="form.errors.phone" class="mt-2 text-red-600" />
                     </div>
                     <div>
-                        <InputLabel for="email" value="Email" class="text-gray-300" />
+                        <InputLabel for="email" value="Email" class="text-[#1f1f1f]" />
                         <TextInput id="email" v-model="form.email" type="email"
-                            class="mt-1 block w-full bg-white/5 border-white/20 rounded-lg text-gray-200 focus:ring-blue-500 focus:border-blue-500"
+                            class="mt-1 block w-full bg-white border-[#9c9c9c] rounded text-[#1f1f1f] focus:ring-blue-500 focus:border-blue-500"
                             placeholder="Alamat email" />
-                        <InputError :message="form.errors.email" class="mt-2 text-red-400" />
+                        <InputError :message="form.errors.email" class="mt-2 text-red-600" />
                     </div>
                     <div>
-                        <InputLabel for="address" value="Alamat" class="text-gray-300" />
+                        <InputLabel for="address" value="Alamat" class="text-[#1f1f1f]" />
                         <textarea id="address" v-model="form.address"
-                            class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 bg-white/5 border-white/20 rounded-lg text-gray-200 focus:ring-blue-500 focus:border-blue-500"
+                            class="mt-1 block w-full bg-white border-[#9c9c9c] rounded text-[#1f1f1f] focus:ring-blue-500 focus:border-blue-500"
                             rows="3" placeholder="Alamat lengkap"></textarea>
-                        <InputError :message="form.errors.address" class="mt-2 text-red-400" />
+                        <InputError :message="form.errors.address" class="mt-2 text-red-600" />
                     </div>
                     <div class="flex justify-end gap-3 pt-4">
                         <button type="button" @click="closeModal"
-                            class="inline-flex items-center bg-gradient-to-r from-blue-400 to-blue-500 text-white font-bold py-2 px-6 rounded-full text-sm shadow-lg hover:scale-105 hover:from-blue-500 hover:to-blue-600 transition-transform duration-200">
+                            class="inline-flex items-center bg-[#e9e9e9] text-[#1f1f1f] border border-[#9c9c9c] font-semibold py-2 px-6 rounded text-xs hover:bg-white transition-colors">
                             <svg class="w-3 h-3 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                     d="M6 18L18 6M6 6l12 12" />
@@ -360,7 +317,7 @@
                             Batal
                         </button>
                         <button type="submit" :disabled="form.processing"
-                            class="inline-flex items-center bg-gradient-to-r from-green-400 to-emerald-400 text-white font-bold py-2 px-6 rounded-full text-sm shadow-lg hover:scale-105 hover:from-green-500 hover:to-emerald-500 transition-transform duration-200"
+                            class="inline-flex items-center bg-[#e9e9e9] text-[#1f1f1f] border border-[#9c9c9c] font-semibold py-2 px-6 rounded text-xs hover:bg-white transition-colors"
                             :class="{ 'opacity-25': form.processing }">
                             <svg class="w-3 h-3 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -372,6 +329,7 @@
                 </form>
             </div>
         </Modal>
+
         <CustomerCard :show="showCustomerCard" :customer="selectedCustomerForCard" :store="store"
             @close="closeCustomerCard" />
     </AuthenticatedLayout>
@@ -379,7 +337,7 @@
 
 <script setup>
 import { ref, watch, computed } from 'vue';
-import { Head, usePage, router, useForm } from '@inertiajs/vue3';
+import { Head, router, useForm } from '@inertiajs/vue3';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import Modal from '@/Components/Modal.vue';
 import TextInput from '@/Components/TextInput.vue';
@@ -387,22 +345,24 @@ import InputLabel from '@/Components/InputLabel.vue';
 import InputError from '@/Components/InputError.vue';
 import Pagination from '@/Components/Pagination.vue';
 import CustomerCard from '@/Components/CustomerCard.vue';
-import { debounce } from "lodash";
+import { debounce } from 'lodash';
 import AppPanel from '@/Components/AppPanel.vue';
 import AppPageHeader from '@/Components/AppPageHeader.vue';
 import InlineNotice from '@/Components/InlineNotice.vue';
 
 const props = defineProps({
     customers: Object,
-    filters: Object,
-    store: Object, // Added store prop for CustomerCard
+    filters: {
+        type: Object,
+        default: () => ({}),
+    },
+    store: Object,
 });
 
-const page = usePage();
 const storeProfile = computed(() => props.store ?? null);
 
 const viewMode = ref('table');
-const search = ref(props.filters.search || ''); // Initialize search with filter value
+const search = ref(props.filters?.search ?? '');
 const isModalOpen = ref(false);
 const isEditMode = ref(false);
 const showCustomerCard = ref(false);
@@ -419,10 +379,10 @@ const form = useForm({
 
 watch(
     search,
-    debounce((value) => {
+    debounce(() => {
         router.get(
-            route("master.members.index"),
-            { search: value },
+            route('master.members.index'),
+            { search: search.value },
             {
                 preserveState: true,
                 replace: true,
@@ -464,21 +424,22 @@ const saveCustomer = () => {
 };
 
 const deleteCustomer = (id) => {
-    if (confirm("Apakah Anda yakin ingin menghapus customer ini?")) {
-        useForm({}).delete(route("master.members.destroy", id), {
+    if (confirm('Apakah Anda yakin ingin menghapus customer ini?')) {
+        useForm({}).delete(route('master.members.destroy', id), {
             onSuccess: () => closeModal(),
         });
     }
 };
-function printCard(customer) {
+
+const printCard = (customer) => {
     selectedCustomerForCard.value = customer;
     showCustomerCard.value = true;
-}
+};
 
-function closeCustomerCard() {
+const closeCustomerCard = () => {
     showCustomerCard.value = false;
     selectedCustomerForCard.value = null;
-}
+};
 </script>
 
 <style>

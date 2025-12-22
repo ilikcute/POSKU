@@ -390,6 +390,10 @@ const updateDateTime = () => {
     }
 };
 
+const goBack = () => {
+    window.history.back();
+};
+
 // Keyboard shortcuts
 const handleKeyPress = (e) => {
     if (e.key === "F1") {
@@ -427,16 +431,16 @@ onMounted(() => {
                 class="bg-blue-900 text-white p-2 text-sm font-mono border-b border-white/20 flex justify-between items-center select-none shadow-md z-10 relative shrink-0 h-16">
 
                 <!-- Left: Logo & Station -->
-                <div class="flex items-center gap-4">
-                    <Link :href="route('dashboard')"
-                        class="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded font-bold transition flex items-center gap-2"
-                        title="Keluar / Kembali ke Dashboard">
-                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-                    </svg>
-                    EXIT
-                    </Link>
+                    <div class="flex items-center gap-4">
+                        <button type="button" @click="goBack"
+                            class="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded font-bold transition flex items-center gap-2"
+                            title="Keluar / Kembali ke halaman sebelumnya">
+                            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                            </svg>
+                            EXIT
+                        </button>
                     <div class="flex flex-col">
                         <span class="font-bold text-lg leading-tight tracking-wider">POS SYSTEM v1.0</span>
                         <span class="text-xs text-blue-200 uppercase">{{ store?.name || 'STORE NAME' }} - STATION

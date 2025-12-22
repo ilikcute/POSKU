@@ -343,10 +343,10 @@ onMounted(() => {
 
         <template #header>
             <div class="flex flex-col gap-2">
-                <h2 class="font-semibold text-xl text-white leading-tight">
+                <h2 class="font-semibold text-lg text-[#1f1f1f] leading-tight">
                     Proses Penerimaan Barang
                 </h2>
-                <p class="text-sm text-gray-400">
+                <p class="text-xs text-[#555]">
                     Input pembelian harian berdasarkan supplier dan detail barang.
                 </p>
             </div>
@@ -354,23 +354,23 @@ onMounted(() => {
 
         <div class="max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-8">
             <div
-                class="bg-[#dedcab] border border-[#a7a47c] rounded-lg shadow-sm p-5 text-[#2f2f1f] font-[Tahoma]">
+                class="bg-[#f7f7f7] border border-[#9c9c9c] rounded shadow-sm p-5 text-[#1f1f1f] font-['Tahoma']">
                 <div class="grid gap-3 lg:grid-cols-3">
                     <div class="space-y-1">
-                        <div class="text-[11px] uppercase tracking-wide">No Transaksi / Nota</div>
-                        <div class="bg-[#f5f3cf] border border-[#9a9873] rounded px-2 py-1 text-sm">
+                        <div class="text-[11px] uppercase tracking-wide text-[#555]">No Transaksi / Nota</div>
+                        <div class="bg-white border border-[#9c9c9c] rounded px-2 py-1 text-sm">
                             {{ props.invoice_number || '-' }}
                         </div>
                     </div>
                     <div class="space-y-1">
-                        <div class="text-[11px] uppercase tracking-wide">Tanggal</div>
-                        <div class="bg-[#f5f3cf] border border-[#9a9873] rounded px-2 py-1 text-sm">
+                        <div class="text-[11px] uppercase tracking-wide text-[#555]">Tanggal</div>
+                        <div class="bg-white border border-[#9c9c9c] rounded px-2 py-1 text-sm">
                             {{ formattedDate }}
                         </div>
                     </div>
                     <div class="space-y-1">
-                        <div class="text-[11px] uppercase tracking-wide">User</div>
-                        <div class="bg-[#f5f3cf] border border-[#9a9873] rounded px-2 py-1 text-sm">
+                        <div class="text-[11px] uppercase tracking-wide text-[#555]">User</div>
+                        <div class="bg-white border border-[#9c9c9c] rounded px-2 py-1 text-sm">
                             {{ props.current_user?.name || cashierName }}
                         </div>
                     </div>
@@ -378,9 +378,9 @@ onMounted(() => {
 
                 <div class="mt-4 grid gap-3 lg:grid-cols-3">
                     <div>
-                        <label class="block text-[11px] uppercase tracking-wide mb-1">Supplier</label>
+                        <label class="block text-[11px] uppercase tracking-wide mb-1 text-[#555]">Supplier</label>
                         <select v-model="selectedSupplier"
-                            class="w-full bg-[#f5f3cf] border border-[#9a9873] rounded px-2 py-1 text-sm text-[#2f2f1f]">
+                            class="w-full bg-white border border-[#9c9c9c] rounded px-2 py-1 text-sm text-[#1f1f1f]">
                             <option :value="null">Pilih Supplier</option>
                             <option v-for="supplier in props.suppliers" :key="supplier.id" :value="supplier">
                                 {{ supplier.name }}
@@ -391,9 +391,9 @@ onMounted(() => {
                         </div>
                     </div>
                     <div>
-                        <label class="block text-[11px] uppercase tracking-wide mb-1">Metode Pembayaran</label>
+                        <label class="block text-[11px] uppercase tracking-wide mb-1 text-[#555]">Metode Pembayaran</label>
                         <select v-model="form.payment_method"
-                            class="w-full bg-[#f5f3cf] border border-[#9a9873] rounded px-2 py-1 text-sm text-[#2f2f1f]">
+                            class="w-full bg-white border border-[#9c9c9c] rounded px-2 py-1 text-sm text-[#1f1f1f]">
                             <option value="cash">Tunai</option>
                             <option value="card">Kartu</option>
                             <option value="transfer">Transfer</option>
@@ -401,25 +401,25 @@ onMounted(() => {
                         </select>
                     </div>
                     <div>
-                        <label class="block text-[11px] uppercase tracking-wide mb-1">Tempo (Hari)</label>
+                        <label class="block text-[11px] uppercase tracking-wide mb-1 text-[#555]">Tempo (Hari)</label>
                         <input v-model.number="form.payment_term_days" type="number" min="1"
                             :disabled="!isCredit"
-                            class="w-full bg-[#f5f3cf] border border-[#9a9873] rounded px-2 py-1 text-sm text-[#2f2f1f] disabled:opacity-50" />
-                        <div class="text-[11px] text-[#5a5838] mt-1">Jatuh tempo: {{ dueDate }}</div>
+                            class="w-full bg-white border border-[#9c9c9c] rounded px-2 py-1 text-sm text-[#1f1f1f] disabled:opacity-50" />
+                        <div class="text-[11px] text-[#555] mt-1">Jatuh tempo: {{ dueDate }}</div>
                     </div>
                 </div>
 
                 <div class="mt-4 grid gap-3 lg:grid-cols-4">
                     <div>
-                        <label class="block text-[11px] uppercase tracking-wide mb-1">Scan Barcode / PLU</label>
+                        <label class="block text-[11px] uppercase tracking-wide mb-1 text-[#555]">Scan Barcode / PLU</label>
                         <input v-model="barcodeInput" @keydown.enter.prevent="scanBarcode" type="text"
-                            class="w-full bg-[#f5f3cf] border border-[#9a9873] rounded px-2 py-1 text-sm text-[#2f2f1f]"
+                            class="w-full bg-white border border-[#9c9c9c] rounded px-2 py-1 text-sm text-[#1f1f1f]"
                             placeholder="Scan barcode" />
                     </div>
                     <div>
-                        <label class="block text-[11px] uppercase tracking-wide mb-1">Pilih Barang</label>
+                        <label class="block text-[11px] uppercase tracking-wide mb-1 text-[#555]">Pilih Barang</label>
                         <select v-model="selectedProductId"
-                            class="w-full bg-[#f5f3cf] border border-[#9a9873] rounded px-2 py-1 text-sm text-[#2f2f1f]">
+                            class="w-full bg-white border border-[#9c9c9c] rounded px-2 py-1 text-sm text-[#1f1f1f]">
             <option :value="null">Pilih Produk</option>
             <option v-for="product in filteredProducts" :key="product.id" :value="product.id">
                 {{ product.product_code ? `${product.product_code} - ${product.name}` : product.name }}
@@ -427,21 +427,21 @@ onMounted(() => {
         </select>
                     </div>
                     <div>
-                        <label class="block text-[11px] uppercase tracking-wide mb-1">Qty</label>
+                        <label class="block text-[11px] uppercase tracking-wide mb-1 text-[#555]">Qty</label>
                         <input v-model.number="inputQty" type="number" min="1"
-                            class="w-full bg-[#f5f3cf] border border-[#9a9873] rounded px-2 py-1 text-sm text-[#2f2f1f]" />
+                            class="w-full bg-white border border-[#9c9c9c] rounded px-2 py-1 text-sm text-[#1f1f1f]" />
                     </div>
                     <div class="flex items-end">
                         <button type="button" @click="addSelectedProduct"
-                            class="w-full bg-[#f5f3cf] hover:bg-[#f1efc4] text-[#2f2f1f] text-sm font-semibold py-2 rounded border border-[#9a9873]">
+                            class="w-full bg-[#e9e9e9] hover:bg-white text-[#1f1f1f] text-sm font-semibold py-2 rounded border border-[#9c9c9c]">
                             Tambah
                         </button>
                     </div>
                 </div>
 
-                <div class="mt-4 overflow-x-auto border border-[#9a9873] bg-[#f5f3cf]">
-                    <table class="min-w-full text-[12px] text-[#2f2f1f]">
-                        <thead class="text-[11px] uppercase tracking-wide text-[#5a5838] border-b border-[#9a9873]">
+                <div class="mt-4 overflow-x-auto border border-[#9c9c9c] bg-[#f7f7f7]">
+                    <table class="min-w-full text-[12px] text-[#1f1f1f]">
+                        <thead class="text-[11px] uppercase tracking-wide text-[#555] border-b border-[#9c9c9c] bg-[#efefef]">
                             <tr>
                                 <th class="py-2 px-2 text-left">No</th>
                                 <th class="py-2 px-2 text-left">Kode</th>
@@ -456,33 +456,33 @@ onMounted(() => {
                         </thead>
                         <tbody>
                             <tr v-if="cart.length === 0">
-                                <td colspan="9" class="py-6 text-center text-[#6b6843]">
+                                <td colspan="9" class="py-6 text-center text-[#555]">
                                     Belum ada item pembelian.
                                 </td>
                             </tr>
-                            <tr v-for="(item, index) in cart" :key="item.id" class="border-b border-[#d2cfaa]">
+                            <tr v-for="(item, index) in cart" :key="item.id" class="border-b border-[#d0d0d0]">
                                 <td class="py-2 px-2">{{ index + 1 }}</td>
                                 <td class="py-2 px-2">{{ item.product_code || item.barcode || '-' }}</td>
                                 <td class="py-2 px-2">{{ item.name }}</td>
                                 <td class="py-2 px-2 text-right">
                                     <input v-model.number="item.quantity" type="number" min="1"
                                         @input="updateQuantity(item.id, item.quantity)"
-                                        class="w-20 bg-white border border-[#9a9873] rounded px-2 py-1 text-right text-[#2f2f1f]" />
+                                        class="w-20 bg-white border border-[#9c9c9c] rounded px-2 py-1 text-right text-[#1f1f1f]" />
                                 </td>
                                 <td class="py-2 px-2 text-right">
                                     <input type="number" min="0" :value="item.price"
                                         @input="updatePrice(item.id, $event.target.value)"
-                                        class="w-24 bg-white border border-[#9a9873] rounded px-2 py-1 text-right text-[#2f2f1f]" />
+                                        class="w-24 bg-white border border-[#9c9c9c] rounded px-2 py-1 text-right text-[#1f1f1f]" />
                                 </td>
                                 <td class="py-2 px-2 text-right">
                                     <input type="number" min="0" :value="item.tax_per_item"
                                         @input="updateTax(item.id, $event.target.value)"
-                                        class="w-20 bg-white border border-[#9a9873] rounded px-2 py-1 text-right text-[#2f2f1f]" />
+                                        class="w-20 bg-white border border-[#9c9c9c] rounded px-2 py-1 text-right text-[#1f1f1f]" />
                                 </td>
                                 <td class="py-2 px-2 text-right">
                                     <input type="number" min="0" :value="item.discount_per_item"
                                         @input="updateDiscount(item.id, $event.target.value)"
-                                        class="w-20 bg-white border border-[#9a9873] rounded px-2 py-1 text-right text-[#2f2f1f]" />
+                                        class="w-20 bg-white border border-[#9c9c9c] rounded px-2 py-1 text-right text-[#1f1f1f]" />
                                 </td>
                                 <td class="py-2 px-2 text-right">{{ formatCurrency(lineGross(item)) }}</td>
                                 <td class="py-2 px-2 text-center">
@@ -497,34 +497,34 @@ onMounted(() => {
 
                 <div class="mt-4 grid gap-4 lg:grid-cols-3">
                     <div class="lg:col-span-2">
-                        <label class="block text-[11px] uppercase tracking-wide mb-1">Catatan</label>
+                        <label class="block text-[11px] uppercase tracking-wide mb-1 text-[#555]">Catatan</label>
                         <textarea v-model="form.notes" rows="2"
-                            class="w-full bg-[#f5f3cf] border border-[#9a9873] rounded px-2 py-1 text-sm text-[#2f2f1f]"
+                            class="w-full bg-white border border-[#9c9c9c] rounded px-2 py-1 text-sm text-[#1f1f1f]"
                             placeholder="Catatan tambahan"></textarea>
                     </div>
-                    <div class="space-y-2 bg-[#f5f3cf] border border-[#9a9873] rounded p-3">
-                        <div class="flex justify-between text-sm text-[#5a5838]">
+                    <div class="space-y-2 bg-white border border-[#9c9c9c] rounded p-3">
+                        <div class="flex justify-between text-sm text-[#555]">
                             <span>Subtotal</span>
                             <span>{{ formatCurrency(subtotalAmount) }}</span>
                         </div>
-                        <div class="flex justify-between text-sm text-[#5a5838]">
+                        <div class="flex justify-between text-sm text-[#555]">
                             <span>Total PPN</span>
                             <span>{{ formatCurrency(totalTax) }}</span>
                         </div>
-                        <div class="flex justify-between text-sm text-[#5a5838]">
+                        <div class="flex justify-between text-sm text-[#555]">
                             <span>Total Diskon</span>
                             <span>{{ formatCurrency(totalDiscount) }}</span>
                         </div>
-                        <div class="flex justify-between text-base font-semibold">
+                        <div class="flex justify-between text-base font-semibold text-[#1f1f1f]">
                             <span>Gross Total</span>
                             <span>{{ formatCurrency(grossTotal) }}</span>
                         </div>
-                        <div class="flex justify-between text-sm text-[#5a5838]">
+                        <div class="flex justify-between text-sm text-[#555]">
                             <span>Bayar</span>
                             <input :value="form.amount_paid" type="number" min="0" @input="onAmountPaidInput"
-                                class="w-32 bg-white border border-[#9a9873] rounded px-2 py-1 text-right text-[#2f2f1f]" />
+                                class="w-32 bg-white border border-[#9c9c9c] rounded px-2 py-1 text-right text-[#1f1f1f]" />
                         </div>
-                        <div class="flex justify-between text-sm text-[#5a5838]">
+                        <div class="flex justify-between text-sm text-[#555]">
                             <span>Kembalian</span>
                             <span>{{ formatCurrency(changeAmount) }}</span>
                         </div>
@@ -533,15 +533,15 @@ onMounted(() => {
 
                 <div class="mt-4 flex flex-wrap gap-3 justify-end">
                     <Link :href="route('purchases.index')"
-                        class="px-4 py-2 rounded border border-[#9a9873] text-[#2f2f1f] bg-[#f5f3cf] hover:bg-[#f1efc4]">
+                        class="px-4 py-2 rounded border border-[#9c9c9c] text-[#1f1f1f] bg-[#e9e9e9] hover:bg-white">
                         Cancel
                     </Link>
                     <button @click="submitPurchase(false)" :disabled="cart.length === 0 || !selectedSupplier"
-                        class="px-4 py-2 rounded border border-[#9a9873] bg-[#f5f3cf] hover:bg-[#f1efc4] text-[#2f2f1f] disabled:opacity-50">
+                        class="px-4 py-2 rounded border border-[#9c9c9c] bg-[#e9e9e9] hover:bg-white text-[#1f1f1f] disabled:opacity-50">
                         Simpan
                     </button>
                     <button @click="submitPurchase(true)" :disabled="cart.length === 0 || !selectedSupplier"
-                        class="px-4 py-2 rounded border border-[#9a9873] bg-[#f5f3cf] hover:bg-[#f1efc4] text-[#2f2f1f] disabled:opacity-50">
+                        class="px-4 py-2 rounded border border-[#9c9c9c] bg-[#e9e9e9] hover:bg-white text-[#1f1f1f] disabled:opacity-50">
                         Cetak
                     </button>
                 </div>
@@ -549,13 +549,13 @@ onMounted(() => {
         </div>
 
         <Modal :show="showReceiptModal" @close="showReceiptModal = false">
-            <div class="p-8 bg-white rounded-2xl shadow-lg max-w-sm mx-auto text-gray-900" id="receipt">
+            <div class="p-6 bg-[#f7f7f7] border border-[#9c9c9c] rounded shadow-sm max-w-sm mx-auto text-[#1f1f1f]" id="receipt">
                 <div class="text-center mb-6">
                     <h2 class="text-lg font-bold">STRUK PEMBELIAN</h2>
-                    <p class="text-sm text-gray-600">{{ receiptData?.date }}</p>
+                    <p class="text-xs text-[#555]">{{ receiptData?.date }}</p>
                 </div>
 
-                <div class="border-t border-b py-4 mb-4">
+                <div class="border-t border-b border-[#9c9c9c] py-4 mb-4">
                     <div v-for="item in receiptData?.items" :key="item.id" class="text-sm mb-2">
                         <div class="flex justify-between">
                             <span>{{ item.name }} x{{ item.quantity }}</span>
@@ -564,7 +564,7 @@ onMounted(() => {
                     </div>
                 </div>
 
-                <div class="space-y-1 text-sm mb-4">
+                <div class="space-y-1 text-sm mb-4 text-[#1f1f1f]">
                     <div class="flex justify-between">
                         <span>Subtotal:</span>
                         <span>{{ formatCurrency(receiptData?.subtotal) }}</span>
@@ -591,7 +591,7 @@ onMounted(() => {
                     </div>
                 </div>
 
-                <div class="text-center text-xs text-gray-500 mb-4">
+                <div class="text-center text-xs text-[#555] mb-4">
                     <p>Metode: {{ receiptData?.payment_method === 'cash' ? 'Tunai' : receiptData?.payment_method ===
                         'card' ? 'Kartu' : receiptData?.payment_method === 'credit' ? 'Kredit' : 'Transfer' }}</p>
                     <p v-if="receiptData?.supplier">Supplier: {{ receiptData.supplier.name }}</p>
@@ -599,11 +599,11 @@ onMounted(() => {
 
                 <div class="flex gap-3">
                     <button @click="() => window.print()"
-                        class="flex-1 bg-blue-600 text-white font-bold py-2 rounded-lg hover:bg-blue-700 transition-all">
+                        class="flex-1 bg-[#e9e9e9] text-[#1f1f1f] font-bold py-2 rounded border border-[#9c9c9c] hover:bg-white transition-all">
                         Cetak
                     </button>
                     <button @click="showReceiptModal = false"
-                        class="flex-1 bg-gray-600 text-white font-bold py-2 rounded-lg hover:bg-gray-700 transition-all">
+                        class="flex-1 bg-[#e9e9e9] text-[#1f1f1f] font-bold py-2 rounded border border-[#9c9c9c] hover:bg-white transition-all">
                         Tutup
                     </button>
                 </div>

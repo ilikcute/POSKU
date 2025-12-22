@@ -1,19 +1,28 @@
 <script setup>
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout.vue";
 import { Head, Link, usePage } from "@inertiajs/vue3";
-import { Bar } from "vue-chartjs";
+import { Line } from "vue-chartjs";
 import {
     Chart as ChartJS,
     Title,
     Tooltip,
     Legend,
-    BarElement,
+    LineElement,
+    PointElement,
     CategoryScale,
     LinearScale,
 } from "chart.js";
-import { computed, ref } from "vue";
+import { computed, onMounted, ref } from "vue";
 
-ChartJS.register(Title, Tooltip, Legend, BarElement, CategoryScale, LinearScale);
+ChartJS.register(
+    Title,
+    Tooltip,
+    Legend,
+    LineElement,
+    PointElement,
+    CategoryScale,
+    LinearScale
+);
 
 const props = defineProps({
     totalSalesToday: { type: Number, default: 0 },
@@ -22,10 +31,16 @@ const props = defineProps({
     topProducts: { type: Array, default: () => [] }, // [{ name, total_quantity }]
     salesChart: { type: Object, default: () => ({}) },
     lowStockProducts: { type: Array, default: () => [] },
+    topPurchasedProducts: { type: Array, default: () => [] },
+    topSuppliers: { type: Array, default: () => [] },
 });
 
 const page = usePage();
 const user = computed(() => page.props.auth?.user ?? { name: "-" });
+const store = computed(() => page.props.store ?? {});
+
+const nowTime = ref("");
+const nowDate = ref("");
 
 const viewTop = ref("month"); // future ready (month/today/etc)
 
@@ -47,6 +62,20 @@ const topProductsTable = computed(() =>
     topProducts.value.map((p) => ({
         name: p?.name ?? "-",
         qty: toNumber(p?.total_quantity ?? p?.sold ?? 0), // kompatibel jika backend pakai total_quantity
+    }))
+);
+
+const topPurchasedTable = computed(() =>
+    (props.topPurchasedProducts ?? []).map((p) => ({
+        name: p?.name ?? "-",
+        qty: toNumber(p?.total_quantity ?? 0),
+    }))
+);
+
+const topSuppliersTable = computed(() =>
+    (props.topSuppliers ?? []).map((p) => ({
+        name: p?.name ?? "-",
+        total: toNumber(p?.total_amount ?? 0),
     }))
 );
 
@@ -92,38 +121,53 @@ const stats = computed(() => {
     ];
 });
 
-// ===== Chart
-const chartData = computed(() => ({
-    labels: topProductsTable.value.map((p) => p.name),
+const updateClock = () => {
+    const now = new Date();
+    nowTime.value = now.toLocaleTimeString("id-ID", {
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit",
+    });
+    nowDate.value = now.toLocaleDateString("id-ID", {
+        weekday: "long",
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+    });
+};
+
+onMounted(() => {
+    updateClock();
+    setInterval(updateClock, 1000);
+});
+
+const salesChartData = computed(() => ({
+    labels: props.salesChart?.labels ?? [],
     datasets: [
         {
-            label: "Jumlah Terjual",
-            data: topProductsTable.value.map((p) => p.qty),
-            borderWidth: 1,
-            borderRadius: 4,
+            label: "Penjualan",
+            data: props.salesChart?.data ?? [],
+            borderColor: "#1f1f1f",
+            backgroundColor: "rgba(255,255,255,0.6)",
+            tension: 0.25,
         },
     ],
 }));
 
-const chartOptions = computed(() => ({
+const salesChartOptions = computed(() => ({
     responsive: true,
     maintainAspectRatio: false,
     plugins: {
         legend: { display: false },
-        tooltip: {
-            callbacks: {
-                label: (ctx) => `${ctx.parsed.y} unit terjual`,
-            },
-        },
     },
     scales: {
         y: {
-            beginAtZero: true,
-            ticks: { stepSize: 1 },
+            ticks: { color: "#1f1f1f", font: { size: 10 } },
+            grid: { color: "rgba(0,0,0,0.1)" },
         },
         x: {
+            ticks: { color: "#1f1f1f", font: { size: 9 } },
             grid: { display: false },
-            ticks: { maxRotation: 45, minRotation: 45 },
         },
     },
 }));
@@ -135,148 +179,138 @@ const chartOptions = computed(() => ({
 
     <AuthenticatedLayout>
         <template #header>
-            <h2 class="font-semibold text-xl text-white leading-tight">Dashboard</h2>
+            <div class="flex flex-wrap items-center justify-between gap-4">
+                <div class="text-xs text-[#555] leading-4">
+                    Station: {{ props.station?.name || props.station?.id || "-" }}
+                    <div class="text-[11px] text-[#555]">
+                        Shift: {{ props.activeShift?.shift_code || "Belum Aktif" }}
+                    </div>
+                </div>
+                <div class="text-center">
+                    <div class="text-sm font-semibold">{{ nowDate }}</div>
+                    <div class="text-lg font-bold">{{ nowTime }}</div>
+                </div>
+                <div class="text-right text-xs">
+                    <div class="font-semibold">
+                        USER: {{ props.activeShift?.name || user.name }}
+                    </div>
+                </div>
+            </div>
         </template>
 
-        <div class="space-y-6 animate-fade-in-up">
-            <!-- Welcome -->
-            <div class="bg-white/10 backdrop-blur-md border border-white/10 rounded-2xl shadow-lg p-6">
-                <h3 class="text-xl font-bold text-white">Selamat Datang Kembali, {{ user.name }}!</h3>
-                <p class="mt-2 text-sm text-gray-300">
-                    Berikut adalah ringkasan aktivitas toko Anda hari ini.
-                </p>
-            </div>
-
-            <!-- Stats Cards -->
-            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                <div v-for="(stat, index) in stats" :key="stat.name"
-                    :class="`bg-gradient-to-br ${cardColors[index % cardColors.length]}`"
-                    class="p-6 rounded-2xl shadow-lg text-white transition-all duration-300 hover:scale-105 hover:shadow-2xl">
-                    <div class="flex items-center">
-                        <div class="flex-shrink-0 bg-white/20 rounded-full p-3 transition-transform duration-300">
-                            <div v-html="icons[stat.icon]"></div>
+        <div class="max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="bg-[#f0f0f0] border border-[#9c9c9c] rounded shadow-sm font-[Tahoma] text-[#1f1f1f]">
+                <div class="bg-gradient-to-b from-[#9bb6e8] via-[#7a96d1] to-[#5c72bf] p-4 text-white">
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-3 text-sm">
+                        <div class="bg-white/20 border border-white/40 px-3 py-2">
+                            Total Penjualan: <strong>{{ formatCurrency(props.totalSalesToday) }}</strong>
                         </div>
-                        <div class="ml-4 min-w-0">
-                            <p class="text-sm font-medium truncate">{{ stat.name }}</p>
-                            <p class="text-2xl font-bold truncate">{{ stat.value }}</p>
+                        <div class="bg-white/20 border border-white/40 px-3 py-2">
+                            Transaksi: <strong>{{ props.transactionCountToday }}</strong>
+                        </div>
+                        <div class="bg-white/20 border border-white/40 px-3 py-2">
+                            Stok Menipis: <strong>{{ props.lowStockProducts?.length ?? 0 }}</strong>
                         </div>
                     </div>
-                </div>
-            </div>
 
-            <!-- Quick Actions -->
-            <div class="bg-white/10 backdrop-blur-md border border-white/10 rounded-2xl shadow-lg">
-                <div class="p-6 border-b border-white/10">
-                    <h3 class="text-lg font-bold text-white">Aksi Cepat</h3>
-                </div>
-
-                <div class="p-6 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-                    <!-- pakai <Link> agar Inertia navigation konsisten -->
-                    <Link :href="route('sales.create')"
-                        class="flex flex-col items-center justify-center p-4 bg-white/5 hover:bg-blue-500/20 rounded-xl transition-all duration-300 group transform hover:-translate-y-1">
-                        <div
-                            class="p-3 bg-blue-500/10 rounded-full mb-2 border border-blue-500/30 group-hover:bg-blue-500/20">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-blue-400" fill="none"
-                                viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                <path stroke-linecap="round" stroke-linejoin="round"
-                                    d="M3 3h2.25l1.5 12h12.75l1.5-12H21M6.75 3l1.5 12m0 0l2.25 3.75M6.75 15h6.75m0 0l-2.25 3.75m2.25-3.75h3.75l2.25 3.75M9 18.75h6" />
-                            </svg>
+                    <div class="mt-4 grid grid-cols-1 lg:grid-cols-3 gap-4">
+                        <div class="bg-white/95 text-[#1f1f1f] border border-[#9c9c9c] p-3 min-h-[220px]">
+                            <div class="text-xs font-semibold border-b border-[#9c9c9c] pb-1">
+                                Item Terjual Terbanyak
+                            </div>
+                            <table class="w-full text-xs mt-2">
+                                <thead class="text-left text-[#333]">
+                                    <tr>
+                                        <th class="py-1">Nama</th>
+                                        <th class="py-1 text-right">Qty</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr v-for="product in topProductsTable" :key="product.name">
+                                        <td class="py-1">{{ product.name }}</td>
+                                        <td class="py-1 text-right">{{ product.qty }}</td>
+                                    </tr>
+                                    <tr v-if="!topProductsTable.length">
+                                        <td colspan="2" class="py-4 text-center text-[#666]">Belum ada data.</td>
+                                    </tr>
+                                </tbody>
+                            </table>
                         </div>
-                        <span class="text-sm font-medium text-gray-200 group-hover:text-white">POS Baru</span>
-                    </Link>
 
-                    <Link :href="route('master.products.create')"
-                        class="flex flex-col items-center justify-center p-4 bg-white/5 hover:bg-green-500/20 rounded-xl transition-all duration-300 group transform hover:-translate-y-1">
-                        <div
-                            class="p-3 bg-green-500/10 rounded-full mb-2 border border-green-500/30 group-hover:bg-green-500/20">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-green-400" fill="none"
-                                viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                <path stroke-linecap="round" stroke-linejoin="round"
-                                    d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
-                            </svg>
+                        <div class="bg-white/95 text-[#1f1f1f] border border-[#9c9c9c] p-3 min-h-[220px]">
+                            <div class="text-xs font-semibold border-b border-[#9c9c9c] pb-1">
+                                Item Pembelian Terbanyak
+                            </div>
+                            <table class="w-full text-xs mt-2">
+                                <thead class="text-left text-[#333]">
+                                    <tr>
+                                        <th class="py-1">Nama</th>
+                                        <th class="py-1 text-right">Qty</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr v-for="product in topPurchasedTable" :key="product.name">
+                                        <td class="py-1">{{ product.name }}</td>
+                                        <td class="py-1 text-right">{{ product.qty }}</td>
+                                    </tr>
+                                    <tr v-if="!topPurchasedTable.length">
+                                        <td colspan="2" class="py-4 text-center text-[#666]">Belum ada data.</td>
+                                    </tr>
+                                </tbody>
+                            </table>
                         </div>
-                        <span class="text-sm font-medium text-gray-200 group-hover:text-white">Tambah Produk</span>
-                    </Link>
 
-                    <Link :href="route('purchases.create')"
-                        class="flex flex-col items-center justify-center p-4 bg-white/5 hover:bg-yellow-500/20 rounded-xl transition-all duration-300 group transform hover:-translate-y-1">
-                        <div
-                            class="p-3 bg-yellow-500/10 rounded-full mb-2 border border-yellow-500/30 group-hover:bg-yellow-500/20">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-yellow-400" fill="none"
-                                viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                <path stroke-linecap="round" stroke-linejoin="round"
-                                    d="M8.25 6.75h12M8.25 12h12m-12 5.25h12M3.75 6.75h.007v.008H3.75V6.75zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zM3.75 12h.007v.008H3.75V12zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zM3.75 17.25h.007v.008H3.75v-.008zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" />
-                            </svg>
-                        </div>
-                        <span class="text-sm font-medium text-gray-200 group-hover:text-white">Tambah Pembelian</span>
-                    </Link>
-
-                    <Link :href="route('reports.sales')"
-                        class="flex flex-col items-center justify-center p-4 bg-white/5 hover:bg-purple-500/20 rounded-xl transition-all duration-300 group transform hover:-translate-y-1">
-                        <div
-                            class="p-3 bg-purple-500/10 rounded-full mb-2 border border-purple-500/30 group-hover:bg-purple-500/20">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-purple-400" fill="none"
-                                viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                <path stroke-linecap="round" stroke-linejoin="round"
-                                    d="M3.75 3v11.25A2.25 2.25 0 006 16.5h2.25M3.75 3h-1.5m1.5 0h16.5m0 0h1.5m-1.5 0v11.25A2.25 2.25 0 0118 16.5h-2.25m-7.5 0h7.5m-7.5 0l-1 3m1-3l1 3m-9-3v4.5A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75v-4.5m-15 0h15" />
-                            </svg>
-                        </div>
-                        <span class="text-sm font-medium text-gray-200 group-hover:text-white">Laporan Penjualan</span>
-                    </Link>
-                </div>
-            </div>
-
-            <!-- Top Products -->
-            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <!-- Chart -->
-                <div class="lg:col-span-2 bg-white/10 backdrop-blur-md border border-white/10 rounded-2xl shadow-lg">
-                    <div class="p-6 border-b border-white/10 flex items-center justify-between">
-                        <h3 class="text-lg font-bold text-white">5 Produk Terlaris Bulan Ini</h3>
-                        <!-- hook future: filter -->
-                        <span class="text-xs text-gray-300 bg-white/10 border border-white/10 rounded-full px-3 py-1">
-                            View: {{ viewTop }}
-                        </span>
-                    </div>
-
-                    <div class="p-6 h-96">
-                        <Bar v-if="topProductsTable.length" :data="chartData" :options="chartOptions" />
-                        <div v-else class="h-full flex items-center justify-center text-gray-300">
-                            Belum ada data produk terlaris.
+                        <div class="bg-white/95 text-[#1f1f1f] border border-[#9c9c9c] p-3 min-h-[220px]">
+                            <div class="text-xs font-semibold border-b border-[#9c9c9c] pb-1">
+                                Pembelian Supplier Terbanyak
+                            </div>
+                            <table class="w-full text-xs mt-2">
+                                <thead class="text-left text-[#333]">
+                                    <tr>
+                                        <th class="py-1">Supplier</th>
+                                        <th class="py-1 text-right">Total</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr v-for="supplier in topSuppliersTable" :key="supplier.name">
+                                        <td class="py-1">{{ supplier.name }}</td>
+                                        <td class="py-1 text-right">{{ formatCurrency(supplier.total) }}</td>
+                                    </tr>
+                                    <tr v-if="!topSuppliersTable.length">
+                                        <td colspan="2" class="py-4 text-center text-[#666]">Belum ada data.</td>
+                                    </tr>
+                                </tbody>
+                            </table>
                         </div>
                     </div>
-                </div>
 
-                <!-- Table -->
-                <div class="bg-white/10 backdrop-blur-md border border-white/10 rounded-2xl shadow-lg">
-                    <div class="p-6 border-b border-white/10">
-                        <h3 class="text-lg font-bold text-white">Peringkat Produk</h3>
-                    </div>
+                    <div class="mt-4 grid grid-cols-1 lg:grid-cols-[1fr_200px] gap-4">
+                        <div class="bg-white/95 text-[#1f1f1f] border border-[#9c9c9c] p-3 min-h-[260px]">
+                            <div class="text-xs font-semibold border-b border-[#9c9c9c] pb-1">
+                                Grafik Penjualan 1 Bulan Terakhir
+                            </div>
+                            <div class="h-52 mt-2">
+                                <Line v-if="salesChartData.labels.length" :data="salesChartData"
+                                    :options="salesChartOptions" />
+                                <div v-else class="h-full flex items-center justify-center text-[#666] text-xs">
+                                    Belum ada data grafik.
+                                </div>
+                            </div>
+                        </div>
 
-                    <div class="p-6">
-                        <table class="w-full text-white">
-                            <thead>
-                                <tr class="text-left text-sm font-semibold text-gray-300 border-b border-white/10">
-                                    <th class="py-3">#</th>
-                                    <th class="py-3">Nama Produk</th>
-                                    <th class="py-3 text-right">Terjual</th>
-                                </tr>
-                            </thead>
-
-                            <tbody>
-                                <tr v-for="(product, index) in topProductsTable" :key="product.name"
-                                    class="border-t border-white/10">
-                                    <td class="py-3 text-gray-300">{{ index + 1 }}</td>
-                                    <td class="py-3 font-medium">{{ product.name }}</td>
-                                    <td class="py-3 text-right font-semibold">{{ product.qty }}</td>
-                                </tr>
-
-                                <tr v-if="!topProductsTable.length">
-                                    <td colspan="3" class="py-6 text-center text-gray-300">
-                                        Belum ada data.
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
+                        <div class="bg-white/95 text-[#1f1f1f] border border-[#9c9c9c] p-3">
+                            <div class="text-xs font-semibold border-b border-[#9c9c9c] pb-1">Shortcut</div>
+                            <div class="mt-3 space-y-2">
+                                <Link :href="route('sales.create')"
+                                    class="block w-full text-center py-2 bg-[#e9e9e9] border border-[#9c9c9c] text-[#1f1f1f] shadow-sm text-sm font-semibold hover:bg-white">
+                                    PENJUALAN
+                                </Link>
+                                <Link :href="route('purchases.create')"
+                                    class="block w-full text-center py-2 bg-[#e9e9e9] border border-[#9c9c9c] text-[#1f1f1f] shadow-sm text-sm font-semibold hover:bg-white">
+                                    PEMBELIAN
+                                </Link>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>

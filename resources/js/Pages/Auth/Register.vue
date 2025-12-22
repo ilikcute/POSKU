@@ -1,72 +1,53 @@
 <template>
-    <div
-        class="relative min-h-screen flex flex-col justify-center items-center bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-500 text-white overflow-hidden">
-        <!-- Decorative Gradient Blobs -->
-        <div class="absolute -top-24 -left-24 w-72 h-72 rounded-full bg-indigo-400/30 blur-3xl"></div>
-        <div class="absolute -bottom-20 -right-20 w-80 h-80 rounded-full bg-pink-400/25 blur-3xl"></div>
-
-        <!-- Register Card -->
-        <div
-            class="relative z-10 w-full max-w-md bg-white/10 backdrop-blur-lg rounded-2xl shadow-2xl p-8 animate-fade-in-up">
-            <!-- Logo and Title -->
-            <div class="flex flex-col items-center mb-8">
-                <img :src="logoUrl" alt="POSKU Logo" class="h-14 w-auto drop-shadow-lg mb-4" />
-                <h1
-                    class="text-3xl font-extrabold bg-gradient-to-r from-indigo-300 to-pink-300 bg-clip-text text-transparent">
-                    Buat Akun Baru
-                </h1>
-                <p class="text-white/80 mt-2 text-center">Daftar untuk mulai menggunakan POSKU</p>
+    <div class="min-h-screen bg-[#e6e6e6] flex items-center justify-center p-4 font-[Tahoma] text-[#1f1f1f]">
+        <div class="w-full max-w-md bg-[#f7f7f7] border border-[#9c9c9c] rounded p-6 shadow-sm">
+            <div class="flex flex-col items-center mb-6">
+                <img :src="logoUrl" alt="POSKU Logo" class="h-12 w-auto mb-3" />
+                <h1 class="text-xl font-bold">Buat Akun Baru</h1>
+                <p class="text-xs text-[#555] mt-1 text-center">Daftar untuk mulai menggunakan POSKU.</p>
             </div>
 
-            <!-- Register Form -->
-            <form @submit.prevent="submit" class="space-y-6">
+            <form @submit.prevent="submit" class="space-y-4">
                 <div>
-                    <label for="name" class="block text-sm font-medium text-white/90">Nama Lengkap</label>
+                    <label for="name" class="block text-sm font-medium text-[#1f1f1f]">Nama Lengkap</label>
                     <input id="name" v-model="form.name" type="text" required autofocus
-                        class="mt-1 block w-full px-4 py-3 rounded-xl border border-white/20 bg-white/20 text-white placeholder-white/70 focus:ring-2 focus:ring-pink-400 focus:outline-none"
+                        class="mt-1 block w-full px-3 py-2 rounded border border-[#9c9c9c] bg-white text-[#1f1f1f] focus:ring-2 focus:ring-blue-500 focus:outline-none"
                         placeholder="Nama Anda" />
                 </div>
 
                 <div>
-                    <label for="email" class="block text-sm font-medium text-white/90">Email</label>
+                    <label for="email" class="block text-sm font-medium text-[#1f1f1f]">Email</label>
                     <input id="email" v-model="form.email" type="email" required
-                        class="mt-1 block w-full px-4 py-3 rounded-xl border border-white/20 bg-white/20 text-white placeholder-white/70 focus:ring-2 focus:ring-pink-400 focus:outline-none"
+                        class="mt-1 block w-full px-3 py-2 rounded border border-[#9c9c9c] bg-white text-[#1f1f1f] focus:ring-2 focus:ring-blue-500 focus:outline-none"
                         placeholder="contoh@email.com" />
                 </div>
 
                 <div>
-                    <label for="password" class="block text-sm font-medium text-white/90">Password</label>
+                    <label for="password" class="block text-sm font-medium text-[#1f1f1f]">Password</label>
                     <input id="password" v-model="form.password" type="password" required
-                        class="mt-1 block w-full px-4 py-3 rounded-xl border border-white/20 bg-white/20 text-white placeholder-white/70 focus:ring-2 focus:ring-pink-400 focus:outline-none"
+                        class="mt-1 block w-full px-3 py-2 rounded border border-[#9c9c9c] bg-white text-[#1f1f1f] focus:ring-2 focus:ring-blue-500 focus:outline-none"
                         placeholder="********" />
                 </div>
 
                 <div>
-                    <label for="password_confirmation" class="block text-sm font-medium text-white/90">Konfirmasi
+                    <label for="password_confirmation" class="block text-sm font-medium text-[#1f1f1f]">Konfirmasi
                         Password</label>
                     <input id="password_confirmation" v-model="form.password_confirmation" type="password" required
-                        class="mt-1 block w-full px-4 py-3 rounded-xl border border-white/20 bg-white/20 text-white placeholder-white/70 focus:ring-2 focus:ring-pink-400 focus:outline-none"
+                        class="mt-1 block w-full px-3 py-2 rounded border border-[#9c9c9c] bg-white text-[#1f1f1f] focus:ring-2 focus:ring-blue-500 focus:outline-none"
                         placeholder="********" />
                 </div>
 
                 <button type="submit"
-                    class="w-full bg-gradient-to-r from-indigo-500 to-pink-500 text-white font-bold py-3 px-6 rounded-xl shadow-lg hover:scale-105 hover:from-indigo-600 hover:to-pink-600 transition-transform duration-200">
+                    class="w-full bg-[#e9e9e9] text-[#1f1f1f] border border-[#9c9c9c] py-2 text-xs font-semibold shadow-sm hover:bg-white transition-colors">
                     Daftar
                 </button>
             </form>
 
-            <!-- Login CTA -->
-            <p class="mt-6 text-center text-white/80">
+            <p class="mt-4 text-center text-xs text-[#555]">
                 Sudah punya akun?
-                <Link :href="route('login')" class="font-semibold text-pink-200 hover:text-pink-100 transition">Masuk
-                </Link>
+                <Link :href="route('login')" class="font-semibold text-[#1f1f1f] hover:underline">Masuk</Link>
             </p>
         </div>
-
-        <!-- Footer -->
-        <footer class="relative z-10 mt-8 text-center text-sm text-white/70 animate-fade-in-up delay-300">
-            &copy; 2025 <span class="font-bold text-white">POSKU</span>. All Rights Reserved.
-        </footer>
     </div>
 </template>
 
@@ -102,24 +83,4 @@ export default {
 };
 </script>
 
-<style scoped>
-@keyframes fadeInUp {
-    from {
-        opacity: 0;
-        transform: translateY(20px);
-    }
-
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
-
-.animate-fade-in-up {
-    animation: fadeInUp 0.8s ease forwards;
-}
-
-.delay-300 {
-    animation-delay: 0.3s;
-}
-</style>
+<style scoped></style>

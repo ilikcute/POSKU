@@ -5,7 +5,6 @@ import { Head, useForm, usePage, Link } from "@inertiajs/vue3";
 import InputLabel from "@/Components/InputLabel.vue";
 import TextInput from "@/Components/TextInput.vue";
 import InputError from "@/Components/InputError.vue";
-import PrimaryButton from "@/Components/PrimaryButton.vue";
 
 const props = defineProps({
     businessDate: { type: String, required: true },
@@ -44,41 +43,44 @@ const submit = () => {
 
     <AuthenticatedLayout>
         <template #header>
-            <h2 class="font-semibold text-xl text-white leading-tight">Tutup Kasir Harian</h2>
+            <div>
+                <h2 class="font-semibold text-lg text-[#1f1f1f] leading-tight">Tutup Kasir Harian</h2>
+                <p class="text-xs text-[#555]">Tutup harian untuk station yang sedang aktif.</p>
+            </div>
         </template>
 
         <div class="max-w-5xl mx-auto space-y-6">
             <div v-if="flash.success"
-                class="rounded-xl bg-emerald-500/15 border border-emerald-400/30 p-4 text-emerald-100">
+                class="rounded border border-[#9c9c9c] bg-[#e1f3e1] p-4 text-[#1f1f1f]">
                 {{ flash.success }}
             </div>
-            <div v-if="flash.warning" class="rounded-xl bg-amber-500/15 border border-amber-400/30 p-4 text-amber-100">
+            <div v-if="flash.warning" class="rounded border border-[#9c9c9c] bg-[#fff1d6] p-4 text-[#1f1f1f]">
                 {{ flash.warning }}
             </div>
 
             <!-- Header -->
-            <div class="bg-white/10 backdrop-blur-md border border-white/10 rounded-2xl p-6">
+            <div class="bg-[#f7f7f7] border border-[#9c9c9c] rounded p-6">
                 <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
                     <div>
-                        <div class="text-white text-2xl font-bold">Tutup Kasir Harian (Station)</div>
-                        <div class="text-gray-300 mt-1">
-                            Station: <span class="text-white font-semibold">{{ station.name }}</span>
-                            <span class="mx-2 text-gray-500">•</span>
-                            Device: <span class="text-white font-semibold">{{ station.device_identifier }}</span>
+                        <div class="text-[#1f1f1f] text-xl font-bold">Tutup Kasir Harian (Station)</div>
+                        <div class="text-[#555] mt-1">
+                            Station: <span class="text-[#1f1f1f] font-semibold">{{ station.name }}</span>
+                            <span class="mx-2 text-[#555]">•</span>
+                            Device: <span class="text-[#1f1f1f] font-semibold">{{ station.device_identifier }}</span>
                         </div>
-                        <div class="text-gray-300 mt-1">
-                            Business date: <span class="text-white font-semibold">{{ businessDate }}</span>
+                        <div class="text-[#555] mt-1">
+                            Business date: <span class="text-[#1f1f1f] font-semibold">{{ businessDate }}</span>
                         </div>
                     </div>
 
                     <div v-if="alreadyClosed"
-                        class="px-4 py-2 rounded-xl bg-emerald-500/15 border border-emerald-400/30 text-emerald-100">
+                        class="px-4 py-2 rounded bg-[#e1f3e1] border border-[#9c9c9c] text-[#1f1f1f] text-sm">
                         Sudah ditutup
-                        <div v-if="existing?.closed_at" class="text-xs text-emerald-200 mt-1">
+                        <div v-if="existing?.closed_at" class="text-xs text-[#555] mt-1">
                             closed_at: {{ existing.closed_at }}
                         </div>
                     </div>
-                    <div v-else class="px-4 py-2 rounded-xl bg-blue-500/15 border border-blue-400/30 text-blue-100">
+                    <div v-else class="px-4 py-2 rounded bg-[#f0f0f0] border border-[#9c9c9c] text-[#1f1f1f] text-sm">
                         Belum ditutup
                     </div>
                 </div>
@@ -86,63 +88,63 @@ const submit = () => {
 
             <!-- Ringkasan -->
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div class="bg-white/10 border border-white/10 rounded-2xl p-5">
-                    <div class="text-gray-300 text-sm">Total Sales</div>
-                    <div class="text-white text-2xl font-bold mt-1">{{ currency(summary.totalSales) }}</div>
-                    <div class="text-gray-400 text-sm mt-2">
-                        Sales count: <span class="text-white font-semibold">{{ summary.salesCount }}</span>
+                <div class="bg-[#f7f7f7] border border-[#9c9c9c] rounded p-5">
+                    <div class="text-[#555] text-sm">Total Sales</div>
+                    <div class="text-[#1f1f1f] text-xl font-bold mt-1">{{ currency(summary.totalSales) }}</div>
+                    <div class="text-[#555] text-sm mt-2">
+                        Sales count: <span class="text-[#1f1f1f] font-semibold">{{ summary.salesCount }}</span>
                     </div>
                 </div>
 
-                <div class="bg-white/10 border border-white/10 rounded-2xl p-5">
-                    <div class="text-gray-300 text-sm">Total Sales Return</div>
-                    <div class="text-white text-2xl font-bold mt-1">{{ currency(summary.totalSalesReturn) }}</div>
-                    <div class="text-gray-400 text-sm mt-2">
-                        Discount: <span class="text-white font-semibold">{{ currency(summary.totalDiscount) }}</span>
+                <div class="bg-[#f7f7f7] border border-[#9c9c9c] rounded p-5">
+                    <div class="text-[#555] text-sm">Total Sales Return</div>
+                    <div class="text-[#1f1f1f] text-xl font-bold mt-1">{{ currency(summary.totalSalesReturn) }}</div>
+                    <div class="text-[#555] text-sm mt-2">
+                        Discount: <span class="text-[#1f1f1f] font-semibold">{{ currency(summary.totalDiscount) }}</span>
                     </div>
                 </div>
 
-                <div class="bg-white/10 border border-white/10 rounded-2xl p-5">
-                    <div class="text-gray-300 text-sm">Total Tax</div>
-                    <div class="text-white text-2xl font-bold mt-1">{{ currency(summary.totalTax) }}</div>
-                    <div class="text-gray-400 text-sm mt-2">
-                        Shift closed: <span class="text-white font-semibold">{{ summary.shiftCount }}</span>
+                <div class="bg-[#f7f7f7] border border-[#9c9c9c] rounded p-5">
+                    <div class="text-[#555] text-sm">Total Tax</div>
+                    <div class="text-[#1f1f1f] text-xl font-bold mt-1">{{ currency(summary.totalTax) }}</div>
+                    <div class="text-[#555] text-sm mt-2">
+                        Shift closed: <span class="text-[#1f1f1f] font-semibold">{{ summary.shiftCount }}</span>
                     </div>
                 </div>
             </div>
 
             <!-- Cash drawer -->
-            <div class="bg-white/10 border border-white/10 rounded-2xl p-6 space-y-4">
-                <div class="text-white text-lg font-semibold">Cash Drawer</div>
+            <div class="bg-[#f7f7f7] border border-[#9c9c9c] rounded p-6 space-y-4">
+                <div class="text-[#1f1f1f] text-lg font-semibold">Cash Drawer</div>
 
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                    <div class="bg-white/5 border border-white/10 rounded-xl p-4">
-                        <div class="text-gray-300 text-sm">Initial Cash Sum</div>
-                        <div class="text-white font-bold mt-1">{{ currency(summary.initialCashSum) }}</div>
+                    <div class="bg-white border border-[#9c9c9c] rounded p-4">
+                        <div class="text-[#555] text-sm">Initial Cash Sum</div>
+                        <div class="text-[#1f1f1f] font-bold mt-1">{{ currency(summary.initialCashSum) }}</div>
                     </div>
 
-                    <div class="bg-white/5 border border-white/10 rounded-xl p-4">
-                        <div class="text-gray-300 text-sm">Cash Sales</div>
-                        <div class="text-white font-bold mt-1">{{ currency(summary.cashSales) }}</div>
+                    <div class="bg-white border border-[#9c9c9c] rounded p-4">
+                        <div class="text-[#555] text-sm">Cash Sales</div>
+                        <div class="text-[#1f1f1f] font-bold mt-1">{{ currency(summary.cashSales) }}</div>
                     </div>
 
-                    <div class="bg-white/5 border border-white/10 rounded-xl p-4 md:col-span-2">
-                        <div class="text-gray-300 text-sm">Expected Cash (Sistem)</div>
-                        <div class="text-white text-xl font-bold mt-1">{{ currency(expectedCash) }}</div>
-                        <div class="text-gray-400 text-xs mt-1">
+                    <div class="bg-white border border-[#9c9c9c] rounded p-4 md:col-span-2">
+                        <div class="text-[#555] text-sm">Expected Cash (Sistem)</div>
+                        <div class="text-[#1f1f1f] text-xl font-bold mt-1">{{ currency(expectedCash) }}</div>
+                        <div class="text-[#555] text-xs mt-1">
                             expectedCash = initialCashSum + cashSales - salesReturn - cashPurchase + purchaseReturn
                         </div>
                     </div>
                 </div>
 
-                <div class="bg-white/5 border border-white/10 rounded-xl p-4">
-                    <div class="text-gray-300 text-sm">Payments Breakdown</div>
+                <div class="bg-white border border-[#9c9c9c] rounded p-4">
+                    <div class="text-[#555] text-sm">Payments Breakdown</div>
                     <div class="mt-2 space-y-1">
                         <div v-for="p in summary.payments" :key="p.method" class="flex justify-between text-sm">
-                            <span class="text-gray-300">{{ p.method }}</span>
-                            <span class="text-white font-semibold">{{ currency(p.total) }}</span>
+                            <span class="text-[#555]">{{ p.method }}</span>
+                            <span class="text-[#1f1f1f] font-semibold">{{ currency(p.total) }}</span>
                         </div>
-                        <div v-if="!summary.payments || summary.payments.length === 0" class="text-gray-500 text-sm">
+                        <div v-if="!summary.payments || summary.payments.length === 0" class="text-[#555] text-sm">
                             Tidak ada transaksi.
                         </div>
                     </div>
@@ -150,19 +152,18 @@ const submit = () => {
             </div>
 
             <!-- Form -->
-            <div class="bg-white/10 backdrop-blur-md border border-white/10 rounded-2xl p-6">
+            <div class="bg-[#f7f7f7] border border-[#9c9c9c] rounded p-6">
                 <form @submit.prevent="submit" class="space-y-5">
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
-                            <InputLabel for="cash_counted" value="Cash Counted" class="text-white" />
+                            <InputLabel for="cash_counted" value="Cash Counted" class="text-[#1f1f1f]" />
                             <TextInput id="cash_counted" type="number"
-                                class="mt-1 block w-full bg-white/5 border-white/20 focus:ring-blue-500 focus:border-blue-500 rounded-lg"
+                                class="mt-1 block w-full bg-white border-[#9c9c9c] focus:ring-blue-500 focus:border-blue-500 rounded"
                                 v-model="form.cash_counted" :disabled="alreadyClosed" min="0" step="0.01" required />
-                            <InputError class="mt-2" :message="form.errors.cash_counted" />
-                            <div class="text-gray-400 text-xs mt-2">
+                            <InputError class="mt-2 text-red-600" :message="form.errors.cash_counted" />
+                            <div class="text-[#555] text-xs mt-2">
                                 Variance (live):
-                                <span class="font-semibold"
-                                    :class="varianceLive === 0 ? 'text-white' : varianceLive > 0 ? 'text-emerald-200' : 'text-rose-200'">
+                                <span class="font-semibold text-[#1f1f1f]">
                                     {{ currency(varianceLive) }}
                                 </span>
                             </div>
@@ -170,26 +171,27 @@ const submit = () => {
 
                         <div>
                             <InputLabel for="authorization_password"
-                                value="Password Otorisasi (Authorization: 'Tutup Harian')" class="text-white" />
+                                value="Password Otorisasi (Authorization: 'Tutup Harian')" class="text-[#1f1f1f]" />
                             <TextInput id="authorization_password" type="password"
-                                class="mt-1 block w-full bg-white/5 border-white/20 focus:ring-blue-500 focus:border-blue-500 rounded-lg"
+                                class="mt-1 block w-full bg-white border-[#9c9c9c] focus:ring-blue-500 focus:border-blue-500 rounded"
                                 v-model="form.authorization_password" :disabled="alreadyClosed" required />
-                            <InputError class="mt-2" :message="form.errors.authorization_password" />
+                            <InputError class="mt-2 text-red-600" :message="form.errors.authorization_password" />
                         </div>
                     </div>
 
                     <div class="flex items-center justify-end gap-2">
                         <Link :href="route('eod.index')"
-                            class="px-4 py-2 rounded-xl bg-white/10 border border-white/20 text-white hover:bg-white/15">
+                            class="px-4 py-2 rounded bg-[#e9e9e9] border border-[#9c9c9c] text-[#1f1f1f] text-xs font-semibold hover:bg-white">
                             Riwayat EOD
                         </Link>
 
-                        <PrimaryButton type="submit" class="rounded-xl" :disabled="form.processing || alreadyClosed">
+                        <button type="submit" :disabled="form.processing || alreadyClosed"
+                            class="inline-flex items-center bg-[#e9e9e9] text-[#1f1f1f] border border-[#9c9c9c] px-4 py-2 text-xs font-semibold shadow-sm hover:bg-white transition-colors">
                             {{ alreadyClosed ? "Sudah Ditutup" : "Simpan Tutup Harian Station" }}
-                        </PrimaryButton>
+                        </button>
                     </div>
 
-                    <div v-if="alreadyClosed" class="text-gray-300 text-sm">
+                    <div v-if="alreadyClosed" class="text-[#555] text-sm">
                         Data tidak bisa diubah karena station daily closing sudah tersimpan untuk tanggal ini.
                     </div>
                 </form>

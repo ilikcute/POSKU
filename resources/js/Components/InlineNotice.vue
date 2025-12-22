@@ -1,7 +1,7 @@
 <template>
     <div
         :class="[
-            'flex items-start gap-3 rounded-xl px-4 py-3 text-sm',
+            'flex items-start gap-3 rounded px-4 py-3 text-xs',
             variantClasses[variant],
         ]"
     >
@@ -13,7 +13,7 @@
         >
             <slot name="icon">!</slot>
         </span>
-        <div class="text-white/90">
+        <div class="text-[#1f1f1f]">
             <slot />
         </div>
     </div>
@@ -21,17 +21,17 @@
 
 <script setup>
 const variantClasses = {
-    info: 'bg-blue-500/10 border border-blue-400/40',
-    success: 'bg-green-500/10 border border-green-400/40',
-    warning: 'bg-amber-500/10 border border-amber-400/40',
-    danger: 'bg-rose-500/10 border border-rose-400/40',
+    info: 'bg-[#f7f7f7] border border-[#9c9c9c]',
+    success: 'bg-[#f7f7f7] border border-[#9c9c9c]',
+    warning: 'bg-[#f7f7f7] border border-[#9c9c9c]',
+    danger: 'bg-[#f7f7f7] border border-[#9c9c9c]',
 };
 
 const badgeClasses = {
-    info: 'bg-blue-500/80 text-white',
-    success: 'bg-green-500/80 text-white',
-    warning: 'bg-amber-500/80 text-amber-950',
-    danger: 'bg-rose-500/80 text-white',
+    info: 'bg-[#e9e9e9] text-[#1f1f1f] border border-[#9c9c9c]',
+    success: 'bg-[#e9e9e9] text-[#1f1f1f] border border-[#9c9c9c]',
+    warning: 'bg-[#e9e9e9] text-[#1f1f1f] border border-[#9c9c9c]',
+    danger: 'bg-[#e9e9e9] text-[#1f1f1f] border border-[#9c9c9c]',
 };
 
 defineProps({

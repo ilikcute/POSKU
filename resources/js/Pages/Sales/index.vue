@@ -1,6 +1,6 @@
 <script setup>
-import { Head, useForm } from '@inertiajs/vue3';
-import { ref, computed, watch } from 'vue';
+import { Head, router } from '@inertiajs/vue3';
+import { ref, watch } from 'vue';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import Pagination from '@/Components/Pagination.vue';
 
@@ -31,14 +31,14 @@ const formatCurrency = (value) => {
         <template #header>
             <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <div>
-                    <h2 class="font-semibold text-xl text-white leading-tight">Daftar Penjualan</h2>
-                    <p class="text-sm text-gray-400 mt-1">Kelola data transaksi penjualan dengan tampilan konsisten.</p>
+                    <h2 class="font-semibold text-lg text-[#1f1f1f] leading-tight">Daftar Penjualan</h2>
+                    <p class="text-xs text-[#555] mt-1">Kelola data transaksi penjualan dengan tampilan konsisten.</p>
                 </div>
                 <div class="flex items-center gap-3">
                     <input v-model="search" type="text" placeholder="Cari nomor invoice..."
-                        class="bg-white/5 border border-white/20 rounded-lg text-gray-200 focus:ring-blue-500 focus:border-blue-500 px-4 py-2" />
+                        class="bg-white border border-[#9c9c9c] rounded text-[#1f1f1f] focus:ring-blue-500 focus:border-blue-500 px-4 py-2 text-xs" />
                     <button @click="$inertia.reload({ only: ['sales'] })"
-                        class="bg-gradient-to-r from-blue-400 to-sky-400 text-white font-bold py-2 px-4 rounded-lg hover:from-blue-500 hover:to-sky-500 transition">
+                        class="bg-[#e9e9e9] text-[#1f1f1f] font-semibold py-2 px-4 rounded border border-[#9c9c9c] hover:bg-white transition text-xs">
                         Refresh
                     </button>
                 </div>
@@ -46,39 +46,38 @@ const formatCurrency = (value) => {
         </template>
 
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-6">
-            <div class="backdrop-blur-md bg-white/5 border border-white/10 rounded-2xl shadow-xl overflow-hidden">
+            <div class="bg-[#f7f7f7] border border-[#9c9c9c] rounded shadow-sm overflow-hidden">
                 <div class="overflow-x-auto">
-                    <table class="min-w-full text-sm text-gray-200">
-                        <thead
-                            class="bg-gradient-to-r from-purple-600/30 to-blue-600/30 backdrop-blur-sm border-b border-white/20">
+                    <table class="min-w-full text-xs text-[#1f1f1f]">
+                        <thead class="bg-[#efefef] border-b border-[#9c9c9c]">
                             <tr>
                                 <th
-                                    class="px-6 py-4 text-left text-xs uppercase tracking-wider font-semibold text-white/90">
+                                    class="px-6 py-3 text-left text-xs uppercase tracking-wider font-semibold text-[#1f1f1f]">
                                     No
                                     Invoice</th>
                                 <th
-                                    class="px-6 py-4 text-left text-xs uppercase tracking-wider font-semibold text-white/90">
+                                    class="px-6 py-3 text-left text-xs uppercase tracking-wider font-semibold text-[#1f1f1f]">
                                     Tanggal</th>
                                 <th
-                                    class="px-6 py-4 text-left text-xs uppercase tracking-wider font-semibold text-white/90">
+                                    class="px-6 py-3 text-left text-xs uppercase tracking-wider font-semibold text-[#1f1f1f]">
                                     Kasir</th>
                                 <th
-                                    class="px-6 py-4 text-left text-xs uppercase tracking-wider font-semibold text-white/90">
+                                    class="px-6 py-3 text-left text-xs uppercase tracking-wider font-semibold text-[#1f1f1f]">
                                     Pelanggan</th>
                                 <th
-                                    class="px-6 py-4 text-right text-xs uppercase tracking-wider font-semibold text-white/90">
+                                    class="px-6 py-3 text-right text-xs uppercase tracking-wider font-semibold text-[#1f1f1f]">
                                     Total</th>
                                 <th
-                                    class="px-6 py-4 text-left text-xs uppercase tracking-wider font-semibold text-white/90">
+                                    class="px-6 py-3 text-left text-xs uppercase tracking-wider font-semibold text-[#1f1f1f]">
                                     Metode Bayar</th>
                                 <th
-                                    class="px-6 py-4 text-left text-xs uppercase tracking-wider font-semibold text-white/90">
+                                    class="px-6 py-3 text-left text-xs uppercase tracking-wider font-semibold text-[#1f1f1f]">
                                     Status</th>
                             </tr>
                         </thead>
-                        <tbody class="divide-y divide-gray-700/50">
+                        <tbody class="divide-y divide-[#d0d0d0]">
                             <tr v-for="sale in props.sales.data" :key="sale.id"
-                                class="hover:bg-white/5 transition-all duration-200">
+                                class="hover:bg-white transition-all duration-200">
                                 <td class="px-6 py-4 font-mono">{{ sale.invoice_number }}</td>
                                 <td class="px-6 py-4">{{ new Date(sale.transaction_date).toLocaleDateString('id-ID') }}
                                 </td>
@@ -88,6 +87,11 @@ const formatCurrency = (value) => {
                                 </td>
                                 <td class="px-6 py-4">{{ sale.payment_method }}</td>
                                 <td class="px-6 py-4">{{ sale.status || 'Selesai' }}</td>
+                            </tr>
+                            <tr v-if="!props.sales.data.length">
+                                <td colspan="7" class="px-6 py-6 text-center text-[#555]">
+                                    Belum ada data penjualan.
+                                </td>
                             </tr>
                         </tbody>
                     </table>

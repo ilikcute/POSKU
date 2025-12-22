@@ -1,134 +1,137 @@
 <template>
-    <div class="p-6">
+    <AuthenticatedLayout>
+        <Head title="Edit Penjualan" />
 
-        <Head title="Edit Sale" />
-        <div class="max-w-4xl mx-auto">
-            <h1 class="text-3xl font-bold mb-8">Edit Sale</h1>
+        <template #header>
+            <div class="flex flex-col gap-2">
+                <h2 class="font-semibold text-lg text-[#1f1f1f] leading-tight">Edit Penjualan</h2>
+                <p class="text-xs text-[#555]">Perbarui data transaksi penjualan.</p>
+            </div>
+        </template>
 
-            <form @submit.prevent="updateSale" class="bg-white rounded-lg shadow p-6">
+        <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+            <form @submit.prevent="updateSale" class="bg-[#f7f7f7] border border-[#9c9c9c] rounded shadow-sm p-6">
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <!-- Customer Selection -->
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Customer</label>
+                        <label class="block text-xs font-semibold text-[#555] mb-2">Customer</label>
                         <select v-model="form.customer_id"
-                            class="w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
+                            class="w-full border-[#9c9c9c] bg-white rounded text-[#1f1f1f] focus:ring-blue-500 focus:border-blue-500">
                             <option value="">Walk-in Customer</option>
                             <option v-for="customer in customers" :key="customer.id" :value="customer.id">
                                 {{ customer.name }}
                             </option>
                         </select>
-                        <p v-if="form.errors.customer_id" class="mt-1 text-sm text-red-600">{{ form.errors.customer_id
+                        <p v-if="form.errors.customer_id" class="mt-1 text-xs text-red-600">{{ form.errors.customer_id
                             }}</p>
                     </div>
 
                     <!-- Salesman Selection -->
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Salesman</label>
+                        <label class="block text-xs font-semibold text-[#555] mb-2">Salesman</label>
                         <select v-model="form.salesman_id"
-                            class="w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
+                            class="w-full border-[#9c9c9c] bg-white rounded text-[#1f1f1f] focus:ring-blue-500 focus:border-blue-500">
                             <option value="">Select Salesman</option>
                             <option v-for="salesman in salesmen" :key="salesman.id" :value="salesman.id">
                                 {{ salesman.name }}
                             </option>
                         </select>
-                        <p v-if="form.errors.salesman_id" class="mt-1 text-sm text-red-600">{{ form.errors.salesman_id
+                        <p v-if="form.errors.salesman_id" class="mt-1 text-xs text-red-600">{{ form.errors.salesman_id
                             }}</p>
                     </div>
                 </div>
 
                 <!-- Products Section -->
                 <div class="mt-8">
-                    <h3 class="text-lg font-semibold mb-4">Products</h3>
+                    <h3 class="text-sm font-semibold mb-4 text-[#1f1f1f]">Products</h3>
                     <div class="space-y-4">
                         <div v-for="(item, index) in form.items" :key="index"
-                            class="flex items-center space-x-4 p-4 border rounded-lg">
+                            class="flex flex-col lg:flex-row lg:items-center gap-3 p-4 border border-[#9c9c9c] bg-white rounded">
                             <div class="flex-1">
                                 <select v-model="item.product_id" @change="updateProductPrice(index)"
-                                    class="w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
+                                    class="w-full border-[#9c9c9c] bg-white rounded text-[#1f1f1f] focus:ring-blue-500 focus:border-blue-500">
                                     <option value="">Select Product</option>
                                     <option v-for="product in products" :key="product.id" :value="product.id">
                                         {{ product.name }} - {{ formatCurrency(product.selling_price) }}
                                     </option>
                                 </select>
                             </div>
-                            <div class="w-24">
+                            <div class="w-full lg:w-24">
                                 <input v-model.number="item.quantity" @input="updateItemTotal(index)" type="number"
                                     min="1"
-                                    class="w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                                    class="w-full border-[#9c9c9c] bg-white rounded text-[#1f1f1f] focus:ring-blue-500 focus:border-blue-500"
                                     placeholder="Qty">
                             </div>
-                            <div class="w-32">
+                            <div class="w-full lg:w-32">
                                 <input v-model.number="item.price" @input="updateItemTotal(index)" type="number"
                                     step="0.01"
-                                    class="w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                                    class="w-full border-[#9c9c9c] bg-white rounded text-[#1f1f1f] focus:ring-blue-500 focus:border-blue-500"
                                     placeholder="Price">
                             </div>
-                            <div class="w-32 text-right font-semibold">
+                            <div class="w-full lg:w-32 text-right font-semibold text-[#1f1f1f]">
                                 {{ formatCurrency(item.total || 0) }}
                             </div>
-                            <button type="button" @click="removeItem(index)" class="text-red-600 hover:text-red-800">
-                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                        d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16">
-                                    </path>
-                                </svg>
+                            <button type="button" @click="removeItem(index)"
+                                class="inline-flex items-center justify-center bg-[#e9e9e9] border border-[#9c9c9c] rounded px-3 py-2 text-xs font-semibold text-[#1f1f1f] hover:bg-white">
+                                Hapus
                             </button>
                         </div>
                     </div>
                     <button type="button" @click="addItem"
-                        class="mt-4 bg-blue-500 hover:bg-blue-700 text-white px-4 py-2 rounded-md">
-                        Add Product
+                        class="mt-4 bg-[#e9e9e9] border border-[#9c9c9c] text-[#1f1f1f] px-4 py-2 rounded text-xs font-semibold hover:bg-white">
+                        Tambah Produk
                     </button>
                 </div>
 
                 <!-- Totals Section -->
-                <div class="mt-8 bg-gray-50 p-4 rounded-lg">
+                <div class="mt-8 bg-white border border-[#9c9c9c] p-4 rounded">
                     <div class="flex justify-between items-center">
-                        <span class="text-lg font-semibold">Total:</span>
-                        <span class="text-2xl font-bold text-blue-600">{{ formatCurrency(total) }}</span>
+                        <span class="text-sm font-semibold text-[#1f1f1f]">Total:</span>
+                        <span class="text-lg font-bold text-[#1f1f1f]">{{ formatCurrency(total) }}</span>
                     </div>
                 </div>
 
                 <!-- Payment Section -->
                 <div class="mt-8">
-                    <h3 class="text-lg font-semibold mb-4">Payment</h3>
+                    <h3 class="text-sm font-semibold mb-4 text-[#1f1f1f]">Payment</h3>
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-2">Payment Method</label>
+                            <label class="block text-xs font-semibold text-[#555] mb-2">Payment Method</label>
                             <select v-model="form.payment_method"
-                                class="w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
+                                class="w-full border-[#9c9c9c] bg-white rounded text-[#1f1f1f] focus:ring-blue-500 focus:border-blue-500">
                                 <option value="cash">Cash</option>
                                 <option value="card">Card</option>
                                 <option value="transfer">Bank Transfer</option>
                             </select>
                         </div>
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-2">Amount Paid</label>
+                            <label class="block text-xs font-semibold text-[#555] mb-2">Amount Paid</label>
                             <input v-model.number="form.amount_paid" type="number" step="0.01"
-                                class="w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
+                                class="w-full border-[#9c9c9c] bg-white rounded text-[#1f1f1f] focus:ring-blue-500 focus:border-blue-500">
                         </div>
                     </div>
                 </div>
 
                 <!-- Action Buttons -->
-                <div class="mt-8 flex justify-end space-x-4">
+                <div class="mt-8 flex justify-end gap-3">
                     <Link :href="route('sales.index')"
-                        class="bg-gray-500 hover:bg-gray-700 text-white px-4 py-2 rounded-md">
+                        class="bg-[#e9e9e9] border border-[#9c9c9c] text-[#1f1f1f] px-4 py-2 rounded text-xs font-semibold hover:bg-white">
                     Cancel
                     </Link>
                     <button type="submit" :disabled="form.processing"
-                        class="bg-blue-500 hover:bg-blue-700 text-white px-4 py-2 rounded-md disabled:opacity-50">
+                        class="bg-[#e9e9e9] border border-[#9c9c9c] text-[#1f1f1f] px-4 py-2 rounded text-xs font-semibold hover:bg-white disabled:opacity-50">
                         Update Sale
                     </button>
                 </div>
             </form>
         </div>
-    </div>
+    </AuthenticatedLayout>
 </template>
 
 <script setup>
+import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout.vue";
 import { Head, Link, useForm } from '@inertiajs/vue3';
-import { ref, computed, onMounted } from 'vue';
+import { computed, onMounted } from 'vue';
 
 const props = defineProps({
     sale: Object,

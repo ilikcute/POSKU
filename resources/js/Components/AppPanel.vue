@@ -1,10 +1,10 @@
 <template>
     <section
-        class="bg-white/5 border border-white/10 rounded-2xl shadow-xl backdrop-blur-md"
+        class="bg-[#f7f7f7] border border-[#9c9c9c] rounded shadow-sm"
     >
         <header
             v-if="$slots.headline"
-            class="px-6 py-4 border-b border-white/10 flex items-center justify-between gap-4"
+            class="px-6 py-4 border-b border-[#d0d0d0] flex items-center justify-between gap-4"
         >
             <slot name="headline" />
         </header>
@@ -13,7 +13,7 @@
         </div>
         <footer
             v-if="$slots.footer"
-            class="px-6 py-4 border-t border-white/10"
+            class="px-6 py-4 border-t border-[#d0d0d0]"
         >
             <slot name="footer" />
         </footer>

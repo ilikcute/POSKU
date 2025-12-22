@@ -144,21 +144,21 @@ const saveStoreProfile = () => {
         <template #header>
             <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <div>
-                    <h2 class="font-semibold text-xl text-white leading-tight">
+                    <h2 class="font-semibold text-lg text-[#1f1f1f] leading-tight">
                         Profil Toko
                     </h2>
-                    <p class="text-sm text-gray-400 mt-1">
+                    <p class="text-xs text-[#555] mt-1">
                         Kelola informasi dan pengaturan toko dengan tampilan konsisten.
                     </p>
                 </div>
 
                 <div class="flex flex-col sm:flex-row sm:items-center gap-3">
-                    <div class="flex bg-gray-800/50 rounded-lg p-1 backdrop-blur-sm">
+                    <div class="flex bg-[#f7f7f7] border border-[#9c9c9c] rounded p-1">
                         <button @click="viewMode = 'form'" :class="[
-                            'px-3 py-2 rounded-md text-sm font-medium transition-all duration-200',
+                            'px-3 py-2 rounded text-xs font-semibold transition-colors',
                             viewMode === 'form'
-                                ? 'bg-white/20 text-white shadow-sm'
-                                : 'text-gray-300 hover:text-white hover:bg-white/10'
+                                ? 'bg-white text-[#1f1f1f]'
+                                : 'text-[#555] hover:text-[#1f1f1f] hover:bg-[#f0f0f0]'
                         ]">
                             <svg class="w-4 h-4 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -167,10 +167,10 @@ const saveStoreProfile = () => {
                             Form
                         </button>
                         <button @click="viewMode = 'preview'" :class="[
-                            'px-3 py-2 rounded-md text-sm font-medium transition-all duration-200',
+                            'px-3 py-2 rounded text-xs font-semibold transition-colors',
                             viewMode === 'preview'
-                                ? 'bg-white/20 text-white shadow-sm'
-                                : 'text-gray-300 hover:text-white hover:bg-white/10'
+                                ? 'bg-white text-[#1f1f1f]'
+                                : 'text-[#555] hover:text-[#1f1f1f] hover:bg-[#f0f0f0]'
                         ]">
                             <svg class="w-4 h-4 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -183,7 +183,7 @@ const saveStoreProfile = () => {
                     </div>
 
                     <button @click="openModal"
-                        class="inline-flex items-center justify-center bg-gradient-to-r from-blue-400 to-blue-500 text-white font-bold py-3 px-6 rounded-full text-sm shadow-xl hover:scale-105 hover:from-blue-500 hover:to-blue-600 transition-transform duration-200">
+                        class="inline-flex items-center justify-center bg-[#e9e9e9] text-[#1f1f1f] border border-[#9c9c9c] font-semibold py-3 px-6 rounded text-xs hover:bg-white transition-colors">
                         <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                 d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
@@ -197,32 +197,32 @@ const saveStoreProfile = () => {
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <!-- Success Message -->
             <div v-if="form.recentlySuccessful"
-                class="mb-6 p-4 bg-green-500/20 border border-green-500/30 rounded-lg backdrop-blur-sm">
+                class="mb-6 p-4 bg-[#f7f7f7] border border-[#9c9c9c] rounded ">
                 <div class="flex items-center">
-                    <svg class="w-5 h-5 text-green-400 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg class="w-5 h-5 text-green-600 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                             d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
-                    <p class="text-green-400 font-medium">Profil toko berhasil diperbarui!</p>
+                    <p class="text-green-600 font-medium">Profil toko berhasil diperbarui!</p>
                 </div>
             </div>
 
             <!-- Store Profile Display -->
             <div v-if="viewMode === 'preview'"
-                class="backdrop-blur-md bg-white/5 border border-white/10 rounded-2xl shadow-xl p-8">
+                class="bg-[#f7f7f7] border border-[#9c9c9c] rounded shadow-sm p-8">
                 <div class="text-center mb-8">
                     <div
-                        class="w-24 h-24 mx-auto mb-4 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center">
-                        <svg v-if="!props.store.logo_path" class="w-12 h-12 text-white" fill="none"
+                        class="w-24 h-24 mx-auto mb-4 rounded bg-[#dbe7ff] border border-[#9c9c9c] flex items-center justify-center">
+                        <svg v-if="!props.store.logo_path" class="w-12 h-12 text-[#1f1f1f]" fill="none"
                             stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                 d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
                         </svg>
                         <img v-else :src="`/storage/${props.store.logo_path}`" alt="Logo Toko"
-                            class="w-full h-full object-cover rounded-full" />
+                            class="w-full h-full object-cover rounded" />
                     </div>
-                    <h1 class="text-3xl font-bold text-white mb-2">{{ props.store.name }}</h1>
-                    <div class="space-y-2 text-gray-300">
+                    <h1 class="text-3xl font-bold text-[#1f1f1f] mb-2">{{ props.store.name }}</h1>
+                    <div class="space-y-2 text-[#555]">
                         <p v-if="props.store.address" class="flex items-center justify-center">
                             <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -244,15 +244,15 @@ const saveStoreProfile = () => {
             </div>
 
             <!-- Empty state for form view -->
-            <div v-else class="text-center py-12 backdrop-blur-md bg-white/5 border border-white/10 rounded-2xl">
-                <svg class="mx-auto h-12 w-12 text-gray-400 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <div v-else class="text-center py-12  bg-white border border-[#9c9c9c] rounded">
+                <svg class="mx-auto h-12 w-12 text-[#555] mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                         d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
                 </svg>
-                <h3 class="text-lg font-medium text-gray-300 mb-2">Kelola Profil Toko</h3>
-                <p class="text-gray-400 mb-6">Klik tombol "Edit Profil" untuk memperbarui informasi toko Anda.</p>
+                <h3 class="text-sm font-semibold text-[#555] mb-2">Kelola Profil Toko</h3>
+                <p class="text-[#555] mb-6">Klik tombol "Edit Profil" untuk memperbarui informasi toko Anda.</p>
                 <button @click="openModal"
-                    class="inline-flex items-center bg-gradient-to-r from-blue-400 to-blue-500 text-white font-bold py-3 px-6 rounded-full text-sm shadow-xl hover:scale-105 hover:from-blue-500 hover:to-blue-600 transition-transform duration-200">
+                    class="inline-flex items-center bg-[#e9e9e9] text-[#1f1f1f] border border-[#9c9c9c] font-semibold py-3 px-6 rounded text-xs hover:bg-white transition-colors">
                     <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                             d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
@@ -265,17 +265,17 @@ const saveStoreProfile = () => {
         <!-- Edit Modal -->
         <Modal :show="isModalOpen" @close="closeModal">
             <div
-                class="p-8 bg-gray-900/95 backdrop-blur-md border border-white/10 rounded-2xl shadow-2xl max-w-2xl mx-auto space-y-6 text-white">
+                class="p-8 bg-[#f7f7f7]  border border-[#9c9c9c] rounded shadow-sm max-w-2xl mx-auto space-y-6 text-[#1f1f1f]">
                 <div class="flex items-center gap-3">
                     <div
-                        class="w-10 h-10 rounded-full bg-gradient-to-br from-blue-400 to-blue-500 flex items-center justify-center">
+                        class="w-10 h-10 rounded bg-[#dbe7ff] border border-[#9c9c9c] flex items-center justify-center">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                 d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                         </svg>
                     </div>
                     <h2
-                        class="text-2xl font-bold bg-gradient-to-r from-blue-400 to-blue-500 bg-clip-text text-transparent">
+                        class="text-sm font-semibold text-[#1f1f1f]">
                         Edit Profil Toko
                     </h2>
                 </div>
@@ -283,193 +283,193 @@ const saveStoreProfile = () => {
                 <form @submit.prevent="saveStoreProfile" class="space-y-6">
                     <div class="grid grid-cols-1 gap-6">
                         <div>
-                            <InputLabel for="name" value="Nama Toko *" class="text-gray-300 font-semibold" />
+                            <InputLabel for="name" value="Nama Toko *" class="text-[#555] font-semibold" />
                             <TextInput id="name" v-model="form.name"
-                                class="mt-2 block w-full bg-white/5 border-white/20 rounded-lg text-white placeholder-gray-400 focus:ring-blue-500 focus:border-blue-500"
+                                class="mt-2 block w-full bg-white border-[#9c9c9c] rounded text-[#1f1f1f] placeholder-gray-400 focus:ring-blue-500 focus:border-blue-500"
                                 placeholder="Masukkan nama toko" required />
                             <InputError :message="form.errors?.name" class="mt-2 text-red-400" />
                         </div>
 
                         <div>
-                            <InputLabel for="address" value="Alamat Toko" class="text-gray-300 font-semibold" />
+                            <InputLabel for="address" value="Alamat Toko" class="text-[#555] font-semibold" />
                             <textarea id="address" v-model="form.address" rows="3"
-                                class="mt-2 block w-full bg-white/5 border-white/20 rounded-lg text-white placeholder-gray-400 focus:ring-blue-500 focus:border-blue-500"
+                                class="mt-2 block w-full bg-white border-[#9c9c9c] rounded text-[#1f1f1f] placeholder-gray-400 focus:ring-blue-500 focus:border-blue-500"
                                 placeholder="Masukkan alamat lengkap toko"></textarea>
                             <InputError :message="form.errors?.address" class="mt-2 text-red-400" />
                         </div>
 
                         <div>
-                            <InputLabel for="phone" value="Nomor Telepon" class="text-gray-300 font-semibold" />
+                            <InputLabel for="phone" value="Nomor Telepon" class="text-[#555] font-semibold" />
                             <TextInput id="phone" v-model="form.phone"
-                                class="mt-2 block w-full bg-white/5 border-white/20 rounded-lg text-white placeholder-gray-400 focus:ring-blue-500 focus:border-blue-500"
+                                class="mt-2 block w-full bg-white border-[#9c9c9c] rounded text-[#1f1f1f] placeholder-gray-400 focus:ring-blue-500 focus:border-blue-500"
                                 placeholder="Contoh: 081234567890" />
                             <InputError :message="form.errors?.phone" class="mt-2 text-red-400" />
                         </div>
 
                         <div>
-                            <InputLabel for="email" value="Email Toko" class="text-gray-300 font-semibold" />
+                            <InputLabel for="email" value="Email Toko" class="text-[#555] font-semibold" />
                             <TextInput id="email" v-model="form.email" type="email"
-                                class="mt-2 block w-full bg-white/5 border-white/20 rounded-lg text-white placeholder-gray-400 focus:ring-blue-500 focus:border-blue-500"
+                                class="mt-2 block w-full bg-white border-[#9c9c9c] rounded text-[#1f1f1f] placeholder-gray-400 focus:ring-blue-500 focus:border-blue-500"
                                 placeholder="contoh@email.com" />
                             <InputError :message="form.errors?.email" class="mt-2 text-red-400" />
                         </div>
 
                         <div>
-                            <InputLabel for="website" value="Website Toko" class="text-gray-300 font-semibold" />
+                            <InputLabel for="website" value="Website Toko" class="text-[#555] font-semibold" />
                             <TextInput id="website" v-model="form.website"
-                                class="mt-2 block w-full bg-white/5 border-white/20 rounded-lg text-white placeholder-gray-400 focus:ring-blue-500 focus:border-blue-500"
+                                class="mt-2 block w-full bg-white border-[#9c9c9c] rounded text-[#1f1f1f] placeholder-gray-400 focus:ring-blue-500 focus:border-blue-500"
                                 placeholder="https://www.tokoanda.com" />
                             <InputError :message="form.errors?.website" class="mt-2 text-red-400" />
                         </div>
 
                         <div>
-                            <InputLabel for="tax" value="Nomor Pajak" class="text-gray-300 font-semibold" />
+                            <InputLabel for="tax" value="Nomor Pajak" class="text-[#555] font-semibold" />
                             <TextInput id="tax" v-model="form.tax"
-                                class="mt-2 block w-full bg-white/5 border-white/20 rounded-lg text-white placeholder-gray-400 focus:ring-blue-500 focus:border-blue-500"
+                                class="mt-2 block w-full bg-white border-[#9c9c9c] rounded text-[#1f1f1f] placeholder-gray-400 focus:ring-blue-500 focus:border-blue-500"
                                 placeholder="Contoh: 1234567890" />
                             <InputError :message="form.errors?.tax" class="mt-2 text-red-400" />
                         </div>
 
                         <div>
-                            <InputLabel for="logo" value="Logo Toko" class="text-gray-300 font-semibold" />
+                            <InputLabel for="logo" value="Logo Toko" class="text-[#555] font-semibold" />
                             <input id="logo" type="file" accept="image/*"
-                                class="mt-2 block w-full bg-white/5 border-white/20 rounded-lg text-white file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-500 file:text-white hover:file:bg-blue-600"
+                                class="mt-2 block w-full bg-white border-[#9c9c9c] rounded text-[#1f1f1f] file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-xs file:font-semibold file:bg-blue-500 file:text-[#1f1f1f] hover:file:bg-blue-600"
                                 @change="handleLogoChange" />
                             <InputError :message="form.errors?.logo" class="mt-2 text-red-400" />
-                            <p class="mt-2 text-sm text-gray-400">
+                            <p class="mt-2 text-xs text-[#555]">
                                 Pilih gambar logo toko Anda (format: JPG, PNG, GIF. Maksimal 2MB).
                             </p>
 
                             <!-- Logo Preview -->
                             <div class="mt-4">
-                                <p class="text-sm font-medium text-gray-300 mb-3">Preview Logo:</p>
+                                <p class="text-xs font-medium text-[#555] mb-3">Preview Logo:</p>
                                 <div class="flex items-center space-x-6">
                                     <!-- Current Logo (if exists and no new file selected) -->
                                     <div v-if="!logoPreview && props.store.logo_path" class="text-center">
-                                        <p class="text-xs text-gray-500 mb-2">Logo Saat Ini</p>
+                                        <p class="text-xs text-[#777] mb-2">Logo Saat Ini</p>
                                         <img :src="`/storage/${props.store.logo_path}`" alt="Logo Toko Saat Ini"
-                                            class="h-20 w-auto object-contain border border-white/20 rounded-lg shadow-sm"
+                                            class="h-20 w-auto object-contain border border-[#9c9c9c] rounded shadow-sm"
                                             @error="$event.target.style.display = 'none'" />
                                     </div>
 
                                     <!-- New Logo Preview -->
                                     <div v-if="logoPreview" class="text-center">
-                                        <p class="text-xs text-gray-500 mb-2">Logo Baru</p>
+                                        <p class="text-xs text-[#777] mb-2">Logo Baru</p>
                                         <img :src="logoPreview" alt="Preview Logo Baru"
-                                            class="h-20 w-auto object-contain border border-white/20 rounded-lg shadow-sm" />
+                                            class="h-20 w-auto object-contain border border-[#9c9c9c] rounded shadow-sm" />
                                     </div>
 
                                     <!-- No Logo State -->
                                     <div v-if="!logoPreview && !props.store.logo_path" class="text-center">
                                         <div
-                                            class="h-20 w-20 bg-gray-700 border border-white/20 rounded-lg flex items-center justify-center">
-                                            <svg class="w-8 h-8 text-gray-400" fill="none" stroke="currentColor"
+                                            class="h-20 w-20 bg-gray-700 border border-[#9c9c9c] rounded flex items-center justify-center">
+                                            <svg class="w-8 h-8 text-[#555]" fill="none" stroke="currentColor"
                                                 viewBox="0 0 24 24">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                                     d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                                             </svg>
                                         </div>
-                                        <p class="text-xs text-gray-400 mt-2">Belum ada logo</p>
+                                        <p class="text-xs text-[#555] mt-2">Belum ada logo</p>
                                     </div>
                                 </div>
                             </div>
                         </div>
 
                         <div>
-                            <InputLabel for="heroimage" value="Gambar Hero Toko" class="text-gray-300 font-semibold" />
+                            <InputLabel for="heroimage" value="Gambar Hero Toko" class="text-[#555] font-semibold" />
                             <input id="heroimage" type="file" accept="image/*"
-                                class="mt-2 block w-full bg-white/5 border-white/20 rounded-lg text-white file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-green-500 file:text-white hover:file:bg-green-600"
+                                class="mt-2 block w-full bg-white border-[#9c9c9c] rounded text-[#1f1f1f] file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-xs file:font-semibold file:bg-green-500 file:text-[#1f1f1f] hover:file:bg-green-600"
                                 @change="handleHeroimageChange" />
                             <InputError :message="form.errors?.heroimage" class="mt-2 text-red-400" />
-                            <p class="mt-2 text-sm text-gray-400">
+                            <p class="mt-2 text-xs text-[#555]">
                                 Pilih gambar hero untuk halaman welcome (format: JPG, PNG, GIF. Maksimal 2MB).
                             </p>
 
                             <!-- Hero Image Preview -->
                             <div class="mt-4">
-                                <p class="text-sm font-medium text-gray-300 mb-3">Preview Gambar Hero:</p>
+                                <p class="text-xs font-medium text-[#555] mb-3">Preview Gambar Hero:</p>
                                 <div class="flex items-center space-x-6">
                                     <!-- Current Hero Image (if exists and no new file selected) -->
                                     <div v-if="!heroimagePreview && props.store.heroimage_path" class="text-center">
-                                        <p class="text-xs text-gray-500 mb-2">Gambar Hero Saat Ini</p>
+                                        <p class="text-xs text-[#777] mb-2">Gambar Hero Saat Ini</p>
                                         <img :src="`/storage/${props.store.heroimage_path}`"
                                             alt="Gambar Hero Toko Saat Ini"
-                                            class="h-20 w-auto object-contain border border-white/20 rounded-lg shadow-sm"
+                                            class="h-20 w-auto object-contain border border-[#9c9c9c] rounded shadow-sm"
                                             @error="$event.target.style.display = 'none'" />
                                     </div>
 
                                     <!-- New Hero Image Preview -->
                                     <div v-if="heroimagePreview" class="text-center">
-                                        <p class="text-xs text-gray-500 mb-2">Gambar Hero Baru</p>
+                                        <p class="text-xs text-[#777] mb-2">Gambar Hero Baru</p>
                                         <img :src="heroimagePreview" alt="Preview Gambar Hero Baru"
-                                            class="h-20 w-auto object-contain border border-white/20 rounded-lg shadow-sm" />
+                                            class="h-20 w-auto object-contain border border-[#9c9c9c] rounded shadow-sm" />
                                     </div>
 
                                     <!-- No Hero Image State -->
                                     <div v-if="!heroimagePreview && !props.store.heroimage_path" class="text-center">
                                         <div
-                                            class="h-20 w-20 bg-gray-700 border border-white/20 rounded-lg flex items-center justify-center">
-                                            <svg class="w-8 h-8 text-gray-400" fill="none" stroke="currentColor"
+                                            class="h-20 w-20 bg-gray-700 border border-[#9c9c9c] rounded flex items-center justify-center">
+                                            <svg class="w-8 h-8 text-[#555]" fill="none" stroke="currentColor"
                                                 viewBox="0 0 24 24">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                                     d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                                             </svg>
                                         </div>
-                                        <p class="text-xs text-gray-400 mt-2">Belum ada gambar hero</p>
+                                        <p class="text-xs text-[#555] mt-2">Belum ada gambar hero</p>
                                     </div>
                                 </div>
                             </div>
                         </div>
 
                         <div>
-                            <InputLabel for="favicon" value="Favicon Toko" class="text-gray-300 font-semibold" />
+                            <InputLabel for="favicon" value="Favicon Toko" class="text-[#555] font-semibold" />
                             <input id="favicon" type="file" accept="image/*"
-                                class="mt-2 block w-full bg-white/5 border-white/20 rounded-lg text-white file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-purple-500 file:text-white hover:file:bg-purple-600"
+                                class="mt-2 block w-full bg-white border-[#9c9c9c] rounded text-[#1f1f1f] file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-xs file:font-semibold file:bg-purple-500 file:text-[#1f1f1f] hover:file:bg-purple-600"
                                 @change="handleFaviconChange" />
                             <InputError :message="form.errors?.favicon" class="mt-2 text-red-400" />
-                            <p class="mt-2 text-sm text-gray-400">
+                            <p class="mt-2 text-xs text-[#555]">
                                 Pilih gambar favicon untuk browser tab (format: ICO, PNG. Maksimal 512KB).
                             </p>
 
                             <!-- Favicon Preview -->
                             <div class="mt-4">
-                                <p class="text-sm font-medium text-gray-300 mb-3">Preview Favicon:</p>
+                                <p class="text-xs font-medium text-[#555] mb-3">Preview Favicon:</p>
                                 <div class="flex items-center space-x-6">
                                     <!-- Current Favicon (if exists and no new file selected) -->
                                     <div v-if="!faviconPreview && props.store.favicon_path" class="text-center">
-                                        <p class="text-xs text-gray-500 mb-2">Favicon Saat Ini</p>
+                                        <p class="text-xs text-[#777] mb-2">Favicon Saat Ini</p>
                                         <img :src="`/storage/${props.store.favicon_path}`" alt="Favicon Toko Saat Ini"
-                                            class="h-8 w-8 object-contain border border-white/20 rounded shadow-sm"
+                                            class="h-8 w-8 object-contain border border-[#9c9c9c] rounded shadow-sm"
                                             @error="$event.target.style.display = 'none'" />
                                     </div>
 
                                     <!-- New Favicon Preview -->
                                     <div v-if="faviconPreview" class="text-center">
-                                        <p class="text-xs text-gray-500 mb-2">Favicon Baru</p>
+                                        <p class="text-xs text-[#777] mb-2">Favicon Baru</p>
                                         <img :src="faviconPreview" alt="Preview Favicon Baru"
-                                            class="h-8 w-8 object-contain border border-white/20 rounded shadow-sm" />
+                                            class="h-8 w-8 object-contain border border-[#9c9c9c] rounded shadow-sm" />
                                     </div>
 
                                     <!-- No Favicon State -->
                                     <div v-if="!faviconPreview && !props.store.favicon_path" class="text-center">
                                         <div
-                                            class="h-8 w-8 bg-gray-700 border border-white/20 rounded flex items-center justify-center">
-                                            <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor"
+                                            class="h-8 w-8 bg-gray-700 border border-[#9c9c9c] rounded flex items-center justify-center">
+                                            <svg class="w-4 h-4 text-[#555]" fill="none" stroke="currentColor"
                                                 viewBox="0 0 24 24">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                                     d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                                             </svg>
                                         </div>
-                                        <p class="text-xs text-gray-400 mt-2">Belum ada favicon</p>
+                                        <p class="text-xs text-[#555] mt-2">Belum ada favicon</p>
                                     </div>
                                 </div>
                             </div>
                         </div>
                     </div>
 
-                    <div class="flex justify-end gap-3 pt-6 border-t border-white/10">
+                    <div class="flex justify-end gap-3 pt-6 border-t border-[#9c9c9c]">
                         <button type="button" @click="closeModal"
-                            class="inline-flex items-center bg-gradient-to-r from-gray-600 to-gray-700 text-white font-semibold py-3 px-6 rounded-full text-sm shadow-lg hover:scale-105 hover:from-gray-700 hover:to-gray-800 transition-all duration-200">
+                            class="inline-flex items-center bg-[#e9e9e9] text-[#1f1f1f] border border-[#9c9c9c] font-semibold py-3 px-6 rounded text-xs hover:bg-white transition-colors">
                             <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                     d="M6 18L18 6M6 6l12 12" />
@@ -477,7 +477,7 @@ const saveStoreProfile = () => {
                             Batal
                         </button>
                         <button type="submit" :disabled="form.processing"
-                            class="inline-flex items-center bg-gradient-to-r from-blue-400 to-blue-500 text-white font-bold py-3 px-8 rounded-full text-sm shadow-xl hover:scale-105 hover:from-blue-500 hover:to-blue-600 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed">
+                            class="inline-flex items-center bg-[#e9e9e9] text-[#1f1f1f] border border-[#9c9c9c] font-semibold py-3 px-8 rounded text-xs hover:bg-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
                             <svg v-if="form.processing" class="w-4 h-4 mr-2 animate-spin" fill="none"
                                 viewBox="0 0 24 24">
                                 <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor"

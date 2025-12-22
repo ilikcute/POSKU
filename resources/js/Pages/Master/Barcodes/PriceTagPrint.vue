@@ -113,7 +113,7 @@ const getProductForPosition = (page, row, col) => {
             }
 
             .promo-badge {
-                background: linear-gradient(135deg, #ff0000, #cc0000);
+                background: #c00000;
                 color: white;
                 font-family: Arial, sans-serif;
                 font-size: 9px;
@@ -123,7 +123,6 @@ const getProductForPosition = (page, row, col) => {
                 display: inline-block;
                 margin-top: 4px;
                 text-transform: uppercase;
-                box-shadow: 0 2px 4px rgba(255, 0, 0, 0.3);
             }
 
             .promo-date {
@@ -148,8 +147,8 @@ const getProductForPosition = (page, row, col) => {
             }
 
             .final-price-wrapper {
-                background: linear-gradient(135deg, #ffeb3b, #ffc107);
-                border: 3px solid #f57c00;
+                background: #fff4c2;
+                border: 3px solid #d9b76c;
                 border-radius: 6px;
                 padding: 8px 12px;
                 box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1);
@@ -179,8 +178,8 @@ const getProductForPosition = (page, row, col) => {
             }
         </style>
 
-        <div class="no-print text-center py-4 bg-gray-100">
-            <button onclick="window.print()" class="bg-green-500 text-white px-4 py-2 rounded">
+        <div class="no-print text-center py-4 bg-[#f7f7f7] border-b border-[#9c9c9c]">
+            <button onclick="window.print()" class="bg-[#e9e9e9] text-[#1f1f1f] border border-[#9c9c9c] px-4 py-2 rounded">
                 Print Price Tag
             </button>
         </div>

@@ -4,30 +4,33 @@
         <Head title="Laporan Pembelian" />
 
         <template #header>
-            <h2 class="font-semibold text-xl text-white leading-tight">
-                Laporan Pembelian
-            </h2>
+            <div>
+                <h2 class="font-semibold text-lg text-[#1f1f1f] leading-tight">
+                    Laporan Pembelian
+                </h2>
+                <p class="text-xs text-[#555]">Ringkasan dan detail pembelian per periode.</p>
+            </div>
         </template>
 
-        <div class="py-12">
-            <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
+        <div class="py-6">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-4">
                 <!-- Filters -->
-                <div class="bg-white overflow-hidden shadow-xl sm:rounded-lg mb-6">
-                    <div class="p-6">
+                <div class="bg-[#f7f7f7] border border-[#9c9c9c] rounded">
+                    <div class="p-4">
                         <form @submit.prevent="fetchReport" class="flex flex-wrap gap-4">
                             <div>
-                                <label class="block text-sm font-medium text-gray-700">Tanggal Mulai</label>
+                                <label class="block text-sm font-medium text-[#1f1f1f]">Tanggal Mulai</label>
                                 <input v-model="filters.start_date" type="date"
-                                    class="mt-1 block w-full border-gray-300 rounded-md shadow-sm">
+                                    class="mt-1 block w-full border border-[#9c9c9c] rounded bg-white text-[#1f1f1f] px-3 py-2">
                             </div>
                             <div>
-                                <label class="block text-sm font-medium text-gray-700">Tanggal Akhir</label>
+                                <label class="block text-sm font-medium text-[#1f1f1f]">Tanggal Akhir</label>
                                 <input v-model="filters.end_date" type="date"
-                                    class="mt-1 block w-full border-gray-300 rounded-md shadow-sm">
+                                    class="mt-1 block w-full border border-[#9c9c9c] rounded bg-white text-[#1f1f1f] px-3 py-2">
                             </div>
                             <div class="flex items-end">
                                 <button type="submit"
-                                    class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
+                                    class="bg-[#e9e9e9] text-[#1f1f1f] border border-[#9c9c9c] px-4 py-2 text-xs font-semibold shadow-sm hover:bg-white transition-colors">
                                     Filter
                                 </button>
                             </div>
@@ -36,58 +39,58 @@
                 </div>
 
                 <!-- Summary -->
-                <div class="bg-white overflow-hidden shadow-xl sm:rounded-lg mb-6">
-                    <div class="p-6">
-                        <h3 class="text-lg font-semibold mb-4">Ringkasan</h3>
-                        <div class="grid grid-cols-1 md:grid-cols-1 gap-4">
-                            <div class="bg-green-100 p-4 rounded-lg">
-                                <div class="text-2xl font-bold text-green-800">{{
+                <div class="bg-white border border-[#9c9c9c] rounded">
+                    <div class="p-4">
+                        <h3 class="text-sm font-semibold mb-3 text-[#1f1f1f]">Ringkasan</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-1 gap-3">
+                            <div class="bg-[#f7f7f7] border border-[#9c9c9c] p-3 rounded">
+                                <div class="text-lg font-bold text-[#1f1f1f]">{{
                                     formatCurrency(summary.total_purchases) }}
                                 </div>
-                                <div class="text-green-600">Total Pembelian</div>
+                                <div class="text-xs text-[#555]">Total Pembelian</div>
                             </div>
                         </div>
                     </div>
                 </div>
 
                 <!-- Purchases Table -->
-                <div class="bg-white overflow-hidden shadow-xl sm:rounded-lg">
-                    <div class="p-6">
-                        <h3 class="text-lg font-semibold mb-4">Detail Pembelian</h3>
+                <div class="bg-white border border-[#9c9c9c] rounded">
+                    <div class="p-4">
+                        <h3 class="text-sm font-semibold mb-3 text-[#1f1f1f]">Detail Pembelian</h3>
                         <div class="overflow-x-auto">
-                            <table class="min-w-full divide-y divide-gray-200">
-                                <thead class="bg-gray-50">
+                            <table class="min-w-full divide-y divide-[#d0d0d0] text-sm text-[#1f1f1f]">
+                                <thead class="bg-[#efefef]">
                                     <tr>
                                         <th
-                                            class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                            class="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider">
                                             No Faktur</th>
                                         <th
-                                            class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                            class="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider">
                                             Tanggal</th>
                                         <th
-                                            class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                            class="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider">
                                             Supplier</th>
                                         <th
-                                            class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                            class="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider">
                                             Kasir</th>
                                         <th
-                                            class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                            class="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider">
                                             Total</th>
                                     </tr>
                                 </thead>
-                                <tbody class="bg-white divide-y divide-gray-200">
-                                    <tr v-for="purchase in purchases" :key="purchase.id">
-                                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{{
+                                <tbody class="bg-white divide-y divide-[#d0d0d0]">
+                                    <tr v-for="purchase in purchases" :key="purchase.id" class="hover:bg-[#f7f7f7]">
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-[#1f1f1f]">{{
                                             purchase.invoice_number }}</td>
-                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-[#555]">{{
                                             formatDate(purchase.transaction_date) }}</td>
-                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-[#555]">{{
                                             purchase.supplier?.name
                                             }}</td>
-                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-[#555]">{{
                                             purchase.user?.name }}
                                         </td>
-                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-[#555]">{{
                                             formatCurrency(purchase.final_amount) }}</td>
                                     </tr>
                                 </tbody>

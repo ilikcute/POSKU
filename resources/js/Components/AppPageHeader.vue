@@ -3,10 +3,10 @@
         class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between"
     >
         <div>
-            <h1 class="text-2xl font-bold text-white">
+            <h1 class="text-lg font-semibold text-[#1f1f1f]">
                 {{ title }}
             </h1>
-            <p v-if="description" class="text-sm text-gray-300 mt-1">
+            <p v-if="description" class="text-xs text-[#555] mt-1">
                 {{ description }}
             </p>
         </div>

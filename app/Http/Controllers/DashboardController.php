@@ -3,8 +3,11 @@
 namespace App\Http\Controllers;
 
 use App\Models\Product;
+use App\Models\Purchase;
 use App\Models\Sale;
+use App\Models\Shift;
 use App\Models\Store;
+use App\Services\StationResolver;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
@@ -21,6 +24,13 @@ class DashboardController extends Controller
 
         // Ambil store_id dari user yang sedang login
         $storeId = Auth::user()->store_id;
+        $station = StationResolver::resolve();
+        $activeShift = Shift::query()
+            ->where('store_id', $storeId)
+            ->where('station_id', $station->id)
+            ->where('status', 'open')
+            ->latest('start_time')
+            ->first();
 
         // Metrik untuk Kartu (sekarang difilter per toko)
         $totalSalesToday = Sale::where('store_id', $storeId)
@@ -41,9 +51,30 @@ class DashboardController extends Controller
             ->take(5)
             ->get();
 
-        // Data untuk Grafik Penjualan 7 Hari Terakhir (per toko)
-        $salesLast7Days = Sale::where('store_id', $storeId)
-            ->where('created_at', '>=', Carbon::now()->subDays(7))
+        $topPurchasedProducts = DB::table('purchase_details')
+            ->join('purchases', 'purchase_details.purchase_id', '=', 'purchases.id')
+            ->join('products', 'purchase_details.product_id', '=', 'products.id')
+            ->where('purchases.store_id', $storeId)
+            ->whereMonth('purchases.created_at', Carbon::now()->month)
+            ->select('products.name', DB::raw('SUM(purchase_details.quantity) as total_quantity'))
+            ->groupBy('products.name')
+            ->orderByDesc('total_quantity')
+            ->take(5)
+            ->get();
+
+        $topSuppliers = DB::table('purchases')
+            ->join('suppliers', 'purchases.supplier_id', '=', 'suppliers.id')
+            ->where('purchases.store_id', $storeId)
+            ->whereMonth('purchases.created_at', Carbon::now()->month)
+            ->select('suppliers.name', DB::raw('SUM(purchases.final_amount) as total_amount'))
+            ->groupBy('suppliers.name')
+            ->orderByDesc('total_amount')
+            ->take(5)
+            ->get();
+
+        // Data untuk Grafik Penjualan 30 Hari Terakhir (per toko)
+        $salesLast30Days = Sale::where('store_id', $storeId)
+            ->where('created_at', '>=', Carbon::now()->subDays(30))
             ->groupBy('date')
             ->orderBy('date', 'ASC')
             ->get([
@@ -54,10 +85,10 @@ class DashboardController extends Controller
 
         $chartLabels = [];
         $chartData = [];
-        for ($i = 6; $i >= 0; $i--) {
+        for ($i = 29; $i >= 0; $i--) {
             $date = Carbon::now()->subDays($i)->format('Y-m-d');
             $chartLabels[] = Carbon::parse($date)->format('d M');
-            $chartData[] = $salesLast7Days->get($date, 0);
+            $chartData[] = $salesLast30Days->get($date, 0);
         }
 
         // --- PERBAIKAN QUERY STOK MENIPIS ---
@@ -78,8 +109,12 @@ class DashboardController extends Controller
                 'labels' => $chartLabels,
                 'data' => $chartData,
             ],
+            'topPurchasedProducts' => $topPurchasedProducts,
+            'topSuppliers' => $topSuppliers,
             'lowStockProducts' => $lowStockProducts,
             'store' => $store,
+            'station' => $station->only(['id', 'name', 'device_identifier']),
+            'activeShift' => $activeShift,
         ]);
     }
 }

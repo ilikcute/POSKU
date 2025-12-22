@@ -1,99 +1,130 @@
 <template>
-    <div class="p-6">
+    <AuthenticatedLayout>
+        <Head title="Pembelian" />
 
-        <Head title="Purchases" />
-        <div class="flex justify-between items-center mb-6">
-            <h1 class="text-2xl font-bold">Purchases</h1>
-            <Link :href="route('purchases.create')"
-                class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
-            New Purchase
-            </Link>
-        </div>
-
-        <!-- Filters -->
-        <div class="bg-white rounded-lg shadow p-4 mb-6">
-            <form @submit.prevent="filterPurchases">
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Start Date</label>
-                        <input type="date" v-model="filters.start_date"
-                            class="w-full border border-gray-300 rounded-md px-3 py-2">
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">End Date</label>
-                        <input type="date" v-model="filters.end_date"
-                            class="w-full border border-gray-300 rounded-md px-3 py-2">
-                    </div>
-                    <div class="flex items-end space-x-2">
-                        <input type="text" v-model="filters.search" placeholder="Search invoice..."
-                            class="flex-1 border border-gray-300 rounded-md px-3 py-2">
-                        <button type="submit"
-                            class="bg-blue-500 hover:bg-blue-700 text-white px-4 py-2 rounded-md">Filter</button>
-                    </div>
+        <template #header>
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                <div>
+                    <h2 class="font-semibold text-lg text-[#1f1f1f] leading-tight">
+                        Daftar Pembelian
+                    </h2>
+                    <p class="text-xs text-[#555] mt-1">
+                        Kelola transaksi pembelian dengan tampilan desktop style.
+                    </p>
                 </div>
-            </form>
-        </div>
+                <Link :href="route('purchases.create')"
+                    class="inline-flex items-center justify-center bg-[#e9e9e9] text-[#1f1f1f] border border-[#9c9c9c] font-semibold py-3 px-6 rounded text-xs hover:bg-white transition-colors">
+                Tambah Pembelian
+                </Link>
+            </div>
+        </template>
 
-        <!-- Purchases Table -->
-        <div class="bg-white rounded-lg shadow overflow-hidden">
-            <table class="min-w-full divide-y divide-gray-200">
-                <thead class="bg-gray-50">
-                    <tr>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            Invoice</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date
-                        </th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            Supplier</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total
-                        </th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            Status</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            Actions</th>
-                    </tr>
-                </thead>
-                <tbody class="bg-white divide-y divide-gray-200">
-                    <tr v-for="purchase in purchases.data" :key="purchase.id" class="hover:bg-gray-50">
-                        <td class="px-6 py-4 whitespace-nowrap">
-                            <div class="text-sm font-medium text-gray-900">{{ purchase.invoice_number }}</div>
-                        </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                            {{ purchase.transaction_date }}
-                        </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                            {{ purchase.supplier ? purchase.supplier.name : 'N/A' }}
-                        </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                            Rp {{ purchase.final_amount.toLocaleString() }}
-                        </td>
-                        <td class="px-6 py-4 whitespace-nowrap">
-                            <span
-                                class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full {{ purchase.status === 'completed' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800' }}">
-                                {{ purchase.status }}
-                            </span>
-                        </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                            <Link :href="`/purchases/${purchase.id}`"
-                                class="text-indigo-600 hover:text-indigo-900 mr-4">View</Link>
-                            <Link :href="`/purchases/${purchase.id}/edit`"
-                                class="text-indigo-600 hover:text-indigo-900 mr-4">Edit</Link>
-                            <button @click="deletePurchase(purchase.id)"
-                                class="text-red-600 hover:text-red-900">Delete</button>
-                        </td>
-                    </tr>
-                </tbody>
-            </table>
-        </div>
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <!-- Filters -->
+            <div class="bg-[#f7f7f7] border border-[#9c9c9c] rounded shadow-sm p-4 mb-6">
+                <form @submit.prevent="filterPurchases">
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div>
+                            <label class="block text-xs font-semibold text-[#555] mb-1">Start Date</label>
+                            <input type="date" v-model="filters.start_date"
+                                class="w-full border border-[#9c9c9c] bg-white rounded px-3 py-2 text-sm text-[#1f1f1f]">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-[#555] mb-1">End Date</label>
+                            <input type="date" v-model="filters.end_date"
+                                class="w-full border border-[#9c9c9c] bg-white rounded px-3 py-2 text-sm text-[#1f1f1f]">
+                        </div>
+                        <div class="flex items-end gap-2">
+                            <input type="text" v-model="filters.search" placeholder="Cari nomor nota..."
+                                class="flex-1 border border-[#9c9c9c] bg-white rounded px-3 py-2 text-sm text-[#1f1f1f]">
+                            <button type="submit"
+                                class="bg-[#e9e9e9] text-[#1f1f1f] border border-[#9c9c9c] px-4 py-2 rounded text-xs font-semibold hover:bg-white">
+                                Filter
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
 
-        <!-- Pagination -->
-        <Pagination v-if="purchases.links" :links="purchases.links" />
-    </div>
+            <!-- Purchases Table -->
+            <div class="bg-[#f7f7f7] border border-[#9c9c9c] rounded shadow-sm overflow-hidden">
+                <div class="overflow-x-auto">
+                    <table class="min-w-full text-xs text-[#1f1f1f]">
+                        <thead class="bg-[#efefef] border-b border-[#9c9c9c]">
+                            <tr>
+                                <th class="px-6 py-3 text-left text-xs uppercase tracking-wider font-semibold">
+                                    Invoice</th>
+                                <th class="px-6 py-3 text-left text-xs uppercase tracking-wider font-semibold">Date
+                                </th>
+                                <th class="px-6 py-3 text-left text-xs uppercase tracking-wider font-semibold">
+                                    Supplier</th>
+                                <th class="px-6 py-3 text-left text-xs uppercase tracking-wider font-semibold">Total
+                                </th>
+                                <th class="px-6 py-3 text-left text-xs uppercase tracking-wider font-semibold">
+                                    Status</th>
+                                <th class="px-6 py-3 text-left text-xs uppercase tracking-wider font-semibold">
+                                    Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-[#d0d0d0] bg-[#f7f7f7]">
+                            <tr v-for="purchase in purchases.data" :key="purchase.id" class="hover:bg-white">
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <div class="text-xs font-semibold text-[#1f1f1f]">{{ purchase.invoice_number }}</div>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-xs text-[#555]">
+                                    {{ purchase.transaction_date }}
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-xs text-[#555]">
+                                    {{ purchase.supplier ? purchase.supplier.name : 'N/A' }}
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-xs text-[#1f1f1f]">
+                                    {{ formatCurrency(purchase.final_amount) }}
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-xs">
+                                    <span :class="[
+                                        'px-2 inline-flex text-[11px] leading-5 font-semibold border border-[#9c9c9c]',
+                                        purchase.status === 'completed'
+                                            ? 'bg-[#d7f2d7] text-[#1f1f1f]'
+                                            : 'bg-[#f4e6bf] text-[#1f1f1f]'
+                                    ]">
+                                        {{ purchase.status }}
+                                    </span>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-xs font-semibold">
+                                    <Link :href="`/purchases/${purchase.id}`"
+                                        class="inline-flex items-center px-3 py-2 rounded bg-[#e9e9e9] text-[#1f1f1f] border border-[#9c9c9c] hover:bg-white mr-2">
+                                    Lihat
+                                    </Link>
+                                    <Link :href="`/purchases/${purchase.id}/edit`"
+                                        class="inline-flex items-center px-3 py-2 rounded bg-[#e9e9e9] text-[#1f1f1f] border border-[#9c9c9c] hover:bg-white mr-2">
+                                    Edit
+                                    </Link>
+                                    <button @click="deletePurchase(purchase.id)"
+                                        class="inline-flex items-center px-3 py-2 rounded bg-[#e9e9e9] text-[#1f1f1f] border border-[#9c9c9c] hover:bg-white">
+                                        Hapus
+                                    </button>
+                                </td>
+                            </tr>
+                            <tr v-if="!purchases.data.length">
+                                <td colspan="6" class="px-6 py-6 text-center text-[#555]">
+                                    Belum ada data pembelian.
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Pagination -->
+            <Pagination v-if="purchases.links" :links="purchases.links" />
+        </div>
+    </AuthenticatedLayout>
 </template>
 
 <script setup>
+import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout.vue";
 import { Head, Link, router } from '@inertiajs/vue3';
-import { ref, computed } from 'vue';
+import { ref } from 'vue';
 import Pagination from '@/Components/Pagination.vue';
 
 const props = defineProps({
@@ -116,4 +147,11 @@ const deletePurchase = (id) => {
         router.delete(route('purchases.destroy', id));
     }
 };
+
+const formatCurrency = (value) =>
+    new Intl.NumberFormat('id-ID', {
+        style: 'currency',
+        currency: 'IDR',
+        minimumFractionDigits: 0,
+    }).format(value || 0);
 </script>
