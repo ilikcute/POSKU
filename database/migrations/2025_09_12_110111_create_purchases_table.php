@@ -17,12 +17,15 @@ return new class extends Migration
             $table->foreignId('user_id')->constrained();
             $table->foreignId('store_id')->constrained();
             $table->foreignId('station_id')->nullable()->constrained('stations');
+            $table->foreignId('supplier_id')->nullable()->constrained();
             $table->foreignId('customer_id')->nullable()->constrained();
             $table->decimal('total_amount', 15, 2);
             $table->decimal('discount', 15, 2)->default(0);
             $table->decimal('tax', 15, 2)->default(0);
             $table->decimal('final_amount', 15, 2);
-            $table->enum('payment_method', ['cash', 'card', 'transfer']);
+            $table->enum('payment_method', ['cash', 'card', 'transfer', 'credit']);
+            $table->unsignedInteger('payment_term_days')->nullable();
+            $table->date('due_date')->nullable();
             $table->decimal('amount_paid', 15, 2);
             $table->decimal('change_due', 15, 2)->default(0);
             $table->timestamp('transaction_date');

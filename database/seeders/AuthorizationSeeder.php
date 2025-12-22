@@ -18,10 +18,13 @@ class AuthorizationSeeder extends Seeder
             $authorizations = [
                 ['name' => 'Buka Shift', 'password' => Hash::make('123456'), 'store_id' => $mainStore->id],
                 ['name' => 'Tutup Shift', 'password' => Hash::make('123456'), 'store_id' => $mainStore->id],
+                ['name' => 'Tutup Harian', 'password' => Hash::make('123456'), 'store_id' => $mainStore->id],
             ];
 
             foreach ($authorizations as $auth) {
-                $exists = Authorization::where('name', $auth['name'])->exists();
+                $exists = Authorization::where('name', $auth['name'])
+                    ->where('store_id', $auth['store_id'])
+                    ->exists();
                 if (!$exists) {
                     Authorization::create($auth);
                 }

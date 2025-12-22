@@ -294,6 +294,13 @@ class ShiftController extends Controller
             ->where('created_at', '>=', $startTime)
             ->sum('final_amount');
 
+        $cashSales = Sale::query()
+            ->where('store_id', $user->store_id)
+            ->where('user_id', $ownerUserId)
+            ->where('created_at', '>=', $startTime)
+            ->where('payment_method', 'cash')
+            ->sum('final_amount');
+
         $totalSalesReturn = SalesReturn::query()
             ->where('store_id', $user->store_id)
             ->where('user_id', $ownerUserId)
@@ -304,6 +311,13 @@ class ShiftController extends Controller
             ->where('store_id', $user->store_id)
             ->where('user_id', $ownerUserId)
             ->where('created_at', '>=', $startTime)
+            ->sum('final_amount');
+
+        $cashPurchase = Purchase::query()
+            ->where('store_id', $user->store_id)
+            ->where('user_id', $ownerUserId)
+            ->where('created_at', '>=', $startTime)
+            ->where('payment_method', 'cash')
             ->sum('final_amount');
 
         $totalPurchaseReturn = PurchaseReturn::query()
@@ -332,10 +346,10 @@ class ShiftController extends Controller
             ->count();
 
         $expectedCash = $activeShift->initial_cash
-            + $totalSales
+            + $cashSales
             - $totalSalesReturn
-            + $totalPurchase
-            - $totalPurchaseReturn;
+            - $cashPurchase
+            + $totalPurchaseReturn;
 
         $variance = $validated['final_cash'] - $expectedCash;
 
@@ -375,6 +389,13 @@ class ShiftController extends Controller
             ->where('created_at', '>=', $startTime)
             ->sum('final_amount');
 
+        $cashSales = Sale::query()
+            ->where('store_id', $storeId)
+            ->where('user_id', $ownerUserId)
+            ->where('created_at', '>=', $startTime)
+            ->where('payment_method', 'cash')
+            ->sum('final_amount');
+
         $totalSalesReturn = SalesReturn::query()
             ->where('store_id', $storeId)
             ->where('user_id', $ownerUserId)
@@ -387,6 +408,13 @@ class ShiftController extends Controller
             ->where('created_at', '>=', $startTime)
             ->sum('final_amount');
 
+        $cashPurchase = Purchase::query()
+            ->where('store_id', $storeId)
+            ->where('user_id', $ownerUserId)
+            ->where('created_at', '>=', $startTime)
+            ->where('payment_method', 'cash')
+            ->sum('final_amount');
+
         $totalPurchaseReturn = PurchaseReturn::query()
             ->where('store_id', $storeId)
             ->where('user_id', $ownerUserId)
@@ -394,10 +422,10 @@ class ShiftController extends Controller
             ->sum('final_amount');
 
         $expectedCash = $shift->initial_cash
-            + $totalSales
+            + $cashSales
             - $totalSalesReturn
-            + $totalPurchase
-            - $totalPurchaseReturn;
+            - $cashPurchase
+            + $totalPurchaseReturn;
 
         return [
             'totalSales' => (float) $totalSales,

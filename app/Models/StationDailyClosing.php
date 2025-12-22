@@ -15,6 +15,10 @@ class StationDailyClosing extends Model
         'cash_counted',
         'expected_cash',
         'variance',
+        'cash_sales_total',
+        'cash_sales_return_total',
+        'cash_purchase_total',
+        'cash_purchase_return_total',
         'total_sales',
         'total_sales_return',
         'total_purchase',
@@ -23,6 +27,8 @@ class StationDailyClosing extends Model
         'total_tax',
         'sales_count',
         'shift_count',
+        'shifts_initial_cash_total',
+        'notes',
         'meta',
     ];
 

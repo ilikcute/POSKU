@@ -8,10 +8,7 @@ const page = usePage();
 const user = page.props.auth.user;
 
 const props = defineProps({
-    authorizations: {
-        type: Object,
-        required: true
-    },
+    authorizations: { type: Object, required: true },
 });
 
 const formatDateTime = (dateTime) => {
@@ -24,6 +21,13 @@ const formatDateTime = (dateTime) => {
         second: '2-digit',
     };
     return new Date(dateTime).toLocaleDateString(undefined, options);
+};
+
+// === Tambahkan ini ===
+const categorizeAuth = (name) => {
+    if (name === 'Tutup Harian') return { label: 'EOD', cls: 'bg-emerald-500/20 text-emerald-200 border-emerald-500/30' };
+    if (name === 'Buka Shift' || name === 'Tutup Shift') return { label: 'SHIFT', cls: 'bg-blue-500/20 text-blue-200 border-blue-500/30' };
+    return { label: 'LAINNYA', cls: 'bg-gray-500/20 text-gray-200 border-gray-500/30' };
 };
 
 const deleteAuthorization = (authorization) => {
@@ -40,16 +44,15 @@ const deleteAuthorization = (authorization) => {
     <AuthenticatedLayout>
         <template #header>
             <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
-                <h2 class="font-semibold text-xl text-white leading-tight">
-                    Kelola Authorization
-                </h2>
+                <h2 class="font-semibold text-xl text-white leading-tight">Kelola Authorization</h2>
+
                 <Link :href="route('shifts.authorizations.create')"
                     class="inline-flex items-center px-4 py-2 bg-gradient-to-r from-blue-500 to-purple-600 border border-transparent rounded-lg font-semibold text-xs text-white uppercase tracking-widest hover:from-blue-600 hover:to-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 focus:ring-offset-gray-800 transition-all duration-200 shadow-lg hover:shadow-xl">
-                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                        d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                </svg>
-                Tambah Authorization
+                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                    </svg>
+                    Tambah Authorization
                 </Link>
             </div>
         </template>
@@ -61,6 +64,11 @@ const deleteAuthorization = (authorization) => {
                         <thead
                             class="bg-gradient-to-r from-purple-600/30 to-blue-600/30 backdrop-blur-sm border-b border-white/20">
                             <tr>
+                                <!-- Tambah kolom kategori -->
+                                <th
+                                    class="px-6 py-4 text-left text-xs uppercase tracking-wider font-semibold text-white/90">
+                                    Kategori
+                                </th>
                                 <th
                                     class="px-6 py-4 text-left text-xs uppercase tracking-wider font-semibold text-white/90">
                                     Nama
@@ -75,25 +83,44 @@ const deleteAuthorization = (authorization) => {
                                 </th>
                             </tr>
                         </thead>
+
                         <tbody class="divide-y divide-gray-700/50">
                             <tr v-for="authorization in props.authorizations.data" :key="authorization.id"
                                 class="hover:bg-white/5 transition-all duration-200 group">
                                 <td class="px-6 py-4">
-                                    <div class="font-medium text-white">{{ authorization.name }}</div>
+                                    <span
+                                        class="inline-flex items-center px-2 py-1 rounded-lg text-xs font-semibold border"
+                                        :class="categorizeAuth(authorization.name).cls">
+                                        {{ categorizeAuth(authorization.name).label }}
+                                    </span>
                                 </td>
+
+                                <td class="px-6 py-4">
+                                    <div class="font-medium text-white">{{ authorization.name }}</div>
+
+                                    <!-- Info khusus EOD biar user paham -->
+                                    <div v-if="authorization.name === 'Tutup Harian'"
+                                        class="text-xs text-gray-400 mt-1">
+                                        Dipakai untuk Station Close & Finalize EOD
+                                    </div>
+                                </td>
+
                                 <td class="px-6 py-4 text-gray-400">
                                     {{ formatDateTime(authorization.created_at) }}
                                 </td>
+
                                 <td class="px-6 py-4">
                                     <div class="flex space-x-2">
                                         <Link :href="route('shifts.authorizations.edit', authorization.id)"
                                             class="inline-flex items-center px-3 py-1 bg-blue-500/20 text-blue-300 border border-blue-500/30 rounded-lg text-xs font-medium hover:bg-blue-500/30 transition-all duration-200">
-                                        <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                                        </svg>
-                                        Edit
+                                            <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor"
+                                                viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                    d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                            </svg>
+                                            Edit
                                         </Link>
+
                                         <button @click="deleteAuthorization(authorization)"
                                             class="inline-flex items-center px-3 py-1 bg-red-500/20 text-red-300 border border-red-500/30 rounded-lg text-xs font-medium hover:bg-red-500/30 transition-all duration-200">
                                             <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor"
@@ -113,7 +140,6 @@ const deleteAuthorization = (authorization) => {
 
             <Pagination :links="props.authorizations.links" />
 
-            <!-- Empty State -->
             <div v-if="!props.authorizations.data.length"
                 class="text-center py-12 backdrop-blur-md bg-white/5 border border-white/10 rounded-2xl">
                 <svg class="mx-auto h-12 w-12 text-gray-400 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">

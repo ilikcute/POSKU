@@ -15,12 +15,15 @@ class Purchase extends Model
         'user_id',
         'store_id',
         'station_id',
+        'supplier_id',
         'customer_id',
         'total_amount',
         'discount',
         'tax',
         'final_amount',
         'payment_method',
+        'payment_term_days',
+        'due_date',
         'amount_paid',
         'change_due',
         'transaction_date',
@@ -35,6 +38,8 @@ class Purchase extends Model
         'amount_paid' => 'decimal:2',
         'change_due' => 'decimal:2',
         'transaction_date' => 'datetime',
+        'due_date' => 'date',
+        'payment_term_days' => 'integer',
     ];
 
     protected static function boot()
@@ -75,6 +80,11 @@ class Purchase extends Model
     public function station()
     {
         return $this->belongsTo(Station::class);
+    }
+
+    public function supplier()
+    {
+        return $this->belongsTo(Supplier::class);
     }
 
     public function customer()

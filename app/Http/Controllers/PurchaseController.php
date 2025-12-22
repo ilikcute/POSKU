@@ -8,7 +8,7 @@ use App\Models\Product;
 use App\Models\Store;
 use App\Models\Stock;
 use App\Models\Supplier;
-use App\Models\Customer;
+use App\Models\Shift;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
@@ -24,7 +24,7 @@ class PurchaseController extends Controller
      */
     public function index(Request $request)
     {
-        $query = Purchase::with(['user', 'store', 'customer', 'purchaseDetails.product'])
+        $query = Purchase::with(['user', 'store', 'supplier', 'purchaseDetails.product'])
             ->byStore($this->currentStoreId());
 
         // Filter by date range
@@ -61,14 +61,23 @@ class PurchaseController extends Controller
             ->get();
 
         $suppliers = Supplier::orderBy('name')->get();
-        $customers = Customer::orderBy('name')->get();
+        $storeId = $this->currentStoreId();
+        $station = StationResolver::resolve();
+        $activeShift = Shift::query()
+            ->where('store_id', $storeId)
+            ->where('station_id', $station->id)
+            ->where('status', 'open')
+            ->latest('start_time')
+            ->first();
 
         return Inertia::render('Purchases/Create', [
             'products' => $products,
             'suppliers' => $suppliers,
-            'customers' => $customers,
-            'shift_id' => $shift->id,
+            'shift_id' => $activeShift?->id,
             'station_id' => $station->id,
+            'invoice_number' => Purchase::generateInvoiceNumber(),
+            'current_user' => Auth::user()?->only(['id', 'name']),
+            'current_date' => now()->toDateString(),
         ]);
     }
 
@@ -82,10 +91,13 @@ class PurchaseController extends Controller
             'items.*.product_id' => 'required|exists:products,id',
             'items.*.quantity' => 'required|integer|min:1',
             'items.*.price' => 'required|numeric|min:0',
-            'payment_method' => ['required', Rule::in(['cash', 'card', 'transfer'])],
+            'items.*.tax_per_item' => 'nullable|numeric|min:0',
+            'items.*.discount_per_item' => 'nullable|numeric|min:0',
+            'supplier_id' => 'required|exists:suppliers,id',
+            'payment_method' => ['required', Rule::in(['cash', 'card', 'transfer', 'credit'])],
+            'payment_term_days' => 'required_if:payment_method,credit|nullable|integer|min:1',
             'amount_paid' => 'required|numeric|min:0',
             'notes' => 'nullable|string|max:1000',
-            'customer_id' => 'nullable|exists:customers,id',
         ]);
 
         $storeId = $this->currentStoreId();
@@ -105,28 +117,39 @@ class PurchaseController extends Controller
         DB::transaction(function () use ($validated, $items, $storeId, $station) {
             // Calculate totals
             $totalAmount = 0;
+            $totalDiscount = 0;
+            $totalTax = 0;
 
             foreach ($items as $item) {
                 $subtotal = $item['quantity'] * $item['price'];
                 $totalAmount += $subtotal;
+                $totalDiscount += ($item['discount_per_item'] ?? 0) * $item['quantity'];
+                $totalTax += ($item['tax_per_item'] ?? 0) * $item['quantity'];
             }
 
-            $discount = $validated['discount'] ?? 0;
-            $tax = $validated['tax'] ?? 0;
-            $finalAmount = $totalAmount - $discount + $tax;
+            $finalAmount = $totalAmount - $totalDiscount + $totalTax;
             $changeDue = max(0, $validated['amount_paid'] - $finalAmount);
+            $dueDate = null;
+            $paymentTermDays = null;
+
+            if ($validated['payment_method'] === 'credit') {
+                $paymentTermDays = (int) ($validated['payment_term_days'] ?? 0);
+                $dueDate = $paymentTermDays > 0 ? now()->addDays($paymentTermDays)->toDateString() : null;
+            }
 
             // Create purchase
             $purchase = Purchase::create([
                 'user_id' => Auth::id(),
                 'store_id' => $storeId,
                 'station_id' => $station->id,
-                'customer_id' => $validated['customer_id'],
+                'supplier_id' => $validated['supplier_id'],
                 'total_amount' => $totalAmount,
-                'discount' => $discount,
-                'tax' => $tax,
+                'discount' => $totalDiscount,
+                'tax' => $totalTax,
                 'final_amount' => $finalAmount,
                 'payment_method' => $validated['payment_method'],
+                'payment_term_days' => $paymentTermDays,
+                'due_date' => $dueDate,
                 'amount_paid' => $validated['amount_paid'],
                 'change_due' => $changeDue,
                 'transaction_date' => now(),
@@ -142,6 +165,7 @@ class PurchaseController extends Controller
                     'product_id' => $item['product_id'],
                     'quantity' => $item['quantity'],
                     'price_at_sale' => $item['price'],
+                    'tax_per_item' => $item['tax_per_item'] ?? 0,
                     'discount_per_item' => $item['discount_per_item'] ?? 0,
                     'subtotal' => $subtotal,
                 ]);
@@ -174,7 +198,7 @@ class PurchaseController extends Controller
      */
     public function show(Purchase $purchase)
     {
-        $purchase->load(['user', 'store', 'customer', 'purchaseDetails.product', 'purchaseReturns']);
+        $purchase->load(['user', 'store', 'supplier', 'purchaseDetails.product', 'purchaseReturns']);
 
         return Inertia::render('Purchases/Show', [
             'purchase' => $purchase,
@@ -193,13 +217,11 @@ class PurchaseController extends Controller
             ->get();
 
         $suppliers = Supplier::orderBy('name')->get();
-        $customers = Customer::orderBy('name')->get();
 
         return Inertia::render('Purchases/Edit', [
             'purchase' => $purchase,
             'products' => $products,
             'suppliers' => $suppliers,
-            'customers' => $customers,
         ]);
     }
 
@@ -213,10 +235,13 @@ class PurchaseController extends Controller
             'items.*.product_id' => 'required|exists:products,id',
             'items.*.quantity' => 'required|integer|min:1',
             'items.*.price' => 'required|numeric|min:0',
-            'payment_method' => ['required', Rule::in(['cash', 'card', 'transfer'])],
+            'items.*.tax_per_item' => 'nullable|numeric|min:0',
+            'items.*.discount_per_item' => 'nullable|numeric|min:0',
+            'supplier_id' => 'required|exists:suppliers,id',
+            'payment_method' => ['required', Rule::in(['cash', 'card', 'transfer', 'credit'])],
+            'payment_term_days' => 'required_if:payment_method,credit|nullable|integer|min:1',
             'amount_paid' => 'required|numeric|min:0',
             'notes' => 'nullable|string|max:1000',
-            'customer_id' => 'nullable|exists:customers,id',
         ]);
 
         DB::transaction(function () use ($request, $purchase) {
@@ -242,26 +267,37 @@ class PurchaseController extends Controller
 
             // Calculate new totals
             $totalAmount = 0;
+            $totalDiscount = 0;
+            $totalTax = 0;
             $items = collect($request->items);
 
             foreach ($items as $item) {
                 $subtotal = $item['quantity'] * $item['price'];
                 $totalAmount += $subtotal;
+                $totalDiscount += ($item['discount_per_item'] ?? 0) * $item['quantity'];
+                $totalTax += ($item['tax_per_item'] ?? 0) * $item['quantity'];
             }
 
-            $discount = $request->discount ?? 0;
-            $tax = $request->tax ?? 0;
-            $finalAmount = $totalAmount - $discount + $tax;
+            $finalAmount = $totalAmount - $totalDiscount + $totalTax;
             $changeDue = max(0, $request->amount_paid - $finalAmount);
+            $dueDate = null;
+            $paymentTermDays = null;
+
+            if ($request->payment_method === 'credit') {
+                $paymentTermDays = (int) ($request->payment_term_days ?? 0);
+                $dueDate = $paymentTermDays > 0 ? now()->addDays($paymentTermDays)->toDateString() : null;
+            }
 
             // Update purchase
             $purchase->update([
-                'customer_id' => $request->customer_id,
+                'supplier_id' => $request->supplier_id,
                 'total_amount' => $totalAmount,
-                'discount' => $discount,
-                'tax' => $tax,
+                'discount' => $totalDiscount,
+                'tax' => $totalTax,
                 'final_amount' => $finalAmount,
                 'payment_method' => $request->payment_method,
+                'payment_term_days' => $paymentTermDays,
+                'due_date' => $dueDate,
                 'amount_paid' => $request->amount_paid,
                 'change_due' => $changeDue,
                 'notes' => $request->notes,
@@ -276,6 +312,7 @@ class PurchaseController extends Controller
                     'product_id' => $item['product_id'],
                     'quantity' => $item['quantity'],
                     'price_at_sale' => $item['price'],
+                    'tax_per_item' => $item['tax_per_item'] ?? 0,
                     'discount_per_item' => $item['discount_per_item'] ?? 0,
                     'subtotal' => $subtotal,
                 ]);
@@ -349,7 +386,7 @@ class PurchaseController extends Controller
      */
     public function print(Purchase $purchase)
     {
-        $purchase->load(['user', 'store', 'customer', 'purchaseDetails.product']);
+        $purchase->load(['user', 'store', 'supplier', 'purchaseDetails.product']);
 
         return Inertia::render('Purchases/Print', [
             'purchase' => $purchase,

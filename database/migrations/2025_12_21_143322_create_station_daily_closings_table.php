@@ -19,8 +19,15 @@ return new class extends Migration {
 
             // Cash drawer
             $table->decimal('cash_counted', 15, 2)->default(0);
+
             $table->decimal('expected_cash', 15, 2)->default(0);
+
             $table->decimal('variance', 15, 2)->default(0);
+
+            $table->decimal('cash_sales_total', 15, 2)->default(0);
+            $table->decimal('cash_sales_return_total', 15, 2)->default(0);
+            $table->decimal('cash_purchase_total', 15, 2)->default(0);
+            $table->decimal('cash_purchase_return_total', 15, 2)->default(0);
 
             // Summary totals station (hari itu)
             $table->decimal('total_sales', 15, 2)->default(0);
@@ -33,6 +40,11 @@ return new class extends Migration {
 
             $table->unsignedInteger('sales_count')->default(0);
             $table->unsignedInteger('shift_count')->default(0);
+
+            // Shift totals (modal awal akumulasi)
+            $table->decimal('shifts_initial_cash_total', 15, 2)->default(0);
+
+            $table->text('notes')->nullable();
 
             // Breakdown (mis: payment breakdown)
             $table->json('meta')->nullable();

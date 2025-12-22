@@ -101,7 +101,7 @@ class SaleController extends Controller
             'auth' => [
                 'user' => auth()->user(),
             ],
-            'shift_id' => $shift->id,
+            'shift_id' => $activeShift?->id,
             'station_id' => $station->id,
 
         ]);
