@@ -17,6 +17,7 @@ return new class extends Migration
             $table->string('contact_person')->nullable();
             $table->string('phone', 20)->nullable();
             $table->text('address')->nullable();
+            $table->boolean('is_pkp')->default(false);
             $table->timestamps();
         });
     }

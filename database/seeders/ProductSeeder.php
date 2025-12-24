@@ -22,6 +22,10 @@ class ProductSeeder extends Seeder
                     ];
                 }
 
+                if (! $product->min_order_qty) {
+                    $updates['min_order_qty'] = rand(1, 12);
+                }
+
                 if (! $product->tax_type) {
                     $updates['tax_type'] = 'Y';
                 }
@@ -62,6 +66,7 @@ class ProductSeeder extends Seeder
                 'vip_price' => 90000,
                 'wholesale_price' => 85000,
                 'min_wholesale_qty' => 10,
+                'min_order_qty' => 12,
                 'unit' => 'Pcs',
                 'min_stock_alert' => 5,
                 'tax_type' => 'Y',
@@ -78,6 +83,7 @@ class ProductSeeder extends Seeder
                 'vip_price' => 180000,
                 'wholesale_price' => 170000,
                 'min_wholesale_qty' => 5,
+                'min_order_qty' => 6,
                 'unit' => 'Box',
                 'min_stock_alert' => 3,
                 'tax_type' => 'Y',

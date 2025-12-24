@@ -31,6 +31,7 @@ class ProductFactory extends Factory
             'vip_price' => round($selling_price * 0.90, 0), // 10% discount
             'wholesale_price' => round($selling_price * 0.85, 0), // 15% discount
             'min_wholesale_qty' => fake()->numberBetween(5, 20),
+            'min_order_qty' => fake()->numberBetween(1, 12),
             'tax_type' => $tax_type,
             'tax_rate' => $tax_rate,
             'category_id' => Category::inRandomOrder()->first()->id ?? \App\Models\Category::factory(),

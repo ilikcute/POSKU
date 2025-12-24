@@ -3,10 +3,12 @@ import { Head, Link, useForm } from '@inertiajs/vue3';
 import { computed, onMounted, ref, watch } from 'vue';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import Modal from '@/Components/Modal.vue';
+import axios from 'axios';
 
 const props = defineProps({
     products: Array,
     suppliers: Array,
+    purchasePlans: Array,
     customers: Array,
     activeShift: Object,
     invoice_number: String,
@@ -28,6 +30,7 @@ const selectedSupplier = ref(null);
 const barcodeInput = ref('');
 const formNotice = ref({ show: false, message: '', type: 'error' });
 const selectedProductId = ref(null);
+const selectedPlanId = ref(null);
 const inputQty = ref(1);
 const inputPrice = ref(0);
 const inputTax = ref(0);
@@ -70,13 +73,31 @@ const filteredProducts = computed(() => {
     );
 });
 
+const filteredPlans = computed(() => {
+    const plans = props.purchasePlans || [];
+    if (!selectedSupplier.value?.id) {
+        return plans;
+    }
+    return plans.filter(
+        (plan) => Number(plan.supplier_id) === Number(selectedSupplier.value.id)
+    );
+});
+
+const computeTaxPerItem = (product, basePrice, supplierOverride = null) => {
+    const supplier = supplierOverride ?? selectedSupplier.value;
+    if (!supplier?.is_pkp) {
+        return 0;
+    }
+    if (product?.tax_type !== 'Y') {
+        return 0;
+    }
+    return (basePrice * (product.tax_rate || 0)) / 100;
+};
+
 const addProductToCart = (product, overrides = {}) => {
     const basePrice =
         overrides.price ?? product.purchase_price ?? product.selling_price ?? 0;
-    const defaultTaxPerItem =
-        product.tax_type === 'Y'
-            ? (basePrice * (product.tax_rate || 0)) / 100
-            : 0;
+    const defaultTaxPerItem = computeTaxPerItem(product, basePrice);
     const existing = cart.value.find((item) => item.id === product.id);
     if (existing) {
         if (overrides.replace) {
@@ -208,10 +229,7 @@ const scanBarcode = () => {
     );
     if (product && canAddProduct(product)) {
         const basePrice = product.purchase_price ?? product.selling_price ?? 0;
-        const taxPerItem =
-            product.tax_type === 'Y'
-                ? (basePrice * (product.tax_rate || 0)) / 100
-                : 0;
+        const taxPerItem = computeTaxPerItem(product, basePrice);
         addProductToCart(product, {
             quantity: inputQty.value,
             price: basePrice,
@@ -323,13 +341,70 @@ watch(selectedProductId, (value) => {
     const product = props.products?.find((p) => p.id === Number(value));
     if (!product) return;
     inputPrice.value = product.purchase_price ?? product.selling_price ?? 0;
-    inputTax.value =
-        product.tax_type === 'Y'
-            ? (inputPrice.value * (product.tax_rate || 0)) / 100
-            : 0;
+    inputTax.value = computeTaxPerItem(product, inputPrice.value);
     inputQty.value = 1;
     inputDiscount.value = 0;
 });
+
+watch(selectedSupplier, () => {
+    selectedPlanId.value = null;
+    if (!cart.value.length) return;
+    cart.value = cart.value.map((item) => {
+        const product = props.products?.find((p) => p.id === item.id);
+        if (!product) return item;
+        const nextPrice = item.price ?? product.purchase_price ?? product.selling_price ?? 0;
+        return {
+            ...item,
+            tax_per_item: computeTaxPerItem(product, nextPrice),
+        };
+    });
+    updateFormItems();
+});
+
+const importPurchasePlan = async () => {
+    if (!selectedPlanId.value) {
+        return;
+    }
+    if (cart.value.length > 0) {
+        const confirmed = confirm('Item di keranjang akan diganti dengan rencana pembelian. Lanjutkan?');
+        if (!confirmed) return;
+    }
+    try {
+        const response = await axios.get(route('purchases.plans.items', selectedPlanId.value));
+        const plan = response.data;
+        if (!plan?.supplier?.id) {
+            showNotice('Data rencana pembelian tidak ditemukan.');
+            return;
+        }
+        const supplierFromList = props.suppliers?.find(
+            (supplier) => Number(supplier.id) === Number(plan.supplier.id)
+        );
+        selectedSupplier.value = supplierFromList ?? plan.supplier;
+        cart.value = [];
+        plan.items.forEach((item) => {
+            const product = item.product;
+            if (!product || !product.id) {
+                return;
+            }
+            const basePrice = Number(product.purchase_price || 0);
+            const taxPerItem = computeTaxPerItem(product, basePrice, selectedSupplier.value);
+            cart.value.push({
+                id: product.id,
+                product_code: product.product_code,
+                name: product.name,
+                quantity: Number(item.planned_qty || 0),
+                price: basePrice,
+                tax_per_item: taxPerItem,
+                discount_per_item: 0,
+                unit: product.unit,
+                supplier_id: product.supplier_id,
+            });
+        });
+        updateFormItems();
+    } catch (error) {
+        showNotice('Gagal memuat rencana pembelian.');
+    }
+};
 
 onMounted(() => {
     updateDateTime();
@@ -376,7 +451,7 @@ onMounted(() => {
                     </div>
                 </div>
 
-                <div class="mt-4 grid gap-3 lg:grid-cols-3">
+                <div class="mt-4 grid gap-3 lg:grid-cols-4">
                     <div>
                         <label class="block text-[11px] uppercase tracking-wide mb-1 text-[#555]">Supplier</label>
                         <select v-model="selectedSupplier"
@@ -389,6 +464,20 @@ onMounted(() => {
                         <div v-if="formNotice.show" class="mt-2 text-[11px] text-red-700">
                             {{ formNotice.message }}
                         </div>
+                    </div>
+                    <div>
+                        <label class="block text-[11px] uppercase tracking-wide mb-1 text-[#555]">Rencana Pembelian</label>
+                        <select v-model="selectedPlanId"
+                            class="w-full bg-white border border-[#9c9c9c] rounded px-2 py-1 text-sm text-[#1f1f1f]">
+                            <option :value="null">Pilih Rencana</option>
+                            <option v-for="plan in filteredPlans" :key="plan.id" :value="plan.id">
+                                {{ plan.doc_no }} - {{ plan.plan_date }}
+                            </option>
+                        </select>
+                        <button type="button" @click="importPurchasePlan" :disabled="!selectedPlanId"
+                            class="mt-2 w-full bg-[#e9e9e9] hover:bg-white text-[#1f1f1f] text-sm font-semibold py-1 rounded border border-[#9c9c9c] disabled:opacity-50">
+                            Import Rencana
+                        </button>
                     </div>
                     <div>
                         <label class="block text-[11px] uppercase tracking-wide mb-1 text-[#555]">Metode Pembayaran</label>

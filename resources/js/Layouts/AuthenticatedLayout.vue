@@ -71,7 +71,7 @@ const hasPermission = (permissions) => {
 
 const canAccessMasterMenu = computed(() => hasPermission(['view_products', 'view_promotions', 'view_categories', 'view_divisions', 'view_racks', 'view_suppliers', 'view_members', 'view_salesmen', 'view_stations']));
 const canAccessUserManagement = computed(() => hasPermission(['view_users', 'manage_roles']));
-const canAccessTransactionMenu = computed(() => hasPermission(['create_sales', 'view_purchases', 'create_sales_returns', 'create_purchase_returns']));
+const canAccessTransactionMenu = computed(() => hasPermission(['create_sales', 'view_purchases', 'create_sales_returns', 'create_purchase_returns', 'view_purchase_plans', 'generate_purchase_plans']));
 const canAccessInventoryMenu = computed(() => hasPermission(['view_stock', 'stock_opname']));
 const canAccessReportMenu = computed(() => hasPermission(['view_reports']));
 const canAccessShiftsMenu = computed(() => hasPermission(['view_shifts', 'open_shifts', 'close_shifts']));
@@ -113,6 +113,7 @@ const menuItems = [
         can: canAccessTransactionMenu, isOpen: isTransactionMenuOpen, isActive: isTransactionMenuActive, toggle: () => isTransactionMenuOpen.value = !isTransactionMenuOpen.value, name: 'Transaksi', icon: '<svg class="h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3 3h2.25l1.5 12h12.75l1.5-12H21M6.75 3l1.5 12m0 0l2.25 3.75M6.75 15h6.75m0 0l-2.25 3.75m2.25-3.75h3.75l2.25 3.75M9 18.75h6" /></svg>', sub: [
             { route: 'sales.create', label: 'Penjualan (POS)', can: hasPermission('create_sales'), target: '_blank' },
             { route: 'purchases.create', label: 'Pembelian', can: hasPermission('create_purchases') },
+            { route: 'purchases.plans.index', label: 'Rencana Pembelian', can: hasPermission(['view_purchase_plans', 'generate_purchase_plans']) },
             { route: 'sales.index', label: 'Daftar Penjualan', can: hasPermission('view_sales') },
             { route: 'purchases.index', label: 'Daftar Pembelian', can: hasPermission('view_purchases') },
             { route: 'sales-returns.index', label: 'Retur Penjualan', can: hasPermission('view_sales_returns') },

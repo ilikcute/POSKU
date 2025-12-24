@@ -14,6 +14,7 @@ class SupplierSeeder extends Seeder
             'contact_person' => 'Bapak Budi',
             'phone' => '081234567890',
             'address' => 'Jl. Industri No. 123, Jakarta',
+            'is_pkp' => true,
         ]);
 
         Supplier::factory(15)->create();

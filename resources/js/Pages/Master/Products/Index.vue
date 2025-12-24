@@ -57,6 +57,7 @@ const form = useForm({
     tax_rate: 0,
     tax_type: 'Y',
     min_wholesale_qty: 0,
+    min_order_qty: 1,
     category_id: null,
     division_id: null,
     rack_id: null,
@@ -157,6 +158,7 @@ const openModal = (editMode = false, product = null) => {
         form.tax_rate = product.tax_rate;
         form.tax_type = product.tax_type;
         form.min_wholesale_qty = product.min_wholesale_qty;
+        form.min_order_qty = product.min_order_qty ?? 1;
         form.category_id = product.category_id;
         form.division_id = product.division_id;
         form.rack_id = product.rack_id;
@@ -724,6 +726,13 @@ const deleteProduct = (productId) => {
                                 <TextInput id="min_wholesale_qty" type="number" v-model="form.min_wholesale_qty"
                                     class="mt-1 block w-full bg-white border-[#9c9c9c] rounded text-[#1f1f1f] focus:ring-blue-500 focus:border-blue-500" />
                                 <InputError :message="form.errors.min_wholesale_qty" class="mt-2 text-red-600" />
+                            </div>
+
+                            <div>
+                                <InputLabel for="min_order_qty" value="Min Order (Pembelian)" class="text-[#1f1f1f]" />
+                                <TextInput id="min_order_qty" type="number" v-model="form.min_order_qty"
+                                    class="mt-1 block w-full bg-white border-[#9c9c9c] rounded text-[#1f1f1f] focus:ring-blue-500 focus:border-blue-500" />
+                                <InputError :message="form.errors.min_order_qty" class="mt-2 text-red-600" />
                             </div>
 
                             <div class="md:col-span-3">

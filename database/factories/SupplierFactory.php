@@ -16,6 +16,7 @@ class SupplierFactory extends Factory
             'contact_person' => $this->faker->name,
             'phone' => $this->faker->phoneNumber,
             'address' => $this->faker->address,
+            'is_pkp' => $this->faker->boolean(50),
         ];
     }
 }

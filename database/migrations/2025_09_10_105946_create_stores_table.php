@@ -22,6 +22,7 @@ return new class extends Migration
             $table->string('heroimage_path')->nullable();
             $table->string('favicon_path')->nullable();
             $table->string('tax')->nullable();
+            $table->string('receipt_paper_size', 10)->default('80');
             $table->boolean('is_main_store')->default(false);
             $table->timestamps();
         });

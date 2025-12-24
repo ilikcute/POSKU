@@ -35,6 +35,7 @@ class ProductsExport implements FromCollection, WithHeadings
             'tax_rate' => 'Tarif Pajak',
             'tax_type' => 'Tipe Pajak',
             'min_wholesale_qty' => 'Min Qty Grosir',
+            'min_order_qty' => 'Min Qty Order',
             'stock' => 'Stok',
             'category_id' => 'ID Kategori',
             'division_id' => 'ID Divisi',

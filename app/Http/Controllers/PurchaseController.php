@@ -61,6 +61,11 @@ class PurchaseController extends Controller
             ->get();
 
         $suppliers = Supplier::orderBy('name')->get();
+        $purchasePlans = \App\Models\PurchasePlan::with('supplier')
+            ->where('store_id', $this->currentStoreId())
+            ->orderBy('plan_date', 'desc')
+            ->orderBy('doc_no', 'desc')
+            ->get();
         $storeId = $this->currentStoreId();
         $station = StationResolver::resolve();
         $activeShift = Shift::query()
@@ -73,6 +78,7 @@ class PurchaseController extends Controller
         return Inertia::render('Purchases/Create', [
             'products' => $products,
             'suppliers' => $suppliers,
+            'purchasePlans' => $purchasePlans,
             'shift_id' => $activeShift?->id,
             'station_id' => $station->id,
             'invoice_number' => Purchase::generateInvoiceNumber(),

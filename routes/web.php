@@ -116,34 +116,49 @@ Route::middleware(['auth', 'verified'])->group(function () {
         });
 
         // PURCHASES
-        Route::prefix('purchases')->name('purchases.')->controller(PurchaseController::class)->group(function () {
+        Route::prefix('purchases')->name('purchases.')->group(function () {
 
-            Route::middleware('check.permission:view_purchases')->group(function () {
-                Route::get('/', 'index')->name('index');
-                Route::get('/create', 'create')
-                    ->name('create')
-                    ->middleware('check.permission:create_purchases');
-
-                Route::get('/{purchase}', 'show')->name('show');
-                Route::get('/{purchase}/print', 'print')->name('print');
-                Route::get('/{purchase}/pdf', 'generatePDF')->name('pdf');
+            Route::middleware('check.permission:view_purchase_plans')->group(function () {
+                Route::get('/plans', [\App\Http\Controllers\PurchasePlanController::class, 'index'])->name('plans.index');
+                Route::get('/plans/{plan}', [\App\Http\Controllers\PurchasePlanController::class, 'show'])->name('plans.show');
+                Route::get('/plans/{plan}/print', [\App\Http\Controllers\PurchasePlanController::class, 'print'])->name('plans.print');
+                Route::get('/plans/{plan}/pdf', [\App\Http\Controllers\PurchasePlanController::class, 'generatePDF'])->name('plans.pdf');
+                Route::get('/plans/{plan}/items', [\App\Http\Controllers\PurchasePlanController::class, 'items'])->name('plans.items');
             });
 
-            Route::post('/', 'store')
-                ->name('store')
-                ->middleware('check.permission:create_purchases');
+            Route::post('/plans/generate', [\App\Http\Controllers\PurchasePlanController::class, 'generate'])
+                ->name('plans.generate')
+                ->middleware('check.permission:generate_purchase_plans');
 
-            Route::get('/{purchase}/edit', 'edit')
-                ->name('edit')
-                ->middleware('check.permission:edit_purchases');
+            Route::controller(PurchaseController::class)->group(function () {
 
-            Route::patch('/{purchase}', 'update')
-                ->name('update')
-                ->middleware('check.permission:edit_purchases');
+                Route::middleware('check.permission:view_purchases')->group(function () {
+                    Route::get('/', 'index')->name('index');
+                    Route::get('/create', 'create')
+                        ->name('create')
+                        ->middleware('check.permission:create_purchases');
 
-            Route::delete('/{purchase}', 'destroy')
-                ->name('destroy')
-                ->middleware('check.permission:delete_purchases');
+                    Route::get('/{purchase}', 'show')->name('show');
+                    Route::get('/{purchase}/print', 'print')->name('print');
+                    Route::get('/{purchase}/pdf', 'generatePDF')->name('pdf');
+                });
+
+                Route::post('/', 'store')
+                    ->name('store')
+                    ->middleware('check.permission:create_purchases');
+
+                Route::get('/{purchase}/edit', 'edit')
+                    ->name('edit')
+                    ->middleware('check.permission:edit_purchases');
+
+                Route::patch('/{purchase}', 'update')
+                    ->name('update')
+                    ->middleware('check.permission:edit_purchases');
+
+                Route::delete('/{purchase}', 'destroy')
+                    ->name('destroy')
+                    ->middleware('check.permission:delete_purchases');
+            });
         });
 
         // PURCHASE RETURNS (pisah prefix supaya bersih)

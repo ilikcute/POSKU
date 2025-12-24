@@ -79,6 +79,9 @@
                                             class="px-6 py-4 text-left text-xs uppercase tracking-wider font-semibold text-[#1f1f1f]">
                                             Nama Supplier</th>
                                         <th
+                                            class="px-6 py-4 text-left text-xs uppercase tracking-wider font-semibold text-[#1f1f1f]">
+                                            PKP</th>
+                                        <th
                                             class="px-6 py-4 text-right text-xs uppercase tracking-wider font-semibold text-[#1f1f1f]">
                                             Aksi</th>
                                     </tr>
@@ -97,6 +100,12 @@
                                                     <p class="font-semibold text-[#1f1f1f]">{{ supplier.name }}</p>
                                                 </div>
                                             </div>
+                                        </td>
+                                        <td class="px-6 py-4 text-xs text-[#1f1f1f]">
+                                            <span
+                                                class="inline-flex items-center px-2 py-1 border border-[#9c9c9c] bg-[#efefef]">
+                                                {{ supplier.is_pkp ? 'PKP' : 'Non PKP' }}
+                                            </span>
                                         </td>
                                         <td class="px-6 py-4">
                                             <div class="flex justify-end gap-2">
@@ -133,6 +142,7 @@
                                     class="bg-[#efefef] border-b border-[#9c9c9c]">
                                     <tr>
                                         <th class="px-3 py-3 text-left font-semibold text-[#1f1f1f]">Supplier</th>
+                                        <th class="px-3 py-3 text-left font-semibold text-[#1f1f1f]">PKP</th>
                                         <th class="px-3 py-3 text-left font-semibold text-[#1f1f1f]">Aksi</th>
                                     </tr>
                                 </thead>
@@ -140,6 +150,9 @@
                                     <tr v-for="supplier in suppliers.data" :key="supplier.id" class="hover:bg-white">
                                         <td class="px-3 py-3">
                                             <div class="font-semibold text-[#1f1f1f] text-xs">{{ supplier.name }}</div>
+                                        </td>
+                                        <td class="px-3 py-3 text-xs text-[#1f1f1f]">
+                                            {{ supplier.is_pkp ? 'PKP' : 'Non PKP' }}
                                         </td>
                                         <td class="px-3 py-3">
                                             <div class="flex flex-col gap-2">
@@ -171,6 +184,7 @@
                                         </div>
                                         <div>
                                             <h3 class="font-semibold text-[#1f1f1f]">{{ supplier.name }}</h3>
+                                            <p class="text-xs text-[#555]">{{ supplier.is_pkp ? 'PKP' : 'Non PKP' }}</p>
                                         </div>
                                     </div>
                                 </div>
@@ -226,6 +240,29 @@
                             required />
                         <InputError :message="form.errors.name" class="mt-2 text-red-400" />
                     </div>
+                    <div>
+                        <InputLabel for="contact_person" value="Kontak" class="text-[#555]" />
+                        <TextInput id="contact_person" v-model="form.contact_person"
+                            class="mt-1 block w-full bg-white border-[#9c9c9c] rounded text-[#1f1f1f] focus:ring-blue-500 focus:border-blue-500" />
+                        <InputError :message="form.errors.contact_person" class="mt-2 text-red-400" />
+                    </div>
+                    <div>
+                        <InputLabel for="phone" value="Telepon" class="text-[#555]" />
+                        <TextInput id="phone" v-model="form.phone"
+                            class="mt-1 block w-full bg-white border-[#9c9c9c] rounded text-[#1f1f1f] focus:ring-blue-500 focus:border-blue-500" />
+                        <InputError :message="form.errors.phone" class="mt-2 text-red-400" />
+                    </div>
+                    <div>
+                        <InputLabel for="address" value="Alamat" class="text-[#555]" />
+                        <TextInput id="address" v-model="form.address"
+                            class="mt-1 block w-full bg-white border-[#9c9c9c] rounded text-[#1f1f1f] focus:ring-blue-500 focus:border-blue-500" />
+                        <InputError :message="form.errors.address" class="mt-2 text-red-400" />
+                    </div>
+                    <label class="flex items-center gap-2 text-xs text-[#1f1f1f]">
+                        <input type="checkbox" v-model="form.is_pkp"
+                            class="border border-[#9c9c9c] rounded">
+                        Supplier PKP (kena PPN)
+                    </label>
                     <div class="flex justify-end gap-3 mt-4">
                         <button type="button" @click="closeModal"
                             class="inline-flex items-center bg-[#e9e9e9] text-[#1f1f1f] border border-[#9c9c9c] font-semibold py-2 px-6 rounded text-xs hover:bg-white transition-colors">
@@ -276,6 +313,10 @@ const search = ref(props.filters.search);
 const form = useForm({
     id: null,
     name: "",
+    contact_person: "",
+    phone: "",
+    address: "",
+    is_pkp: false,
 });
 
 watch(
@@ -297,6 +338,10 @@ const openModal = (editMode = false, supplier = null) => {
     if (editMode && supplier) {
         form.id = supplier.id;
         form.name = supplier.name;
+        form.contact_person = supplier.contact_person ?? "";
+        form.phone = supplier.phone ?? "";
+        form.address = supplier.address ?? "";
+        form.is_pkp = !!supplier.is_pkp;
     } else {
         form.reset();
     }

@@ -38,7 +38,9 @@ class SupplierController extends Controller
             'contact_person' => 'nullable|string|max:255',
             'phone' => 'nullable|string|max:20',
             'address' => 'nullable|string',
+            'is_pkp' => 'nullable|boolean',
         ]);
+        $validated['is_pkp'] = (bool) ($validated['is_pkp'] ?? false);
         Supplier::create($validated);
 
         return redirect()->back()->with('success', 'Supplier berhasil ditambahkan.');
@@ -61,7 +63,9 @@ class SupplierController extends Controller
             'contact_person' => 'nullable|string|max:255',
             'phone' => 'nullable|string|max:20',
             'address' => 'nullable|string',
+            'is_pkp' => 'nullable|boolean',
         ]);
+        $validated['is_pkp'] = (bool) ($validated['is_pkp'] ?? false);
         $supplier->update($validated);
 
         return redirect()->back()->with('success', 'Supplier berhasil diperbarui.');

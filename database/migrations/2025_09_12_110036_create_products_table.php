@@ -27,6 +27,7 @@ return new class extends Migration
             $table->decimal('tax_rate', 5, 2)->default(0);
             $table->enum('tax_type', ['Y', 'N'])->default('Y');
             $table->integer('min_wholesale_qty');
+            $table->integer('min_order_qty')->default(1);
             $table->integer('stock')->default(0);
             $table->foreignId('category_id')->nullable()->constrained()->onDelete('set null');
             $table->foreignId('division_id')->nullable()->constrained()->onDelete('set null');
