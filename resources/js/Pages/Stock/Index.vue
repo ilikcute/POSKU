@@ -6,7 +6,7 @@
             <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                 <div>
                     <h2 class="font-semibold text-lg text-[#1f1f1f]">Kelola Stok</h2>
-                    <p class="text-xs text-[#555]">Pantau stok, filter kategori, dan lakukan penyesuaian.</p>
+                    <p class="text-xs text-[#555]">Pantau stok dan lakukan opname.</p>
                 </div>
                 <div class="flex flex-wrap gap-2">
                     <Link :href="route('stock.movements')"
@@ -87,12 +87,10 @@
                                 </span>
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                                <Link :href="`/stock/${stock.id}`" class="text-[#1f1f1f] hover:underline mr-4">
+                                <Link :href="route('stock.show', stock.id)"
+                                    class="text-[#1f1f1f] hover:underline">
                                     Lihat
                                 </Link>
-                                <button @click="adjustStock(stock)" class="text-[#1f1f1f] hover:underline">
-                                    Adjust
-                                </button>
                             </td>
                         </tr>
                     </tbody>
@@ -126,10 +124,4 @@ const filterStock = () => {
     router.get(route('stock.index'), filters.value, { preserveState: true, replace: true });
 };
 
-const adjustStock = (stock) => {
-    const newQuantity = prompt(`Adjust stock for ${stock.product.name}. Current: ${stock.quantity}`, stock.quantity);
-    if (newQuantity !== null) {
-        router.patch(route('stock.adjust', stock.id), { quantity: newQuantity });
-    }
-};
 </script>

@@ -14,12 +14,20 @@ const handleSidebarNavigate = () => {
     isSidebarMinimized.value = true;
 };
 
-watch(
-    () => page.url,
-    () => {
-        isSidebarMinimized.value = true;
+// watch(
+//     () => page.url,
+//     () => {
+//         isSidebarMinimized.value = true;
+//     }
+// );
+
+watch(() => sidebarOpen, (isOpen) => {
+    if (isOpen) {
+        document.body.style.overflow = 'hidden';
+    } else {
+        document.body.style.overflow = '';
     }
-);
+});
 
 // Menu states
 const isMasterMenuActive = computed(() => route().current("master.*"));
@@ -140,15 +148,24 @@ const menuItems = [
         <div class="absolute inset-0 bg-[#e6e6e6]"></div>
 
         <!-- Sidebar -->
+        <div v-if="sidebarOpen" @click="sidebarOpen = false" class="fixed inset-0 bg-black/50 z-40 lg:hidden" />
+
         <aside :class="[
             sidebarOpen ? 'translate-x-0' : '-translate-x-full',
-        ]"
-            class="fixed inset-y-0 left-0 z-50 bg-[#1f7bd7] border-r border-[#0b4f9b] transition-all duration-300 ease-in-out lg:translate-x-0 lg:static lg:inset-0 flex-shrink-0"
+        ]" class="fixed inset-y-0 left-0 z-50 bg-[#1f7bd7] border-r border-[#0b4f9b] transition-all duration-300 ease-in-out lg:translate-x-0 lg:static lg:inset-0 flex-shrink-0"
             :style="{
                 width: isSidebarMinimized ? '80px' : '256px',
             }">
             <div class="flex flex-col h-full">
                 <!-- Sidebar Header -->
+                <button @click="sidebarOpen = !sidebarOpen" class="lg:hidden p-2 rounded-md hover:bg-gray-100"
+                    aria-label="Toggle menu">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M4 6h16M4 12h16M4 18h16" />
+                    </svg>
+                </button>
+
                 <div class="flex items-center justify-center h-16 border-b border-[#0b4f9b] flex-shrink-0 px-4">
                     <Link :href="route('dashboard')" class="flex items-center overflow-hidden">
                         <div
@@ -284,7 +301,8 @@ const menuItems = [
                                     class="text-[#1f1f1f] hover:bg-[#efefef] focus:bg-[#efefef]">
                                     Profile </DropdownLink>
                                 <DropdownLink :href="route('logout')" method="post" as="button"
-                                    class="text-[#1f1f1f] hover:bg-[#efefef] focus:bg-[#efefef]"> Log Out </DropdownLink>
+                                    class="text-[#1f1f1f] hover:bg-[#efefef] focus:bg-[#efefef]"> Log Out
+                                </DropdownLink>
                             </div>
                         </template>
                     </Dropdown>

@@ -1,17 +1,11 @@
 <template>
     <AuthenticatedLayout>
-        <Head title="Pergerakan Stok" />
+        <Head title="Laporan Pergerakan Stok" />
 
         <template #header>
-            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                <div>
-                    <h2 class="font-semibold text-lg text-[#1f1f1f]">Pergerakan Stok</h2>
-                    <p class="text-xs text-[#555]">Pantau riwayat masuk dan keluar stok.</p>
-                </div>
-                <Link :href="route('stock.index')"
-                    class="inline-flex items-center bg-[#e9e9e9] text-[#1f1f1f] border border-[#9c9c9c] px-4 py-2 text-xs font-semibold shadow-sm hover:bg-white transition-colors">
-                    Kembali ke Stok
-                </Link>
+            <div>
+                <h2 class="font-semibold text-lg text-[#1f1f1f]">Laporan Pergerakan Stok</h2>
+                <p class="text-xs text-[#555]">Riwayat mutasi stok per periode.</p>
             </div>
         </template>
 
@@ -59,7 +53,7 @@
                     <tbody class="divide-y divide-[#d0d0d0]">
                         <tr v-for="movement in movements.data" :key="movement.id" class="hover:bg-[#f7f7f7]">
                             <td class="px-6 py-4 whitespace-nowrap text-sm">
-                                {{ new Date(movement.created_at).toLocaleDateString() }}
+                                {{ new Date(movement.created_at).toLocaleDateString('id-ID') }}
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap">
                                 <div class="text-sm font-medium">{{ movement.product?.name || '' }}</div>
@@ -82,6 +76,11 @@
                                 {{ movement.user?.name || 'System' }}
                             </td>
                         </tr>
+                        <tr v-if="!movements.data.length">
+                            <td colspan="6" class="px-6 py-6 text-center text-[#777]">
+                                Belum ada data.
+                            </td>
+                        </tr>
                     </tbody>
                 </table>
             </div>
@@ -93,7 +92,7 @@
 
 <script setup>
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
-import { Head, Link, router } from '@inertiajs/vue3';
+import { Head, router } from '@inertiajs/vue3';
 import { ref } from 'vue';
 import Pagination from '@/Components/Pagination.vue';
 
@@ -109,6 +108,6 @@ const filters = ref({
 });
 
 const filterMovements = () => {
-    router.get(route('stock.movements'), filters.value, { preserveState: true, replace: true });
+    router.get(route('reports.stock-movements'), filters.value, { preserveState: true, replace: true });
 };
 </script>

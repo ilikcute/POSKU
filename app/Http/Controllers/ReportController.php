@@ -436,6 +436,14 @@ class ReportController extends Controller
         if ($request->end_date) {
             $query->whereDate('created_at', '<=', $request->end_date);
         }
+        if ($request->search) {
+            $search = $request->search;
+            $query->whereHas('stock.product', function ($q) use ($search) {
+                $q->where('name', 'like', '%' . $search . '%')
+                    ->orWhere('product_code', 'like', '%' . $search . '%')
+                    ->orWhere('barcode', 'like', '%' . $search . '%');
+            });
+        }
 
         $movements = $query->orderByDesc('created_at')
             ->paginate(50)
@@ -443,7 +451,7 @@ class ReportController extends Controller
 
         return Inertia::render('Reports/StockMovements', [
             'movements' => $movements,
-            'filters' => $request->only(['start_date', 'end_date']),
+            'filters' => $request->only(['start_date', 'end_date', 'search']),
         ]);
     }
 

@@ -271,6 +271,27 @@ Route::middleware(['auth', 'verified'])->group(function () {
             Route::post('/opname', 'processOpname')
                 ->name('opname.process')
                 ->middleware('check.permission:stock_opname');
+            Route::post('/opname/create', 'createOpname')
+                ->name('opname.create')
+                ->middleware('check.permission:stock_opname');
+            Route::post('/opname/add-item', 'addOpnameItem')
+                ->name('opname.add-item')
+                ->middleware('check.permission:stock_opname');
+            Route::post('/opname/upload', 'uploadOpnameItems')
+                ->name('opname.upload')
+                ->middleware('check.permission:stock_opname');
+            Route::get('/opname/history', 'opnameHistory')
+                ->name('opname.history')
+                ->middleware('check.permission:stock_opname');
+            Route::get('/opname/template', 'downloadOpnameTemplate')
+                ->name('opname.template')
+                ->middleware('check.permission:stock_opname');
+            Route::patch('/opname/item/{item}', 'updateOpnameItem')
+                ->name('opname.item.update')
+                ->middleware('check.permission:stock_opname');
+            Route::delete('/opname/item/{item}', 'deleteOpnameItem')
+                ->name('opname.item.delete')
+                ->middleware('check.permission:stock_opname');
 
             Route::patch('/{stock}/adjust', 'adjust')
                 ->name('adjust')

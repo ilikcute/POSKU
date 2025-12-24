@@ -5,10 +5,14 @@ namespace App\Http\Controllers;
 use App\Models\Stock;
 use App\Models\Product;
 use App\Models\StockMovement;
+use App\Models\StockOpname;
+use App\Models\StockOpnameItem;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
 use Illuminate\Support\Facades\DB;
+use Maatwebsite\Excel\Facades\Excel;
+use App\Exports\StockOpnameTemplateExport;
 
 class StockController extends Controller
 {
@@ -103,79 +107,291 @@ class StockController extends Controller
     }
 
     /**
-     * Show stock opname form
+     * Show stock opname form (document based).
      */
     public function opname(Request $request)
     {
         $storeId = $this->currentStoreId();
-        $query = Stock::with(['product.category', 'product.supplier', 'store'])
-            ->byStore($storeId);
+        $docno = $request->string('docno')->toString();
 
-        // Filter by category
-        if ($request->has('category_id') && $request->category_id) {
-            $query->whereHas('product', function ($q) use ($request) {
-                $q->where('category_id', $request->category_id);
-            });
+        $opname = null;
+        $items = collect();
+
+        if ($docno !== '') {
+            $opname = \App\Models\StockOpname::query()
+                ->where('store_id', $storeId)
+                ->where('docno', $docno)
+                ->first();
+
+            if ($opname) {
+                $items = $opname->items()
+                    ->with('product')
+                    ->orderBy('id')
+                    ->get();
+            }
         }
-
-        // Search by product name
-        if ($request->has('search') && $request->search) {
-            $query->whereHas('product', function ($q) use ($request) {
-                $q->where('name', 'like', '%' . $request->search . '%');
-            });
-        }
-
-        $stocks = $query->paginate(15)
-            ->withQueryString();
-
-        $categories = \App\Models\Category::orderBy('name')->get();
 
         return Inertia::render('Stock/Opname', [
-            'stocks' => $stocks,
-            'categories' => $categories,
-            'filters' => $request->only(['category_id', 'search']),
+            'docno' => $docno,
+            'opname' => $opname,
+            'items' => $items,
+        ]);
+    }
+
+    public function opnameHistory(Request $request)
+    {
+        $storeId = $this->currentStoreId();
+
+        $opnames = StockOpname::query()
+            ->where('store_id', $storeId)
+            ->withCount('items')
+            ->orderByDesc('id')
+            ->paginate(20)
+            ->withQueryString();
+
+        return Inertia::render('Stock/OpnameHistory', [
+            'opnames' => $opnames,
         ]);
     }
 
     /**
-     * Process stock opname adjustments
+     * Process stock opname adjustments (finalize docno).
      */
     public function processOpname(Request $request)
     {
-        $request->validate([
-            'adjustments' => 'required|array|min:1',
-            'adjustments.*.stock_id' => 'required|exists:stocks,id',
-            'adjustments.*.physical_count' => 'required|integer|min:0',
-            'adjustments.*.reason' => 'nullable|string|max:255',
+        $validated = $request->validate([
+            'docno' => ['required', 'string'],
         ]);
 
         $storeId = $this->currentStoreId();
 
-        DB::transaction(function () use ($request, $storeId) {
-            foreach ($request->adjustments as $adjustment) {
-                $stock = Stock::findOrFail($adjustment['stock_id']);
+        $opname = StockOpname::query()
+            ->where('store_id', $storeId)
+            ->where('docno', $validated['docno'])
+            ->firstOrFail();
 
-                // Verify stock belongs to current store
-                if ($stock->store_id !== $storeId) {
+        if ($opname->status === 'A') {
+            return back()->with('warning', 'Opname sudah di-adjust.');
+        }
+
+        $items = $opname->items()
+            ->with('product')
+            ->get();
+
+        DB::transaction(function () use ($opname, $items, $storeId) {
+            foreach ($items as $item) {
+                if ($item->status !== 'E') {
                     continue;
                 }
 
-                $physicalCount = $adjustment['physical_count'];
-                $systemCount = $stock->quantity;
+                $stock = Stock::firstOrCreate(
+                    [
+                        'product_id' => $item->product_id,
+                        'store_id' => $storeId,
+                    ],
+                    ['quantity' => 0]
+                );
+
+                $physicalCount = (int) $item->physical_qty;
+                $systemCount = (int) $stock->quantity;
 
                 if ($physicalCount !== $systemCount) {
-                    $reason = $adjustment['reason'] ?? 'Stock Opname Adjustment';
-
                     $stock->adjustStock(
                         $physicalCount,
-                        $reason,
+                        'Stock Opname Adjustment',
                         Auth::id()
                     );
                 }
+
+                $item->update(['status' => 'A']);
             }
+
+            $opname->update([
+                'status' => 'A',
+                'adjusted_at' => now(),
+            ]);
         });
 
-        return back()->with('success', 'Stock opname completed successfully.');
+        return redirect()->route('stock.opname', ['docno' => $opname->docno])
+            ->with('success', 'Stock opname berhasil di-adjust.');
+    }
+
+    public function createOpname(Request $request)
+    {
+        $storeId = $this->currentStoreId();
+
+        $maxDocno = StockOpname::query()
+            ->where('store_id', $storeId)
+            ->max('docno');
+
+        $nextDocno = $maxDocno ? (string) ((int) $maxDocno + 1) : '1';
+
+        $opname = StockOpname::create([
+            'store_id' => $storeId,
+            'docno' => $nextDocno,
+            'created_by' => Auth::id(),
+            'status' => 'I',
+            'notes' => $request->input('notes'),
+        ]);
+
+        return redirect()->route('stock.opname', ['docno' => $opname->docno])
+            ->with('success', 'Dokumen opname dibuat.');
+    }
+
+    public function addOpnameItem(Request $request)
+    {
+        $validated = $request->validate([
+            'docno' => ['required', 'string'],
+            'product_code' => ['required', 'string'],
+        ]);
+
+        $storeId = $this->currentStoreId();
+
+        $opname = StockOpname::query()
+            ->where('store_id', $storeId)
+            ->where('docno', $validated['docno'])
+            ->firstOrFail();
+
+        if ($opname->status === 'A') {
+            return back()->with('warning', 'Opname sudah di-adjust.');
+        }
+
+        $product = Product::query()
+            ->where('product_code', $validated['product_code'])
+            ->first();
+
+        if (! $product) {
+            return back()->with('warning', 'Product code tidak ditemukan.');
+        }
+
+        $exists = $opname->items()
+            ->where('product_id', $product->id)
+            ->exists();
+
+        if (! $exists) {
+            $systemQty = $product->stocks()->where('store_id', $storeId)->value('quantity') ?? 0;
+
+            $opname->items()->create([
+                'product_id' => $product->id,
+                'system_qty' => (int) $systemQty,
+                'physical_qty' => 0,
+                'status' => 'I',
+            ]);
+        }
+
+        return back()->with('success', 'Item ditambahkan.');
+    }
+
+    public function updateOpnameItem(Request $request, StockOpnameItem $item)
+    {
+        $validated = $request->validate([
+            'physical_qty' => ['required', 'integer', 'min:0'],
+        ]);
+
+        $opname = $item->opname;
+        if (! $opname || $opname->store_id !== $this->currentStoreId()) {
+            return back()->with('error', 'Item opname tidak valid.');
+        }
+
+        if ($item->status === 'A') {
+            return back()->with('warning', 'Item sudah di-adjust.');
+        }
+
+        $item->update([
+            'physical_qty' => (int) $validated['physical_qty'],
+            'status' => 'E',
+        ]);
+
+        $opname->update(['status' => 'E']);
+
+        return back()->with('success', 'Item diperbarui.');
+    }
+
+    public function deleteOpnameItem(StockOpnameItem $item)
+    {
+        $opname = $item->opname;
+        if (! $opname || $opname->store_id !== $this->currentStoreId()) {
+            return back()->with('error', 'Item opname tidak valid.');
+        }
+
+        if ($opname->status === 'A' || $item->status === 'A') {
+            return back()->with('warning', 'Item sudah di-adjust.');
+        }
+
+        $item->delete();
+
+        return back()->with('success', 'Item dihapus.');
+    }
+
+    public function uploadOpnameItems(Request $request)
+    {
+        $validated = $request->validate([
+            'docno' => ['required', 'string'],
+            'file' => ['required', 'file', 'mimes:xlsx,csv,txt'],
+        ]);
+
+        $storeId = $this->currentStoreId();
+
+        $opname = StockOpname::query()
+            ->where('store_id', $storeId)
+            ->where('docno', $validated['docno'])
+            ->firstOrFail();
+
+        if ($opname->status === 'A') {
+            return back()->with('warning', 'Opname sudah di-adjust.');
+        }
+
+        $rows = Excel::toArray([], $validated['file']);
+        $codes = collect($rows[0] ?? [])
+            ->map(fn($row) => $row[0] ?? null)
+            ->filter()
+            ->map(fn($code) => trim((string) $code))
+            ->unique()
+            ->values();
+
+        $products = Product::query()
+            ->whereIn('product_code', $codes)
+            ->get()
+            ->keyBy('product_code');
+
+        $inserted = 0;
+        $skipped = 0;
+
+        foreach ($codes as $code) {
+            $product = $products->get($code);
+            if (! $product) {
+                $skipped++;
+                continue;
+            }
+
+            $exists = $opname->items()
+                ->where('product_id', $product->id)
+                ->exists();
+
+            if ($exists) {
+                $skipped++;
+                continue;
+            }
+
+            $systemQty = $product->stocks()->where('store_id', $storeId)->value('quantity') ?? 0;
+
+            $opname->items()->create([
+                'product_id' => $product->id,
+                'system_qty' => (int) $systemQty,
+                'physical_qty' => 0,
+                'status' => 'I',
+            ]);
+            $inserted++;
+        }
+
+        $message = "Upload berhasil. Ditambahkan: {$inserted}, dilewati: {$skipped}.";
+
+        return back()->with('success', $message);
+    }
+
+    public function downloadOpnameTemplate()
+    {
+        return Excel::download(new StockOpnameTemplateExport(), 'stock_opname_template.xlsx');
     }
 
     /**
