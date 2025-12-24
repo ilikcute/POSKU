@@ -50,6 +50,7 @@ const form = useForm({
     image: '',
     purchase_price: 0,
     selling_price: 0,
+    final_price: 0,
     member_price: 0,
     vip_price: 0,
     wholesale_price: 0,
@@ -75,6 +76,14 @@ const margin = computed(() => {
     const taxRate = Number(form.tax_rate) || 0;
     const taxAmount = (purchase * taxRate) / 100;
     return selling - purchase - taxAmount;
+});
+
+const finalPrice = computed(() => {
+    const selling = Number(form.selling_price) || 0;
+    const taxRate = Number(form.tax_rate) || 0;
+    const taxType = form.tax_type === 'Y';
+    const taxAmount = taxType ? (selling * taxRate) / 100 : 0;
+    return selling + taxAmount;
 });
 
 const marginPercentage = computed(() => {
@@ -141,6 +150,7 @@ const openModal = (editMode = false, product = null) => {
         form.image = product.image;
         form.purchase_price = product.purchase_price;
         form.selling_price = product.selling_price;
+        form.final_price = product.final_price ?? 0;
         form.member_price = product.member_price;
         form.vip_price = product.vip_price;
         form.wholesale_price = product.wholesale_price;
@@ -170,6 +180,13 @@ const closeModal = () => {
     form.reset();
     form.unit = 'Pcs';
 };
+
+watch(
+    () => [form.selling_price, form.tax_rate, form.tax_type],
+    () => {
+        form.final_price = finalPrice.value;
+    }
+);
 
 const saveProduct = () => {
     if (isEditMode.value) {
@@ -313,6 +330,9 @@ const deleteProduct = (productId) => {
                                         Harga Jual</th>
                                     <th
                                         class="px-6 py-3 text-left text-xs uppercase tracking-wider font-semibold text-[#1f1f1f]">
+                                        Harga Final</th>
+                                    <th
+                                        class="px-6 py-3 text-left text-xs uppercase tracking-wider font-semibold text-[#1f1f1f]">
                                         Stok</th>
                                     <th
                                         class="px-6 py-3 text-right text-xs uppercase tracking-wider font-semibold text-[#1f1f1f]">
@@ -345,6 +365,9 @@ const deleteProduct = (productId) => {
                                         }}</td>
                                     <td class="px-6 py-4 text-[#1f1f1f] font-medium">{{
                                         formatCurrency(product.selling_price) }}
+                                    </td>
+                                    <td class="px-6 py-4 text-[#1f1f1f] font-medium">{{
+                                        formatCurrency(product.final_price ?? 0) }}
                                     </td>
                                     <td class="px-6 py-4">
                                         <span :class="getStockStatusClass(product.stock, product.min_stock_alert)"
@@ -400,7 +423,7 @@ const deleteProduct = (productId) => {
                                         <div class="text-[11px] text-[#555]">{{ product.category?.name || '-' }}</div>
                                     </td>
                                     <td class="px-3 py-3 text-[11px] font-semibold">{{
-                                        formatCurrency(product.selling_price) }}</td>
+                                        formatCurrency(product.final_price ?? product.selling_price) }}</td>
                                     <td class="px-3 py-3 text-[11px]">
                                         <span :class="getStockStatusClass(product.stock, product.min_stock_alert)">
                                             {{ product.stock ?? '-' }}
@@ -465,7 +488,7 @@ const deleteProduct = (productId) => {
                             </div>
                             <div class="flex justify-between text-sm">
                                 <span class="text-[#1f1f1f]">Harga Jual</span>
-                                <span class="font-medium">{{ formatCurrency(product.selling_price)
+                                <span class="font-medium">{{ formatCurrency(product.final_price ?? product.selling_price)
                                     }}</span>
                             </div>
                             <div class="flex justify-between text-sm">
@@ -650,6 +673,12 @@ const deleteProduct = (productId) => {
                                     class="mt-1 block w-full bg-white border-[#9c9c9c] rounded text-[#1f1f1f] focus:ring-blue-500 focus:border-blue-500"
                                     required />
                                 <InputError :message="form.errors.selling_price" class="mt-2 text-red-600" />
+                            </div>
+
+                            <div>
+                                <InputLabel for="final_price" value="Harga Final (Include PPN)" class="text-[#1f1f1f]" />
+                                <TextInput id="final_price" type="number" v-model="form.final_price" readonly
+                                    class="mt-1 block w-full bg-[#f1f1f1] border-[#9c9c9c] rounded text-[#1f1f1f] focus:ring-blue-500 focus:border-blue-500" />
                             </div>
 
                             <div>

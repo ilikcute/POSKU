@@ -15,9 +15,9 @@ class ProductSeeder extends Seeder
 
                 if (! $product->member_price) {
                     $updates = [
-                        'member_price' => $product->selling_price * 0.95,
-                        'vip_price' => $product->selling_price * 0.90,
-                        'wholesale_price' => $product->selling_price * 0.85,
+                        'member_price' => round($product->selling_price * 0.95, 0),
+                        'vip_price' => round($product->selling_price * 0.90, 0),
+                        'wholesale_price' => round($product->selling_price * 0.85, 0),
                         'min_wholesale_qty' => rand(5, 20),
                     ];
                 }
@@ -28,6 +28,14 @@ class ProductSeeder extends Seeder
 
                 if ($product->tax_rate === null) {
                     $updates['tax_rate'] = 11.0;
+                }
+
+                if ($product->final_price === null) {
+                    $taxRate = $updates['tax_rate'] ?? $product->tax_rate ?? 0;
+                    $taxType = $updates['tax_type'] ?? $product->tax_type ?? 'N';
+                    $sellingPrice = $product->selling_price ?? 0;
+                    $taxAmount = $taxType === 'Y' ? ($sellingPrice * $taxRate / 100) : 0;
+                    $updates['final_price'] = round($sellingPrice + $taxAmount, 0);
                 }
 
                 if (! empty($updates)) {
@@ -49,6 +57,7 @@ class ProductSeeder extends Seeder
                 'description' => 'This is a sample product for testing',
                 'purchase_price' => 70000,
                 'selling_price' => 100000,
+                'final_price' => 111000,
                 'member_price' => 95000,
                 'vip_price' => 90000,
                 'wholesale_price' => 85000,
@@ -64,6 +73,7 @@ class ProductSeeder extends Seeder
                 'description' => 'Premium quality product',
                 'purchase_price' => 150000,
                 'selling_price' => 200000,
+                'final_price' => 222000,
                 'member_price' => 190000,
                 'vip_price' => 180000,
                 'wholesale_price' => 170000,

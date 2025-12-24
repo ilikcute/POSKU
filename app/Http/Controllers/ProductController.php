@@ -67,6 +67,7 @@ class ProductController extends Controller
             'wholesale_price' => 'nullable|numeric|min:0',
             'min_wholesale_qty' => 'required|integer|min:1',
             'tax_rate' => 'nullable|numeric|min:0|max:100',
+            'tax_type' => 'nullable|in:Y,N',
             'category_id' => 'nullable|exists:categories,id',
             'division_id' => 'nullable|exists:divisions,id',
             'rack_id' => 'nullable|exists:racks,id',
@@ -77,6 +78,12 @@ class ProductController extends Controller
             'max_stock_alert' => 'nullable|integer|min:0',
             'reorder' => 'nullable|string',
         ]);
+
+        $taxRate = $validated['tax_rate'] ?? 0;
+        $taxType = $validated['tax_type'] ?? 'N';
+        $sellingPrice = $validated['selling_price'];
+        $taxAmount = $taxType === 'Y' ? ($sellingPrice * $taxRate / 100) : 0;
+        $validated['final_price'] = $sellingPrice + $taxAmount;
 
         $product = Product::create($validated);
         $product->syncStock();
@@ -109,6 +116,7 @@ class ProductController extends Controller
             'wholesale_price' => 'nullable|numeric|min:0',
             'min_wholesale_qty' => 'required|integer|min:1',
             'tax_rate' => 'nullable|numeric|min:0|max:100',
+            'tax_type' => 'nullable|in:Y,N',
             'category_id' => 'nullable|exists:categories,id',
             'division_id' => 'nullable|exists:divisions,id',
             'rack_id' => 'nullable|exists:racks,id',
@@ -119,6 +127,12 @@ class ProductController extends Controller
             'max_stock_alert' => 'nullable|integer|min:0',
             'reorder' => 'nullable|string',
         ]);
+
+        $taxRate = $validated['tax_rate'] ?? 0;
+        $taxType = $validated['tax_type'] ?? 'N';
+        $sellingPrice = $validated['selling_price'];
+        $taxAmount = $taxType === 'Y' ? ($sellingPrice * $taxRate / 100) : 0;
+        $validated['final_price'] = $sellingPrice + $taxAmount;
 
         $product->update($validated);
         $product->syncStock();

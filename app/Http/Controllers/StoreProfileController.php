@@ -36,6 +36,7 @@ class StoreProfileController extends Controller
             'email' => 'nullable|email|max:255',
             'website' => 'nullable|url|max:255',
             'tax' => 'nullable|string|max:50',
+            'receipt_paper_size' => 'nullable|in:58,80',
             'logo' => 'nullable|image|max:1024', // Validasi untuk upload logo
             'heroimage' => 'nullable|image|max:2048', // Validasi untuk upload hero image
             'favicon' => 'nullable|image|max:512', // Validasi untuk upload favicon
@@ -48,6 +49,7 @@ class StoreProfileController extends Controller
             'email' => $validated['email'],
             'website' => $validated['website'],
             'tax' => $validated['tax'],
+            'receipt_paper_size' => $validated['receipt_paper_size'] ?? $store->receipt_paper_size ?? '58',
         ]);
 
         // Upload logo

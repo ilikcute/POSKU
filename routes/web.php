@@ -303,16 +303,25 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::resource('customers', CustomerController::class);
 
         // PROMOTIONS
-        Route::resource('promotions', PromotionController::class);
-        Route::patch('promotions/{promotion}/clear', [PromotionController::class, 'clear'])->name('promotions.clear');
-        Route::get('promotions-active', [PromotionController::class, 'activePromotions'])->name('promotions.active');
+    Route::resource('promotions', PromotionController::class);
+    Route::patch('promotions/{promotion}/clear', [PromotionController::class, 'clear'])->name('promotions.clear');
+    Route::get('promotions-active', [PromotionController::class, 'activePromotions'])->name('promotions.active');
+
+    Route::prefix('stations')->name('stations.')->controller(\App\Http\Controllers\StationController::class)->group(function () {
+        Route::middleware('check.permission:view_stations')->group(function () {
+            Route::get('/', 'index')->name('index');
+        });
+        Route::post('/', 'store')->name('store')->middleware('check.permission:create_stations');
+        Route::patch('/{station}', 'update')->name('update')->middleware('check.permission:edit_stations');
+        Route::delete('/{station}', 'destroy')->name('destroy')->middleware('check.permission:delete_stations');
+    });
 
         // PRICING
         Route::post('price/check', [PriceController::class, 'getProductPrice'])->name('price.check');
         Route::post('price/bulk-check', [PriceController::class, 'bulkPriceCheck'])->name('price.bulk-check');
 
         // MASTER
-        Route::prefix('master')->name('master.')->group(function () {
+    Route::prefix('master')->name('master.')->group(function () {
 
             // PRODUCTS
             Route::prefix('products')->name('products.')->controller(ProductController::class)->group(function () {

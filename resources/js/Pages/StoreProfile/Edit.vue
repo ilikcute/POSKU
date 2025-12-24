@@ -27,6 +27,7 @@ const form = useForm({
     email: props.store.email,
     website: props.store.website,
     tax: props.store.tax,
+    receipt_paper_size: props.store.receipt_paper_size || '58',
     logo: null,
     heroimage: null,
     favicon: null,
@@ -94,6 +95,7 @@ const saveStoreProfile = () => {
     formData.append('email', form.email || '');
     formData.append('website', form.website || '');
     formData.append('tax', form.tax || '');
+    formData.append('receipt_paper_size', form.receipt_paper_size || '58');
     formData.append('_method', 'PATCH');
 
     if (form.logo) {
@@ -328,6 +330,15 @@ const saveStoreProfile = () => {
                                 class="mt-2 block w-full bg-white border-[#9c9c9c] rounded text-[#1f1f1f] placeholder-gray-400 focus:ring-blue-500 focus:border-blue-500"
                                 placeholder="Contoh: 1234567890" />
                             <InputError :message="form.errors?.tax" class="mt-2 text-red-400" />
+                        </div>
+                        <div>
+                            <InputLabel for="receipt_paper_size" value="Ukuran Kertas Struk" class="text-[#555] font-semibold" />
+                            <select id="receipt_paper_size" v-model="form.receipt_paper_size"
+                                class="mt-2 block w-full bg-white border-[#9c9c9c] rounded text-[#1f1f1f] focus:ring-blue-500 focus:border-blue-500">
+                                <option value="58">58 mm (Thermal)</option>
+                                <option value="80">80 mm (Thermal)</option>
+                            </select>
+                            <InputError :message="form.errors?.receipt_paper_size" class="mt-2 text-red-400" />
                         </div>
 
                         <div>

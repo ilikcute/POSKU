@@ -151,10 +151,12 @@ class SaleController extends Controller
             ->latest('start_time')
             ->firstOrFail();
 
-        DB::transaction(function () use ($validated, $itemsInput, $customer, $storeId, $station) {
+        $sale = null;
+        DB::transaction(function () use ($validated, $itemsInput, $customer, $storeId, $station, &$sale) {
             // Get customer for promotion calculation
             // Calculate totals with promotions
             $totalAmount = 0;
+            $totalTax = 0;
             $totalDiscount = 0;
             $bundledItems = [];
             $items = collect();
@@ -166,40 +168,63 @@ class SaleController extends Controller
                 $unitPrice = $promotionData['final_price'];
                 $discountPerItem = max(0, $promotionData['original_price'] - $promotionData['final_price']);
                 $subtotal = $item['quantity'] * $unitPrice;
+                $taxType = $product->tax_type ?? 'N';
+                $taxRate = $product->tax_rate ?? 0;
+                $taxPerItem = $taxType === 'Y' ? round($unitPrice * ($taxRate / 100), 2) : 0;
+                $taxAmount = $taxPerItem * $item['quantity'];
+                $promotionId = $promotionData['promotion_id'] ?? null;
 
                 $items->push([
                     'product_id' => $product->id,
+                    'promotion_id' => $promotionId,
                     'quantity' => $item['quantity'],
                     'unit_price' => $unitPrice,
                     'discount_per_item' => $discountPerItem,
                     'promotion_name' => $promotionData['promotion_name'],
+                    'tax_type' => $taxType,
+                    'tax_rate' => $taxRate,
+                    'tax_amount' => $taxAmount,
                     'subtotal' => $subtotal,
                 ]);
 
                 $totalAmount += $subtotal;
                 $totalDiscount += $discountPerItem * $item['quantity'];
+                $totalTax += $taxAmount;
 
                 // Add bundled products if any
                 if (! empty($promotionData['bundled_products'])) {
                     foreach ($promotionData['bundled_products'] as $bundled) {
+                        $bundledProduct = Product::find($bundled['product_id']);
+                        $bundledTaxType = $bundledProduct?->tax_type ?? 'N';
+                        $bundledTaxRate = $bundledProduct?->tax_rate ?? 0;
+                        $bundledUnitPrice = $bundled['price'] ?? 0;
+                        $bundledTaxPerItem = $bundledTaxType === 'Y'
+                            ? round($bundledUnitPrice * ($bundledTaxRate / 100), 2)
+                            : 0;
+                        $bundledTaxAmount = $bundledTaxPerItem * $bundled['quantity'];
                         $bundledSubtotal = $bundled['quantity'] * ($bundled['price'] ?? 0);
                         $items->push([
                             'product_id' => $bundled['product_id'],
+                            'promotion_id' => $promotionId,
                             'quantity' => $bundled['quantity'],
                             'unit_price' => $bundled['price'] ?? 0,
                             'discount_per_item' => 0,
                             'promotion_name' => $promotionData['promotion_name'],
+                            'tax_type' => $bundledTaxType,
+                            'tax_rate' => $bundledTaxRate,
+                            'tax_amount' => $bundledTaxAmount,
                             'subtotal' => $bundledSubtotal,
                             'is_bundled' => true,
                             'bundled_from' => $product->id,
                         ]);
                         $totalAmount += $bundledSubtotal;
+                        $totalTax += $bundledTaxAmount;
                     }
                 }
             }
 
             $discount = $validated['discount'] ?? 0;
-            $tax = $validated['tax'] ?? 0;
+            $tax = $totalTax;
             $finalAmount = $totalAmount - $discount + $tax;
             $changeDue = max(0, $validated['amount_paid'] - $finalAmount);
 
@@ -225,9 +250,13 @@ class SaleController extends Controller
                 SaleDetail::create([
                     'sale_id' => $sale->id,
                     'product_id' => $item['product_id'],
+                    'promotion_id' => $item['promotion_id'] ?? null,
                     'quantity' => $item['quantity'],
                     'price_at_sale' => $item['unit_price'],
                     'discount_per_item' => $item['discount_per_item'] ?? 0,
+                    'tax_type' => $item['tax_type'] ?? 'N',
+                    'tax_rate' => $item['tax_rate'] ?? 0,
+                    'tax_amount' => $item['tax_amount'] ?? 0,
                     'subtotal' => $item['subtotal'],
                 ]);
 
@@ -249,7 +278,8 @@ class SaleController extends Controller
         });
 
         return redirect()->route('sales.create')
-            ->with('success', 'Sale created successfully.');
+            ->with('success', 'Sale created successfully.')
+            ->with('invoice_number', $sale?->invoice_number);
     }
 
     /**
@@ -337,15 +367,22 @@ class SaleController extends Controller
 
             // Calculate new totals
             $totalAmount = 0;
+            $totalTax = 0;
             $items = collect($request->items);
 
             foreach ($items as $item) {
                 $subtotal = $item['quantity'] * $item['price'];
                 $totalAmount += $subtotal;
+
+                $product = Product::find($item['product_id']);
+                $taxType = $product?->tax_type ?? 'N';
+                $taxRate = $product?->tax_rate ?? 0;
+                $taxPerItem = $taxType === 'Y' ? round($item['price'] * ($taxRate / 100), 2) : 0;
+                $totalTax += $taxPerItem * $item['quantity'];
             }
 
             $discount = $request->discount ?? 0;
-            $tax = $request->tax ?? 0;
+            $tax = $totalTax;
             $finalAmount = $totalAmount - $discount + $tax;
             $changeDue = max(0, $request->amount_paid - $finalAmount);
 
@@ -365,13 +402,22 @@ class SaleController extends Controller
             // Create new sale details and update stock
             foreach ($items as $item) {
                 $subtotal = $item['quantity'] * $item['price'];
+                $product = Product::find($item['product_id']);
+                $taxType = $product?->tax_type ?? 'N';
+                $taxRate = $product?->tax_rate ?? 0;
+                $taxPerItem = $taxType === 'Y' ? round($item['price'] * ($taxRate / 100), 2) : 0;
+                $taxAmount = $taxPerItem * $item['quantity'];
 
                 SaleDetail::create([
                     'sale_id' => $sale->id,
                     'product_id' => $item['product_id'],
+                    'promotion_id' => $item['promotion_id'] ?? null,
                     'quantity' => $item['quantity'],
                     'price_at_sale' => $item['price'],
                     'discount_per_item' => $item['discount_per_item'] ?? 0,
+                    'tax_type' => $taxType,
+                    'tax_rate' => $taxRate,
+                    'tax_amount' => $taxAmount,
                     'subtotal' => $subtotal,
                 ]);
 

@@ -84,6 +84,10 @@ class DatabaseSeeder extends Seeder
             'create_promotions',
             'edit_promotions',
             'delete_promotions',
+            'view_stations',
+            'create_stations',
+            'edit_stations',
+            'delete_stations',
         ];
 
         foreach ($permissions as $permission) {
@@ -115,6 +119,7 @@ class DatabaseSeeder extends Seeder
             'view_members',
             'view_salesmen',
             'view_promotions',
+            'view_stations',
         ]);
         $kasirRole->givePermissionTo([
             'view_dashboard',

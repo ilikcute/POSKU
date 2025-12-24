@@ -43,11 +43,18 @@ class ProductsImport implements ToCollection, WithHeadingRow
             foreach ($data as $key => $value) {
                 if ($value === '' || $value === null) {
                     $data[$key] = null;
-                } elseif (is_numeric($value) && in_array($key, ['purchase_price', 'selling_price', 'member_price', 'vip_price', 'wholesale_price', 'tax_rate', 'weight'])) {
+                } elseif (is_numeric($value) && in_array($key, ['purchase_price', 'selling_price', 'final_price', 'member_price', 'vip_price', 'wholesale_price', 'tax_rate', 'weight'])) {
                     $data[$key] = (float) $value;
                 } elseif (is_numeric($value) && in_array($key, ['min_wholesale_qty', 'stock', 'min_stock_alert', 'max_stock_alert'])) {
                     $data[$key] = (int) $value;
                 }
+            }
+
+            $taxType = $data['tax_type'] ?? 'N';
+            $taxRate = $data['tax_rate'] ?? 0;
+            if (isset($data['selling_price']) && empty($data['final_price'])) {
+                $taxAmount = $taxType === 'Y' ? ($data['selling_price'] * $taxRate / 100) : 0;
+                $data['final_price'] = $data['selling_price'] + $taxAmount;
             }
 
             // Remove rows without required product_code or name

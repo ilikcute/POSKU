@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed } from "vue";
+import { ref, computed, watch } from "vue";
 import ApplicationLogo from "@/Components/ApplicationLogo.vue";
 import Dropdown from "@/Components/Dropdown.vue";
 import DropdownLink from "@/Components/DropdownLink.vue";
@@ -10,6 +10,16 @@ const page = usePage();
 const store = page.props.store;
 const sidebarOpen = ref(false);
 const isSidebarMinimized = ref(false);
+const handleSidebarNavigate = () => {
+    isSidebarMinimized.value = true;
+};
+
+watch(
+    () => page.url,
+    () => {
+        isSidebarMinimized.value = true;
+    }
+);
 
 // Menu states
 const isMasterMenuActive = computed(() => route().current("master.*"));
@@ -51,7 +61,7 @@ const hasPermission = (permissions) => {
     return userPermissions.includes(permissions);
 };
 
-const canAccessMasterMenu = computed(() => hasPermission(['view_products', 'view_promotions', 'view_categories', 'view_divisions', 'view_racks', 'view_suppliers', 'view_members', 'view_salesmen']));
+const canAccessMasterMenu = computed(() => hasPermission(['view_products', 'view_promotions', 'view_categories', 'view_divisions', 'view_racks', 'view_suppliers', 'view_members', 'view_salesmen', 'view_stations']));
 const canAccessUserManagement = computed(() => hasPermission(['view_users', 'manage_roles']));
 const canAccessTransactionMenu = computed(() => hasPermission(['create_sales', 'view_purchases', 'create_sales_returns', 'create_purchase_returns']));
 const canAccessInventoryMenu = computed(() => hasPermission(['view_stock', 'stock_opname']));
@@ -87,6 +97,7 @@ const menuItems = [
             { route: 'master.suppliers.index', label: 'Supplier', can: hasPermission('view_suppliers') },
             { route: 'master.members.index', label: 'Master Member', can: hasPermission('view_members') },
             { route: 'master.salesmen.index', label: 'Master Salesman', can: hasPermission('view_salesmen') },
+            { route: 'stations.index', label: 'Setting Station', can: hasPermission('view_stations') },
             { route: 'store.profile.edit', label: 'Profil Toko' },
         ]
     },
@@ -158,7 +169,8 @@ const menuItems = [
                     class="mt-4 px-3 space-y-2 flex-grow overflow-y-auto scrollbar-thin scrollbar-thumb-white/30 scrollbar-track-transparent">
                     <NavLink :href="route('dashboard')" :active="route().current('dashboard')" :is-sidebar-link="true"
                         class="group flex items-center px-3 py-2 text-sm font-medium rounded border border-transparent transition-all duration-200 hover:bg-white/10"
-                        :class="route().current('dashboard') ? 'bg-white/10 text-white border border-white/30' : 'text-white/90 hover:text-white'">
+                        :class="route().current('dashboard') ? 'bg-white/10 text-white border border-white/30' : 'text-white/90 hover:text-white'"
+                        @click="handleSidebarNavigate">
                         <template #icon>
                             <svg class="h-5 w-5 transition-transform duration-200 group-hover:scale-110"
                                 xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5"
@@ -194,7 +206,8 @@ const menuItems = [
                                     <NavLink v-if="item.can !== false" :href="route(item.route)" :target="item.target"
                                         :active="route().current(item.route)" :is-sidebar-link="true"
                                         class="group flex items-center px-3 py-2 text-sm rounded border border-transparent transition-all duration-200 hover:bg-white/10"
-                                        :class="route().current(item.route) ? 'text-white bg-white/10 border border-white/30' : 'text-white/80 hover:text-white'">
+                                        :class="route().current(item.route) ? 'text-white bg-white/10 border border-white/30' : 'text-white/80 hover:text-white'"
+                                        @click="handleSidebarNavigate">
                                         <span :class="{ 'lg:hidden': isSidebarMinimized }"
                                             class="ml-6 whitespace-nowrap transition-opacity duration-200">{{ item.label
                                             }}</span>

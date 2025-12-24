@@ -84,7 +84,8 @@ class ReportController extends Controller
             ->get();
 
         $totalValue = $stocks->sum(function ($stock) {
-            return $stock->quantity * $stock->product->selling_price;
+            $price = $stock->product->final_price ?? $stock->product->selling_price ?? 0;
+            return $stock->quantity * $price;
         });
 
         return Inertia::render('Reports/Stock', [

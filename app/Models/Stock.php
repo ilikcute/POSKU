@@ -135,6 +135,7 @@ class Stock extends Model
 
     public function getSellingValue()
     {
-        return $this->quantity * $this->product->selling_price;
+        $price = $this->product->final_price ?? $this->product->selling_price ?? 0;
+        return $this->quantity * $price;
     }
 }

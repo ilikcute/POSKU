@@ -19,10 +19,11 @@ return new class extends Migration
             $table->text('description')->nullable();
             $table->string('image')->nullable();
             $table->decimal('purchase_price', 15, 2);
-            $table->decimal('selling_price', 15, 2);
-            $table->decimal('member_price', 15, 2);
-            $table->decimal('vip_price', 15, 2);
-            $table->decimal('wholesale_price', 15, 2);
+            $table->decimal('selling_price', 15);
+            $table->decimal('final_price', 15);
+            $table->decimal('member_price', 15);
+            $table->decimal('vip_price', 15);
+            $table->decimal('wholesale_price', 15);
             $table->decimal('tax_rate', 5, 2)->default(0);
             $table->enum('tax_type', ['Y', 'N'])->default('Y');
             $table->integer('min_wholesale_qty');

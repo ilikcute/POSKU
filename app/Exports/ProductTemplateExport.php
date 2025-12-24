@@ -25,89 +25,97 @@ class ProductTemplateExport implements FromCollection, WithHeadings, WithStyles
      */
     public function collection()
     {
-        // Sample data untuk 3 baris contoh
         $samples = [
-            // Sample 1
             [
-                'PRD001', // product_code
-                '1234567890123', // barcode
-                'Produk Contoh 1', // name
-                'Deskripsi produk contoh 1', // description
-                'images/produk1.jpg', // image
-                10000, // purchase_price
-                15000, // selling_price
-                14000, // member_price
-                13000, // vip_price
-                12000, // wholesale_price
-                10, // tax_rate
-                10, // min_wholesale_qty
-                100, // stock
-                1, // category_id
-                1, // division_id
-                1, // rack_id
-                1, // supplier_id
-                'PCS', // unit
-                0.5, // weight
-                5, // min_stock_alert
-                10, // max_stock_alert
-                'Reorder when low', // reorder
+                'product_code' => 'PRD001',
+                'barcode' => '1234567890123',
+                'name' => 'Produk Contoh 1',
+                'description' => 'Deskripsi produk contoh 1',
+                'image' => 'images/produk1.jpg',
+                'purchase_price' => 10000,
+                'selling_price' => 15000,
+                'final_price' => 16650,
+                'member_price' => 14000,
+                'vip_price' => 13000,
+                'wholesale_price' => 12000,
+                'tax_rate' => 11,
+                'tax_type' => 'Y',
+                'min_wholesale_qty' => 10,
+                'stock' => 100,
+                'category_id' => 1,
+                'division_id' => 1,
+                'rack_id' => 1,
+                'supplier_id' => 1,
+                'unit' => 'PCS',
+                'weight' => 0.5,
+                'min_stock_alert' => 5,
+                'max_stock_alert' => 10,
+                'reorder' => 'Reorder when low',
             ],
-            // Sample 2
             [
-                'PRD002',
-                '1234567890124',
-                'Produk Contoh 2',
-                'Deskripsi produk contoh 2',
-                'images/produk2.jpg',
-                20000,
-                30000,
-                28000,
-                26000,
-                25000,
-                12,
-                20,
-                50,
-                2,
-                1,
-                2,
-                2,
-                'KG',
-                1.0,
-                10,
-                20,
-                'Reorder note',
+                'product_code' => 'PRD002',
+                'barcode' => '1234567890124',
+                'name' => 'Produk Contoh 2',
+                'description' => 'Deskripsi produk contoh 2',
+                'image' => 'images/produk2.jpg',
+                'purchase_price' => 20000,
+                'selling_price' => 30000,
+                'final_price' => 33300,
+                'member_price' => 28000,
+                'vip_price' => 26000,
+                'wholesale_price' => 25000,
+                'tax_rate' => 11,
+                'tax_type' => 'Y',
+                'min_wholesale_qty' => 20,
+                'stock' => 50,
+                'category_id' => 2,
+                'division_id' => 1,
+                'rack_id' => 2,
+                'supplier_id' => 2,
+                'unit' => 'KG',
+                'weight' => 1.0,
+                'min_stock_alert' => 10,
+                'max_stock_alert' => 20,
+                'reorder' => 'Reorder note',
             ],
-            // Sample 3
             [
-                'PRD003',
-                null,
-                'Produk Contoh 3',
-                null,
-                null,
-                5000,
-                8000,
-                null,
-                null,
-                null,
-                0,
-                5,
-                0,
-                null,
-                null,
-                null,
-                null,
-                'UNIT',
-                null,
-                0,
-                5,
-                null,
+                'product_code' => 'PRD003',
+                'barcode' => null,
+                'name' => 'Produk Contoh 3',
+                'description' => null,
+                'image' => null,
+                'purchase_price' => 5000,
+                'selling_price' => 8000,
+                'final_price' => 8880,
+                'member_price' => null,
+                'vip_price' => null,
+                'wholesale_price' => null,
+                'tax_rate' => 11,
+                'tax_type' => 'Y',
+                'min_wholesale_qty' => 5,
+                'stock' => 0,
+                'category_id' => null,
+                'division_id' => null,
+                'rack_id' => null,
+                'supplier_id' => null,
+                'unit' => 'UNIT',
+                'weight' => null,
+                'min_stock_alert' => 0,
+                'max_stock_alert' => 5,
+                'reorder' => null,
             ],
-            // 2 baris kosong untuk tambahan
-            array_fill(0, count($this->fields), ''),
-            array_fill(0, count($this->fields), ''),
         ];
 
-        return collect($samples);
+        $orderedSamples = collect($samples)->map(function ($row) {
+            return collect($this->fields)->map(function ($field) use ($row) {
+                return $row[$field] ?? '';
+            })->toArray();
+        });
+
+        $orderedSamples->push(array_fill(0, count($this->fields), ''));
+        $orderedSamples->push(array_fill(0, count($this->fields), ''));
+
+        return $orderedSamples;
     }
 
     /**

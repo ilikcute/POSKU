@@ -131,7 +131,7 @@ class ShiftController extends Controller
             ->where('start_time', '>=', $todayStart)
             ->count();
 
-        $shiftCode = 'SHIFT-' . ($todayCount + 1);
+        $shiftCode = 'S-' . ($todayCount + 1);
 
         Shift::create([
             'user_id' => $user->id,
@@ -368,10 +368,12 @@ class ShiftController extends Controller
             'status' => 'closed',
         ]);
 
-        // Setelah menutup shift kemarin, user login tetap lanjut open shift baru
+        // Setelah menutup shift kemarin, arahkan ke EOD pada tanggal shift tersebut.
         if ($isPreviousDayShift) {
-            return redirect()->route('shifts.open.form')
-                ->with('success', 'Shift hari sebelumnya berhasil ditutup. Silakan buka shift baru.');
+            $businessDate = $activeShift->start_time?->toDateString() ?? now()->toDateString();
+            return redirect()
+                ->route('eod.station-close.form', ['date' => $businessDate])
+                ->with('success', 'Shift hari sebelumnya berhasil ditutup. Silakan lakukan tutup harian station untuk tanggal tersebut.');
         }
 
         return redirect()->route('dashboard')

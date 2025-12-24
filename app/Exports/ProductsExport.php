@@ -28,6 +28,7 @@ class ProductsExport implements FromCollection, WithHeadings
             'image' => 'Gambar',
             'purchase_price' => 'Harga Beli',
             'selling_price' => 'Harga Jual',
+            'final_price' => 'Harga Final',
             'member_price' => 'Harga Member',
             'vip_price' => 'Harga VIP',
             'wholesale_price' => 'Harga Grosir',

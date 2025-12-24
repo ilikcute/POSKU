@@ -12,9 +12,13 @@ class SaleDetail extends Model
     protected $fillable = [
         'sale_id',
         'product_id',
+        'promotion_id',
         'quantity',
         'price_at_sale',
         'discount_per_item',
+        'tax_type',
+        'tax_rate',
+        'tax_amount',
         'subtotal',
     ];
 
@@ -22,6 +26,8 @@ class SaleDetail extends Model
         'quantity' => 'integer',
         'price_at_sale' => 'decimal:2',
         'discount_per_item' => 'decimal:2',
+        'tax_rate' => 'decimal:2',
+        'tax_amount' => 'decimal:2',
         'subtotal' => 'decimal:2',
     ];
 

@@ -17,10 +17,12 @@ class Product extends Model
         'image',
         'purchase_price',
         'selling_price',
+        'final_price',
         'member_price',
         'vip_price',
         'wholesale_price',
         'min_wholesale_qty',
+        'tax_type',
         'tax_rate',
         'stock',
         'category_id',
@@ -37,10 +39,12 @@ class Product extends Model
     protected $casts = [
         'purchase_price' => 'decimal:2',
         'selling_price' => 'decimal:2',
+        'final_price' => 'decimal:2',
         'member_price' => 'decimal:2',
         'vip_price' => 'decimal:2',
         'wholesale_price' => 'decimal:2',
         'tax_rate' => 'decimal:2',
+        'tax_type' => 'string',
         'weight' => 'decimal:2',
         'min_wholesale_qty' => 'integer',
         'stock' => 'integer',
@@ -124,6 +128,7 @@ class Product extends Model
         $bestFinalPrice = $basePrice;
         $bestDiscountAmount = 0;
         $bestPromotionName = null;
+        $bestPromotionId = null;
         $bestBundledProducts = [];
 
         foreach ($activePromotions as $promotion) {
@@ -185,6 +190,7 @@ class Product extends Model
                 $bestFinalPrice = $candidateFinalPrice;
                 $bestDiscountAmount = $candidateDiscountAmount;
                 $bestPromotionName = $promotion->name;
+                $bestPromotionId = $promotion->id;
                 $bestBundledProducts = $candidateBundledProducts;
             }
         }
@@ -199,6 +205,7 @@ class Product extends Model
             'final_price' => $finalPrice,
             'discount_amount' => $discountAmount,
             'promotion_name' => $promotionName,
+            'promotion_id' => $bestPromotionId,
             'bundled_products' => $bundledProducts,
         ];
     }

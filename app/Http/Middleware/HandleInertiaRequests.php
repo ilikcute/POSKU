@@ -34,11 +34,11 @@ class HandleInertiaRequests extends Middleware
             // Store info (minimal fields)
             'store' => fn () => optional(
                 Store::query()
-                    ->select(['id', 'name', 'logo_path', 'is_main_store'])
+                    ->select(['id', 'name', 'logo_path', 'is_main_store', 'address', 'phone', 'receipt_paper_size'])
                     ->where('is_main_store', true)
                     ->first()
-                ?? Store::query()->select(['id', 'name', 'logo_path', 'is_main_store'])->first()
-            )->only(['id', 'name', 'logo_path', 'is_main_store']),
+                ?? Store::query()->select(['id', 'name', 'logo_path', 'is_main_store', 'address', 'phone', 'receipt_paper_size'])->first()
+            )->only(['id', 'name', 'logo_path', 'is_main_store', 'address', 'phone', 'receipt_paper_size']),
 
             // Flash (lengkap, termasuk warning)
             'flash' => [
@@ -46,6 +46,7 @@ class HandleInertiaRequests extends Middleware
                 'error' => fn () => $request->session()->get('error'),
                 'warning' => fn () => $request->session()->get('warning'),
                 'message' => fn () => $request->session()->get('message'),
+                'invoice_number' => fn () => $request->session()->get('invoice_number'),
             ],
         ];
     }

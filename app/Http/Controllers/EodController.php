@@ -15,6 +15,7 @@ use App\Services\StationResolver;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Carbon;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 
@@ -44,7 +45,7 @@ class EodController extends Controller
         $user = Auth::user();
         $storeId = $user->store_id;
 
-        $businessDate = $request->date('date')?->toDateString() ?? now()->toDateString();
+        $businessDate = $this->resolveBusinessDate($request, $storeId);
         $dayStart = now()->parse($businessDate)->startOfDay();
         $dayEnd = now()->parse($businessDate)->endOfDay();
 
@@ -206,7 +207,7 @@ class EodController extends Controller
         $user = Auth::user();
         $storeId = $user->store_id;
 
-        $businessDate = $request->date('date')?->toDateString() ?? now()->toDateString();
+        $businessDate = $this->resolveBusinessDate($request, $storeId);
         $dayStart = now()->parse($businessDate)->startOfDay();
         $dayEnd = now()->parse($businessDate)->endOfDay();
 
@@ -218,12 +219,17 @@ class EodController extends Controller
         // station yang dianggap "harus ikut EOD" = yang punya shift atau transaksi hari itu
         $stationsInvolved = $this->stationsInvolved($storeId, $dayStart, $dayEnd);
 
-        $stationClosings = StationDailyClosing::query()
+        $stationClosingsQuery = StationDailyClosing::query()
             ->where('store_id', $storeId)
             ->where('business_date', $businessDate)
-            ->with(['station:id,name,device_identifier', 'closedByUser:id,name'])
-            ->get()
-            ->keyBy('station_id');
+            ->with(['station:id,name,device_identifier', 'closedByUser:id,name']);
+
+        if (empty($stationsInvolved)) {
+            $stationClosings = $stationClosingsQuery->get();
+            $stationsInvolved = $stationClosings->pluck('station_id')->filter()->unique()->values()->all();
+        } else {
+            $stationClosings = $stationClosingsQuery->get()->keyBy('station_id');
+        }
 
         $stations = Station::query()
             ->where('store_id', $storeId)
@@ -231,7 +237,9 @@ class EodController extends Controller
             ->orderBy('name')
             ->get()
             ->map(function ($st) use ($stationClosings) {
-                $close = $stationClosings->get($st->id);
+                $close = $stationClosings instanceof \Illuminate\Support\Collection
+                    ? $stationClosings->firstWhere('station_id', $st->id)
+                    : $stationClosings->get($st->id);
                 return [
                     'id' => $st->id,
                     'name' => $st->name,
@@ -248,7 +256,8 @@ class EodController extends Controller
                 ];
             });
 
-        $canFinalize = $stations->count() > 0 && $stations->every(fn($s) => $s['is_closed'] === true);
+        $canFinalize = $stations->count() > 0
+            && $stations->every(fn($s) => $s['is_closed'] === true);
 
         // summary store (jika semua closed, ambil dari station closings sum)
         $storeSummary = $this->buildStoreSummaryFromStationClosings($storeId, $businessDate);
@@ -553,5 +562,32 @@ class EodController extends Controller
 
             'stations' => $stations,
         ];
+    }
+
+    private function resolveBusinessDate(Request $request, int $storeId): string
+    {
+        $requestedDate = $request->date('date');
+        if ($requestedDate) {
+            return $requestedDate->toDateString();
+        }
+
+        $dates = collect([
+            Shift::query()->where('store_id', $storeId)->max('start_time'),
+            Sale::query()->where('store_id', $storeId)->max('transaction_date'),
+            Purchase::query()->where('store_id', $storeId)->max('transaction_date'),
+            SalesReturn::query()->where('store_id', $storeId)->max('return_date'),
+            PurchaseReturn::query()->where('store_id', $storeId)->max('return_date'),
+        ])->filter();
+
+        if ($dates->isEmpty()) {
+            return now()->toDateString();
+        }
+
+        $latest = $dates
+            ->map(fn($date) => Carbon::parse($date))
+            ->sortDesc()
+            ->first();
+
+        return $latest?->toDateString() ?? now()->toDateString();
     }
 }

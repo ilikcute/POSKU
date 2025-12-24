@@ -1,6 +1,6 @@
 <script setup>
 import { Head, useForm } from "@inertiajs/vue3";
-import { ref, computed, onMounted, nextTick } from "vue";
+import { ref, computed, onMounted, nextTick, watch } from "vue";
 import RawLayout from "@/Layouts/RawLayout.vue";
 import Modal from "@/Components/Modal.vue";
 
@@ -10,6 +10,8 @@ const props = defineProps({
     activeShift: Object,
     promotions: Array,
     store: Object, // Added store prop
+    shift_id: [Number, String],
+    station_id: [Number, String],
 });
 
 // Form state
@@ -38,6 +40,7 @@ const qtyInput = ref(1); // Default Quantity
 const notification = ref({ show: false, message: "", type: "info" });
 const lastAddedItem = ref(null);
 const showLastItemToast = ref(false);
+const receiptFooter = ref("Terima kasih atas kunjungan Anda.");
 
 const barcodeInputRef = ref(null);
 const searchInputRef = ref(null);
@@ -45,6 +48,12 @@ const paymentInputRef = ref(null);
 
 
 // Computed values
+const receiptLogo = computed(() => {
+    if (receiptData.value?.store_logo) return receiptData.value.store_logo;
+    if (props.store?.logo_path) return `/storage/${props.store.logo_path}`;
+    return null;
+});
+
 const filteredProducts = computed(() => {
     if (!searchTerm.value) return [];
 
@@ -59,10 +68,22 @@ const filteredProducts = computed(() => {
 });
 
 
+const getItemBasePrice = (item) =>
+    Number(item.original_price ?? item.selling_price ?? item.price ?? 0);
+
+const getItemNetPrice = (item) =>
+    Number(item.selling_price ?? item.price ?? 0);
+
+const getItemTaxPerItem = (item) => {
+    if (item.tax_type !== "Y") return 0;
+    const rate = Number(item.tax_rate || 0);
+    return getItemNetPrice(item) * (rate / 100);
+};
+
 const calculateSubtotal = computed(() => {
     return cart.value
         .filter((item) => item.type === "product")
-        .reduce((total, item) => total + item.selling_price * item.quantity, 0);
+        .reduce((total, item) => total + getItemBasePrice(item) * item.quantity, 0);
 });
 
 const calculateDiscount = computed(() => {
@@ -71,14 +92,37 @@ const calculateDiscount = computed(() => {
         .reduce(
             (total, item) =>
                 total +
-                (item.original_price - item.final_price) * item.quantity,
+                Math.max(0, getItemBasePrice(item) - getItemNetPrice(item)) *
+                    item.quantity,
             0
         );
 });
 
-const calculateTotal = computed(() =>
+const netSubtotal = computed(() =>
     Math.max(0, calculateSubtotal.value - calculateDiscount.value)
 );
+
+const calculateTotal = computed(() =>
+    Math.max(0, netSubtotal.value + calculateTax.value)
+);
+
+const calculateTax = computed(() => {
+    return cart.value
+        .filter((item) => item.type === "product")
+        .reduce(
+            (total, item) => total + getItemTaxPerItem(item) * item.quantity,
+            0
+        );
+});
+
+const calculateGrossSubtotal = computed(() => {
+    return cart.value
+        .filter((item) => item.type === "product")
+        .reduce(
+            (total, item) => total + getItemUnitPrice(item) * item.quantity,
+            0
+        );
+});
 
 const changeAmount = computed(() =>
     Math.max(0, form.amount_paid - calculateTotal.value)
@@ -93,6 +137,99 @@ const formatCurrency = (value) => {
     }).format(value);
 };
 
+const roundReceiptValue = (value) => {
+    const numeric = Number(value || 0);
+    const base = Math.floor(numeric);
+    const decimals = Math.round((numeric - base) * 100);
+    if (decimals > 50) {
+        return base + 1;
+    }
+    return base;
+};
+
+const formatNumber = (value) => {
+    return new Intl.NumberFormat("id-ID", {
+        minimumFractionDigits: 0,
+    }).format(value || 0);
+};
+
+const formatReceiptNumber = (value) => formatNumber(roundReceiptValue(value));
+
+const formatReceiptDate = (date) => {
+    const value = date ? new Date(date) : new Date();
+    const dd = String(value.getDate()).padStart(2, "0");
+    const mm = String(value.getMonth() + 1).padStart(2, "0");
+    const yy = String(value.getFullYear()).slice(-2);
+    const hh = String(value.getHours()).padStart(2, "0");
+    const mi = String(value.getMinutes()).padStart(2, "0");
+    return `${dd}.${mm}.${yy}-${hh}:${mi}`;
+};
+
+const formatInvoiceShort = (value) => {
+    if (!value) return "-";
+    return String(value).replace(/^INV-?/i, "");
+};
+
+const receiptPaperSize = computed(() => props.store?.receipt_paper_size || "58");
+const receiptWidth = computed(() => (receiptPaperSize.value === "80" ? "80mm" : "58mm"));
+const receiptWidthChars = computed(() => (receiptPaperSize.value === "80" ? 48 : 42));
+const repeatChar = (char, count) => new Array(count + 1).join(char);
+const padRight = (value, length) => {
+    const text = String(value ?? "");
+    return text.length >= length ? text.slice(0, length) : text + repeatChar(" ", length - text.length);
+};
+const padLeft = (value, length) => {
+    const text = String(value ?? "");
+    return text.length >= length ? text.slice(0, length) : repeatChar(" ", length - text.length) + text;
+};
+
+const formatPlainNumber = (value) => String(roundReceiptValue(value) || 0);
+
+const formatMetaLine = (data) => {
+    const date = data?.date || formatReceiptDate(new Date());
+    const station = data?.station_id || "-";
+    const shift = data?.shift_code || "-";
+    const cashier = data?.cashier || "-";
+    const invoice = formatInvoiceShort(data?.invoice_number || "-");
+    const line = `${date}/ST:${station}/SF:${shift}/${cashier}/${invoice}`;
+    const width = receiptWidthChars.value;
+    return line.length > width ? line.slice(0, width) : line;
+};
+
+const formatItemLine = (item) => {
+    const name = padRight(item.name || "-", 24);
+    const qty = padLeft(item.quantity || 0, 3);
+    const price = padLeft(formatReceiptNumber(getItemUnitPrice(item)), 7);
+    const total = padLeft(formatReceiptNumber(getItemGross(item)), 8);
+    return `${name}${qty}${price}${total}`;
+};
+
+const formatRightLine = (label, value) => {
+    const val = String(value ?? "");
+    const space = receiptWidthChars.value - label.length - val.length;
+    const gap = space > 0 ? repeatChar(" ", space) : " ";
+    return `${label}${gap}${val}`;
+};
+
+
+const getItemUnitPrice = (item) => {
+    if (item.final_price !== undefined && item.final_price !== null) {
+        return Number(item.final_price || 0);
+    }
+    return getItemNetPrice(item) + getItemTaxPerItem(item);
+};
+
+const getItemDiscount = (item) => {
+    if (item.discount_amount !== undefined) {
+        return Number(item.discount_amount || 0);
+    }
+    return Math.max(0, getItemBasePrice(item) - getItemNetPrice(item));
+};
+
+const getItemGross = (item) => {
+    return getItemUnitPrice(item) * Number(item.quantity || 0);
+};
+
 const showNotification = (message, type = "info") => {
     notification.value = { show: true, message, type };
     setTimeout(() => {
@@ -102,7 +239,7 @@ const showNotification = (message, type = "info") => {
 
 const getPriceWithPromotion = (product, quantity = 1) => {
     // Logic copied from previous efficient implementation
-    const basePrice = product.selling_price;
+    const basePrice = Number(product.selling_price || 0);
     let finalPrice = basePrice;
     let discountAmount = 0;
     let bundledProducts = [];
@@ -160,15 +297,27 @@ const getPriceWithPromotion = (product, quantity = 1) => {
     }
 
     return {
-        original_price: basePrice,
-        final_price: finalPrice,
-        discount_amount: discountAmount,
+        original_price: Number(basePrice || 0),
+        final_price: Number(finalPrice || 0),
+        discount_amount: Number(discountAmount || 0),
         bundled_products: bundledProducts,
     };
 };
 
 const autoPrint = ref(true);
-const receiptWidth = ref("80mm"); // "58mm" or "80mm"
+const ensurePrintStyle = () => {
+    const styleId = "receipt-print-style";
+    let styleEl = document.getElementById(styleId);
+    if (!styleEl) {
+        styleEl = document.createElement("style");
+        styleEl.id = styleId;
+        document.head.appendChild(styleEl);
+    }
+    styleEl.textContent = `@page { size: ${receiptWidth.value} auto; margin: 0; }`;
+};
+const pendingSales = ref([]);
+const showPendingModal = ref(false);
+const pendingKey = "posku.sales.pending";
 
 // Cart operations
 const addProductToCart = (product) => {
@@ -201,23 +350,38 @@ const addProductToCart = (product) => {
     }
 
     if (existing) {
+        const sourceProduct = (props.products || []).find(
+            (item) => item.id === product.id
+        );
+        const pricing = getPriceWithPromotion(sourceProduct || product, newQty);
+        const netPrice = Number(pricing.final_price || 0);
+        const taxPerItem =
+            (existing.tax_type ?? "N") === "Y"
+                ? netPrice * (Number(existing.tax_rate || 0) / 100)
+                : 0;
+
         existing.quantity = newQty;
-        if (existing.active_promotion) {
-            const pricing = getPriceWithPromotion(existing, existing.quantity);
-            existing.final_price = pricing.final_price;
-            existing.discount_amount = pricing.discount_amount;
-        }
+        existing.selling_price = netPrice;
+        existing.final_price = netPrice + taxPerItem;
+        existing.discount_amount = pricing.discount_amount;
 
         lastAddedItem.value = existing;
     } else {
         const pricing = getPriceWithPromotion(product, qtyToAdd);
+        const netPrice = Number(pricing.final_price || 0);
+        const taxPerItem =
+            (product.tax_type ?? "N") === "Y"
+                ? netPrice * (Number(product.tax_rate || 0) / 100)
+                : 0;
+        const finalPrice = Number(netPrice + taxPerItem);
 
         const newItem = {
             ...product,
             quantity: qtyToAdd,
             type: "product",
             original_price: pricing.original_price,
-            final_price: pricing.final_price,
+            selling_price: netPrice,
+            final_price: finalPrice,
             discount_amount: pricing.discount_amount,
             promotion_name: product.active_promotion?.name || null,
             bundled_products: pricing.bundled_products,
@@ -294,14 +458,28 @@ const confirmPayment = () => {
     form.customer_id = selectedCustomer.value?.id || null;
 
     form.post(route("sales.store"), {
-        onSuccess: (response) => {
+        onSuccess: (page) => {
+            const invoiceNumber = page?.props?.flash?.invoice_number || "-";
             receiptData.value = {
-                // ... populate receipt data similar to before ...
+                store_name: props.store?.name || "POSKU STORE",
+                store_address: props.store?.address || "-",
+                store_phone: props.store?.phone || "-",
+                store_logo: props.store?.logo_path ? `/storage/${props.store.logo_path}` : null,
+                station_id: props.station_id || "-",
+                shift_code: props.activeShift?.shift_code || "-",
+                cashier: cashierName.value || props.auth?.user?.name || "Kasir",
+                invoice_number: invoiceNumber,
+                subtotal: calculateGrossSubtotal.value,
+                dpp_subtotal: netSubtotal.value,
+                harga_jual: calculateSubtotal.value,
                 total: calculateTotal.value,
+                tax: calculateTax.value,
+                discount: calculateDiscount.value,
                 amount_paid: form.amount_paid,
                 change: changeAmount.value,
                 payment_method: "cash",
-                date: new Date().toLocaleString("id-ID"),
+                date: formatReceiptDate(new Date()),
+                footer: receiptFooter.value,
                 items: JSON.parse(JSON.stringify(cart.value)) // Snapshot
             };
 
@@ -403,6 +581,12 @@ const handleKeyPress = (e) => {
     } else if (e.key === "F2") {
         e.preventDefault();
         openPaymentModal();
+    } else if (e.key === "F4") {
+        e.preventDefault();
+        savePendingSale();
+    } else if (e.key === "F6") {
+        e.preventDefault();
+        showPendingModal.value = true;
     } else if (e.key === "Escape") {
         if (showSearchModal.value) showSearchModal.value = false;
         else if (showPaymentModal.value) showPaymentModal.value = false;
@@ -417,7 +601,86 @@ onMounted(() => {
     setInterval(updateDateTime, 1000);
     window.addEventListener("keydown", handleKeyPress);
     barcodeInputRef.value?.focus();
+    loadPendingSales();
+    ensurePrintStyle();
 });
+
+watch(receiptWidth, () => {
+    ensurePrintStyle();
+});
+
+const loadPendingSales = () => {
+    try {
+        const raw = localStorage.getItem(pendingKey);
+        pendingSales.value = raw ? JSON.parse(raw) : [];
+    } catch (error) {
+        pendingSales.value = [];
+    }
+};
+
+const persistPendingSales = () => {
+    localStorage.setItem(pendingKey, JSON.stringify(pendingSales.value));
+};
+
+const clearCurrentSale = () => {
+    cart.value = [];
+    selectedCustomer.value = null;
+    form.reset();
+    updateFormItems();
+    barcodeInput.value = "";
+    qtyInput.value = 1;
+    nextTick(() => {
+        barcodeInputRef.value?.focus();
+    });
+};
+
+const savePendingSale = () => {
+    if (!cart.value.length) {
+        showNotification("Tidak ada item untuk pending.", "warning");
+        return;
+    }
+    const pendingItem = {
+        id: Date.now(),
+        created_at: new Date().toISOString(),
+        items: JSON.parse(JSON.stringify(cart.value)),
+        customer: selectedCustomer.value ? { ...selectedCustomer.value } : null,
+        notes: form.notes || "",
+    };
+    pendingSales.value.unshift(pendingItem);
+    persistPendingSales();
+    clearCurrentSale();
+    showNotification("Transaksi disimpan ke pending.", "success");
+};
+
+const resumePendingSale = (pendingItem) => {
+    cart.value = JSON.parse(JSON.stringify(pendingItem.items || []));
+    selectedCustomer.value = pendingItem.customer || null;
+    form.notes = pendingItem.notes || "";
+    updateFormItems();
+    pendingSales.value = pendingSales.value.filter((item) => item.id !== pendingItem.id);
+    persistPendingSales();
+    showPendingModal.value = false;
+    showNotification("Transaksi pending dipulihkan.", "success");
+    nextTick(() => {
+        barcodeInputRef.value?.focus();
+    });
+};
+
+const deletePendingSale = (pendingItem) => {
+    pendingSales.value = pendingSales.value.filter((item) => item.id !== pendingItem.id);
+    persistPendingSales();
+};
+
+const voidSale = () => {
+    if (!cart.value.length) {
+        showNotification("Keranjang sudah kosong.", "warning");
+        return;
+    }
+    if (confirm("Batalkan transaksi ini?")) {
+        clearCurrentSale();
+        showNotification("Transaksi dibatalkan.", "success");
+    }
+};
 </script>
 
 <template>
@@ -503,8 +766,8 @@ onMounted(() => {
                         class="bg-gray-800 text-gray-300 p-3 text-[10px] space-y-1.5 font-mono border-t border-gray-600">
                         <div class="flex justify-between"><span>[F1]</span> <span>Cari Barang</span></div>
                         <div class="flex justify-between"><span>[F2]</span> <span>Bayar</span></div>
-                        <!-- F4 Pending not implemented yet but shown as placeholder -->
-                        <!-- <div class="flex justify-between"><span>[F4]</span> <span>Pending</span></div> -->
+                        <div class="flex justify-between"><span>[F4]</span> <span>Pending</span></div>
+                        <div class="flex justify-between"><span>[F6]</span> <span>Panggil Pending</span></div>
                         <div class="flex justify-between"><span>[ESC]</span> <span>Batal / Kembali</span></div>
                     </div>
                 </div>
@@ -571,7 +834,7 @@ onMounted(() => {
                                             }}</span>
                                         </td>
                                         <td class="py-2 w-24 text-right pr-2 font-mono text-gray-600">{{
-                                            formatCurrency(item.original_price) }}</td>
+                                            formatCurrency(getItemUnitPrice(item)) }}</td>
                                         <td class="py-2 w-24 text-right pr-2 font-mono text-red-500 text-xs">
                                             {{ item.discount_amount > 0 ? formatCurrency(item.discount_amount *
                                                 item.quantity) : '-' }}
@@ -691,6 +954,22 @@ onMounted(() => {
                             <span
                                 class="bg-blue-900/50 px-2 py-0.5 rounded text-xs text-blue-100 border border-blue-500/30">[F2]</span>
                         </button>
+                        <div class="grid grid-cols-2 gap-2">
+                            <button @click="savePendingSale"
+                                class="bg-gray-700 hover:bg-gray-800 text-white font-bold py-3 rounded text-sm flex items-center justify-center gap-2 transition-all active:scale-[0.98]">
+                                <span>PENDING</span>
+                                <span class="bg-black/30 px-2 py-0.5 rounded text-xs">[F4]</span>
+                            </button>
+                            <button @click="showPendingModal = true"
+                                class="bg-gray-500 hover:bg-gray-600 text-white font-bold py-3 rounded text-sm flex items-center justify-center gap-2 transition-all active:scale-[0.98]">
+                                <span>PANGGIL</span>
+                                <span class="bg-black/30 px-2 py-0.5 rounded text-xs">[F6]</span>
+                            </button>
+                        </div>
+                        <button @click="voidSale"
+                            class="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-3 rounded text-sm flex items-center justify-center gap-2 transition-all active:scale-[0.98]">
+                            VOID
+                        </button>
                     </div>
                 </div>
 
@@ -741,7 +1020,7 @@ onMounted(() => {
                                         {{
                                             p.stocks?.[0]?.quantity || 0 }}</td>
                                     <td class="p-3 text-right font-mono text-emerald-600">{{
-                                        formatCurrency(p.selling_price)
+                                        formatCurrency(p.final_price ?? p.selling_price)
                                     }}</td>
                                 </tr>
                             </tbody>
@@ -813,10 +1092,65 @@ onMounted(() => {
                                     (Langsung)</label>
                             </div>
 
+                            <div class="mb-4">
+                                <label class="block text-xs font-bold text-gray-700 mb-2 uppercase">Ekor Struk</label>
+                                <textarea v-model="receiptFooter" rows="2"
+                                    class="w-full border border-gray-300 rounded p-2 text-xs focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                    placeholder="Tulis informasi tambahan struk..."></textarea>
+                            </div>
+
                             <button @click="confirmPayment"
                                 class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-4 rounded-lg text-lg shadow-lg transform active:scale-[0.98] transition-all">
                                 PROSES SELESAI [ENTER]
                             </button>
+                        </div>
+                    </div>
+                </Modal>
+
+                <!-- Pending List Modal -->
+                <Modal :show="showPendingModal" @close="showPendingModal = false">
+                    <div class="bg-white text-gray-900 shadow-2xl max-w-2xl mx-auto overflow-hidden rounded-lg border border-gray-200">
+                        <div class="bg-gray-800 text-white px-5 py-4 font-bold flex justify-between items-center">
+                            <span>DAFTAR PENDING</span>
+                            <button @click="showPendingModal = false"
+                                class="text-xs bg-gray-900 hover:bg-black py-1.5 px-3 rounded text-gray-100 transition-colors">[ESC]
+                                TUTUP</button>
+                        </div>
+                        <div class="p-4">
+                            <table class="w-full text-sm border border-gray-200">
+                                <thead class="bg-gray-100 text-gray-600 text-xs uppercase">
+                                    <tr>
+                                        <th class="p-2 text-left">Waktu</th>
+                                        <th class="p-2 text-left">Pelanggan</th>
+                                        <th class="p-2 text-right">Item</th>
+                                        <th class="p-2 text-left">Aksi</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr v-for="item in pendingSales" :key="item.id" class="border-t border-gray-200">
+                                        <td class="p-2">{{ new Date(item.created_at).toLocaleString('id-ID') }}</td>
+                                        <td class="p-2">{{ item.customer?.name || 'Umum' }}</td>
+                                        <td class="p-2 text-right">{{ item.items?.length || 0 }}</td>
+                                        <td class="p-2">
+                                            <div class="flex gap-2">
+                                                <button @click="resumePendingSale(item)"
+                                                    class="px-3 py-1 bg-emerald-600 text-white text-xs font-bold rounded hover:bg-emerald-700">
+                                                    Lanjutkan
+                                                </button>
+                                                <button @click="deletePendingSale(item)"
+                                                    class="px-3 py-1 bg-red-600 text-white text-xs font-bold rounded hover:bg-red-700">
+                                                    Hapus
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    <tr v-if="!pendingSales.length">
+                                        <td colspan="4" class="p-4 text-center text-gray-500">
+                                            Tidak ada transaksi pending.
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
                         </div>
                     </div>
                 </Modal>
@@ -880,76 +1214,65 @@ onMounted(() => {
             </div>
 
             <!-- Hidden Receipt Template -->
-            <!-- Hidden Receipt Template -->
             <Teleport to="body">
                 <!-- Receipt Container with dynamic width -->
-                <div id="receipt" class="hidden print:block bg-white text-black font-mono leading-tight"
-                    :style="{ width: receiptWidth, padding: '5mm', fontSize: receiptWidth === '58mm' ? '10px' : '12px' }">
+                <div id="receipt" class="hidden print:block bg-white text-black font-mono leading-tight text-left"
+                    :style="{
+                        width: receiptWidth,
+                        padding: '4mm',
+                        fontFamily: 'Courier New, monospace',
+                        fontSize: '9pt'
+                    }">
 
                     <!-- Header -->
-                    <div class="text-center mb-2">
-                        <h2 class="font-bold uppercase tracking-wide mb-1"
-                            :class="receiptWidth === '58mm' ? 'text-sm' : 'text-base'">
-                            {{ props.auth?.user?.store?.name || 'POSKU STORE' }}
+                    <div class="mb-2 text-center" style="font-size: 9pt;">
+                        <div v-if="receiptLogo" class="text-center mb-2">
+                            <img :src="receiptLogo" alt="Logo"
+                                class="block mx-auto h-10 w-auto object-contain"
+                                style="border-radius: 0;" />
+                        </div>
+                        <h2 class="font-bold uppercase tracking-wide mb-1" style="font-size: 9pt;">
+                            {{ receiptData?.store_name || 'POSKU STORE' }}
                         </h2>
-                        <p class="mb-0.5">{{ props.auth?.user?.store?.address || 'Jl. Contoh Alamat No. 123' }}</p>
-                        <p>Telp: 0812-3456-7890</p>
+                        <p class="mb-0.5">{{ receiptData?.store_address || '-' }}</p>
+                        <p v-if="receiptData?.store_phone && receiptData?.store_phone !== '-'">Telp: {{
+                            receiptData.store_phone }}</p>
                     </div>
 
                     <!-- Meta Info -->
-                    <div class="border-b border-dashed border-black my-2"></div>
-                    <div class="flex justify-between mb-1">
-                        <span>{{ new Date().toLocaleString('id-ID', {
-                            day: 'numeric', month: 'numeric', year: '2-digit',
-                            hour:
-                                '2-digit', minute: '2-digit'
-                        }) }}</span>
-                        <span>Kasir: {{ props.auth?.user?.name?.split(' ')[0] || 'Admin' }}</span>
-                    </div>
-                    <div class="flex justify-between mb-1">
-                        <span>Inv: {{ receiptData?.invoice_number }}</span>
-                    </div>
-                    <div class="border-b border-dashed border-black my-2"></div>
+                    <pre class="receipt-line text-center">{{ repeatChar("-", receiptWidthChars) }}</pre>
+                    <pre class="receipt-line">{{ formatMetaLine(receiptData) }}</pre>
+                    <pre class="receipt-line text-center">{{ repeatChar("-", receiptWidthChars) }}</pre>
 
                     <!-- Items -->
                     <div class="space-y-1 mb-2">
                         <div v-for="item in receiptData?.items" :key="item.id">
-                            <!-- Format: Name on top, Qty x Price = Total on bottom (or same line if 80mm) -->
-                            <div class="font-bold mb-0.5">{{ item.name }}</div>
-                            <div class="flex justify-between pl-2">
-                                <span>{{ item.quantity }} x {{ formatCurrency(item.final_price).replace('Rp', '')
-                                }}</span>
-                                <span>{{ formatCurrency(item.final_price * item.quantity).replace('Rp', '')
-                                }}</span>
-                            </div>
-                            <div v-if="item.discount_amount > 0" class="text-xs text-right italic">
-                                (Disc: -{{ formatCurrency(item.discount_amount * item.quantity).replace('Rp', '')
-                                }})
-                            </div>
+                            <pre class="receipt-line">{{ formatItemLine(item) }}</pre>
+                            <pre v-if="getItemDiscount(item) > 0" class="receipt-line text-right italic">{{
+                                formatRightLine("DISKON :", `(${formatReceiptNumber(getItemDiscount(item) * item.quantity)})`)
+                            }}</pre>
                         </div>
                     </div>
 
                     <!-- Totals -->
-                    <div class="border-top border-dashed border-black my-2 pt-2"></div>
-                    <div class="flex justify-between font-bold mb-1">
-                        <span>TOTAL</span>
-                        <span>{{ formatCurrency(receiptData?.total) }}</span>
-                    </div>
-                    <div class="flex justify-between mb-1">
-                        <span>TUNAI</span>
-                        <span>{{ formatCurrency(receiptData?.amount_paid) }}</span>
-                    </div>
-                    <div class="flex justify-between mb-1">
-                        <span>KEMBALI</span>
-                        <span>{{ formatCurrency(receiptData?.change) }}</span>
-                    </div>
-                    <div class="border-b border-dashed border-black my-2"></div>
+                    <pre class="receipt-line text-center">{{ repeatChar("-", receiptWidthChars) }}</pre>
+                    <pre class="receipt-line text-right">SUBTOTAL : {{ formatReceiptNumber(receiptData?.subtotal) }}</pre>
+                    <pre class="receipt-line text-right">DISKON : {{ formatReceiptNumber(receiptData?.discount || 0) }}</pre>
+                    <pre class="receipt-line text-right font-bold">TOTAL BELANJA : {{ formatReceiptNumber(receiptData?.total) }}</pre>
+                    <pre class="receipt-line text-right">{{ receiptData?.payment_method?.toUpperCase() || "TUNAI" }} : {{ formatReceiptNumber(receiptData?.amount_paid) }}</pre>
+                    <pre class="receipt-line text-right">ANDA HEMAT : {{ formatReceiptNumber(receiptData?.discount || 0) }}</pre>
+                    <pre class="receipt-line text-left">PPN : DPP={{ formatReceiptNumber(receiptData?.dpp_subtotal || 0) }} PPN={{ formatReceiptNumber(receiptData?.tax || 0) }}</pre>
+                    <pre class="receipt-line text-left">HARGA JUAL : {{ formatReceiptNumber(receiptData?.harga_jual || 0) }}</pre>
+                    <pre class="receipt-line text-center">{{ repeatChar("-", receiptWidthChars) }}</pre>
 
                     <!-- Footer -->
-                    <div class="text-center mt-4 space-y-1">
+                    <div class="mt-4 space-y-1 text-center">
                         <p class="font-bold">TERIMA KASIH</p>
                         <p>Barang yang sudah dibeli tidak dapat ditukar/dikembalikan</p>
                         <p class="mt-2 text-[10px] uppercase">-- {{ receiptData?.payment_method || 'CASH' }} --</p>
+                        <p v-if="receiptData?.footer" class="mt-2 text-[10px] whitespace-pre-line">
+                            {{ receiptData.footer }}
+                        </p>
                     </div>
                 </div>
             </Teleport>
@@ -961,7 +1284,6 @@ onMounted(() => {
 <style>
 /* Global Print Styles to override everything */
 @media print {
-
     /* Hide everything by default */
     body>* {
         display: none !important;
@@ -980,10 +1302,14 @@ onMounted(() => {
         position: absolute !important;
         left: 0 !important;
         top: 0 !important;
-        width: 100% !important;
         margin: 0 !important;
         padding: 0 !important;
     }
+}
+
+.receipt-line {
+    margin: 0;
+    white-space: pre;
 }
 </style>
 
