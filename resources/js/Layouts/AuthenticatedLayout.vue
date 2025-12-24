@@ -120,9 +120,14 @@ const menuItems = [
     },
     {
         can: canAccessReportMenu, isOpen: isReportMenuOpen, isActive: isReportMenuActive, toggle: () => isReportMenuOpen.value = !isReportMenuOpen.value, name: 'Laporan', icon: '<svg class="h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 3v11.25A2.25 2.25 0 006 16.5h2.25M3.75 3h-1.5m1.5 0h16.5m0 0h1.5m-1.5 0v11.25A2.25 2.25 0 0118 16.5h-2.25m-7.5 0h7.5m-7.5 0l-1 3m1-3l1 3m-9-3v4.5A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75v-4.5m-15 0h15" /></svg>', sub: [
-            { route: 'reports.sales', label: 'Laporan Penjualan', can: hasPermission('view_sales_report') },
-            { route: 'reports.purchases', label: 'Laporan Pembelian', can: hasPermission('view_purchases_report') },
-            { route: 'reports.stock', label: 'Laporan Inventori', can: hasPermission('view_inventory_report') },
+            { route: 'reports.sales', label: 'Laporan Penjualan', can: hasPermission('view_reports') },
+            { route: 'reports.sales-details', label: 'Detail Penjualan', can: hasPermission('view_reports') },
+            { route: 'reports.sales-returns', label: 'Retur Penjualan', can: hasPermission('view_reports') },
+            { route: 'reports.sales-reprint', label: 'Reprint Penjualan', can: hasPermission('view_reports') },
+            { route: 'reports.purchases', label: 'Laporan Pembelian', can: hasPermission('view_reports') },
+            { route: 'reports.stock', label: 'Laporan Inventori', can: hasPermission('view_reports') },
+            { route: 'reports.low-stock', label: 'Stok Menipis', can: hasPermission('view_reports') },
+            { route: 'reports.stock-mutation', label: 'Mutasi Stok Bulanan', can: hasPermission('view_reports') },
         ]
     },
 ];

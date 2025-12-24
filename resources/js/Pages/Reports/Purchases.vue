@@ -79,7 +79,7 @@
                                     </tr>
                                 </thead>
                                 <tbody class="bg-white divide-y divide-[#d0d0d0]">
-                                    <tr v-for="purchase in purchases" :key="purchase.id" class="hover:bg-[#f7f7f7]">
+                                    <tr v-for="purchase in purchases.data" :key="purchase.id" class="hover:bg-[#f7f7f7]">
                                         <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-[#1f1f1f]">{{
                                             purchase.invoice_number }}</td>
                                         <td class="px-6 py-4 whitespace-nowrap text-sm text-[#555]">{{
@@ -93,9 +93,15 @@
                                         <td class="px-6 py-4 whitespace-nowrap text-sm text-[#555]">{{
                                             formatCurrency(purchase.final_amount) }}</td>
                                     </tr>
+                                    <tr v-if="!purchases.data?.length">
+                                        <td colspan="5" class="px-6 py-6 text-center text-[#777]">
+                                            Belum ada data.
+                                        </td>
+                                    </tr>
                                 </tbody>
                             </table>
                         </div>
+                        <Pagination v-if="purchases.links" :links="purchases.links" class="mt-6" />
                     </div>
                 </div>
             </div>
@@ -104,11 +110,13 @@
 </template>
 
 <script setup>
-import { Head, useForm } from '@inertiajs/vue3';
+import { Head } from '@inertiajs/vue3';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
+import Pagination from '@/Components/Pagination.vue';
+import { ref } from 'vue';
 
 const props = defineProps({
-    purchases: Array,
+    purchases: Object,
     summary: Object,
     filters: Object,
 });

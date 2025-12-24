@@ -34,6 +34,58 @@
                         <div class="bg-[#dbe7ff] border border-[#9c9c9c] p-2 rounded">
                             <svg class="w-5 h-5 text-[#1f1f1f]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z">
+                                </path>
+                            </svg>
+                        </div>
+                        <h3 class="ml-3 text-sm font-semibold text-[#1f1f1f]">Detail Penjualan</h3>
+                    </div>
+                    <p class="text-sm text-[#555] mb-3">Detail item penjualan per periode.</p>
+                    <Link :href="route('reports.sales-details')"
+                        class="inline-flex bg-[#e9e9e9] text-[#1f1f1f] border border-[#9c9c9c] px-3 py-2 text-xs font-semibold shadow-sm hover:bg-white transition-colors">
+                        Buka Laporan
+                    </Link>
+                </div>
+
+                <div class="bg-white border border-[#9c9c9c] rounded p-4 shadow-sm">
+                    <div class="flex items-center mb-3">
+                        <div class="bg-[#dbe7ff] border border-[#9c9c9c] p-2 rounded">
+                            <svg class="w-5 h-5 text-[#1f1f1f]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M3 10h18M7 15h10M5 6h14M5 18h14" />
+                            </svg>
+                        </div>
+                        <h3 class="ml-3 text-sm font-semibold text-[#1f1f1f]">Retur Penjualan</h3>
+                    </div>
+                    <p class="text-sm text-[#555] mb-3">Rekap transaksi retur penjualan.</p>
+                    <Link :href="route('reports.sales-returns')"
+                        class="inline-flex bg-[#e9e9e9] text-[#1f1f1f] border border-[#9c9c9c] px-3 py-2 text-xs font-semibold shadow-sm hover:bg-white transition-colors">
+                        Buka Laporan
+                    </Link>
+                </div>
+
+                <div class="bg-white border border-[#9c9c9c] rounded p-4 shadow-sm">
+                    <div class="flex items-center mb-3">
+                        <div class="bg-[#dbe7ff] border border-[#9c9c9c] p-2 rounded">
+                            <svg class="w-5 h-5 text-[#1f1f1f]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M6 18h12M6 6h12M6 12h12" />
+                            </svg>
+                        </div>
+                        <h3 class="ml-3 text-sm font-semibold text-[#1f1f1f]">Reprint Penjualan</h3>
+                    </div>
+                    <p class="text-sm text-[#555] mb-3">Cetak ulang struk penjualan.</p>
+                    <Link :href="route('reports.sales-reprint')"
+                        class="inline-flex bg-[#e9e9e9] text-[#1f1f1f] border border-[#9c9c9c] px-3 py-2 text-xs font-semibold shadow-sm hover:bg-white transition-colors">
+                        Buka Laporan
+                    </Link>
+                </div>
+
+                <div class="bg-white border border-[#9c9c9c] rounded p-4 shadow-sm">
+                    <div class="flex items-center mb-3">
+                        <div class="bg-[#dbe7ff] border border-[#9c9c9c] p-2 rounded">
+                            <svg class="w-5 h-5 text-[#1f1f1f]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                     d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"></path>
                             </svg>
                         </div>
@@ -93,6 +145,40 @@
                     </div>
                     <p class="text-sm text-[#555] mb-3">Analisis laba rugi per periode.</p>
                     <Link :href="route('reports.profit-loss')"
+                        class="inline-flex bg-[#e9e9e9] text-[#1f1f1f] border border-[#9c9c9c] px-3 py-2 text-xs font-semibold shadow-sm hover:bg-white transition-colors">
+                        Buka Laporan
+                    </Link>
+                </div>
+
+                <div class="bg-white border border-[#9c9c9c] rounded p-4 shadow-sm">
+                    <div class="flex items-center mb-3">
+                        <div class="bg-[#dbe7ff] border border-[#9c9c9c] p-2 rounded">
+                            <svg class="w-5 h-5 text-[#1f1f1f]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M12 8v4m0 4h.01M4 6h16v12H4z" />
+                            </svg>
+                        </div>
+                        <h3 class="ml-3 text-sm font-semibold text-[#1f1f1f]">Stok Menipis</h3>
+                    </div>
+                    <p class="text-sm text-[#555] mb-3">Daftar barang mendekati stok minimum.</p>
+                    <Link :href="route('reports.low-stock')"
+                        class="inline-flex bg-[#e9e9e9] text-[#1f1f1f] border border-[#9c9c9c] px-3 py-2 text-xs font-semibold shadow-sm hover:bg-white transition-colors">
+                        Buka Laporan
+                    </Link>
+                </div>
+
+                <div class="bg-white border border-[#9c9c9c] rounded p-4 shadow-sm">
+                    <div class="flex items-center mb-3">
+                        <div class="bg-[#dbe7ff] border border-[#9c9c9c] p-2 rounded">
+                            <svg class="w-5 h-5 text-[#1f1f1f]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M4 6h16M4 12h16M4 18h16" />
+                            </svg>
+                        </div>
+                        <h3 class="ml-3 text-sm font-semibold text-[#1f1f1f]">Mutasi Stok Bulanan</h3>
+                    </div>
+                    <p class="text-sm text-[#555] mb-3">Rekap saldo awal, mutasi, dan saldo akhir per bulan.</p>
+                    <Link :href="route('reports.stock-mutation')"
                         class="inline-flex bg-[#e9e9e9] text-[#1f1f1f] border border-[#9c9c9c] px-3 py-2 text-xs font-semibold shadow-sm hover:bg-white transition-colors">
                         Buka Laporan
                     </Link>

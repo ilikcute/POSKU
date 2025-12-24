@@ -287,8 +287,14 @@ Route::middleware(['auth', 'verified'])->group(function () {
             Route::middleware('check.permission:view_reports')->group(function () {
                 Route::get('/', 'index')->name('index');
                 Route::get('/sales', 'sales')->name('sales');
+                Route::get('/sales-details', 'salesDetails')->name('sales-details');
+                Route::get('/sales-returns', 'salesReturns')->name('sales-returns');
+                Route::get('/sales-reprint', 'salesReprint')->name('sales-reprint');
                 Route::get('/purchases', 'purchases')->name('purchases');
                 Route::get('/stock', 'stock')->name('stock');
+                Route::get('/low-stock', 'lowStock')->name('low-stock');
+                Route::get('/stock-mutation', 'stockMutation')->name('stock-mutation');
+                Route::post('/stock-mutation/close', 'closeStockMonth')->name('stock-mutation.close');
                 Route::get('/stock-movements', 'stockMovements')->name('stock-movements');
                 Route::get('/profit-loss', 'profitLoss')->name('profit-loss');
 

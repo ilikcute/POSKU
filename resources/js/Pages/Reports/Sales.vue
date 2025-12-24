@@ -94,7 +94,7 @@
                                     </tr>
                                 </thead>
                                 <tbody class="bg-white divide-y divide-[#d0d0d0]">
-                                    <tr v-for="sale in sales" :key="sale.id" class="hover:bg-[#f7f7f7]">
+                                    <tr v-for="sale in sales.data" :key="sale.id" class="hover:bg-[#f7f7f7]">
                                         <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-[#1f1f1f]">{{
                                             sale.invoice_number }}</td>
                                         <td class="px-6 py-4 whitespace-nowrap text-sm text-[#555]">{{
@@ -111,9 +111,15 @@
                                         <td class="px-6 py-4 whitespace-nowrap text-sm text-[#555]">{{
                                             formatCurrency(sale.final_amount) }}</td>
                                     </tr>
+                                    <tr v-if="!sales.data?.length">
+                                        <td colspan="7" class="px-6 py-6 text-center text-[#777]">
+                                            Belum ada data.
+                                        </td>
+                                    </tr>
                                 </tbody>
                             </table>
                         </div>
+                        <Pagination v-if="sales.links" :links="sales.links" class="mt-6" />
                     </div>
                 </div>
             </div>
@@ -122,11 +128,13 @@
 </template>
 
 <script setup>
-import { Head, useForm } from '@inertiajs/vue3';
+import { Head } from '@inertiajs/vue3';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
+import Pagination from '@/Components/Pagination.vue';
+import { ref } from 'vue';
 
 const props = defineProps({
-    sales: Array,
+    sales: Object,
     summary: Object,
     filters: Object,
 });
