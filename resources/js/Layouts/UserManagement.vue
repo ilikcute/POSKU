@@ -43,14 +43,12 @@ const createForm = useForm({
     email: '',
     password: '',
     password_confirmation: '',
-    store_id: '',
 });
 
 // Form untuk edit user
 const editForm = useForm({
     name: '',
     email: '',
-    store_id: '',
 });
 
 // Form untuk assign/revoke role
@@ -74,7 +72,6 @@ const openEditModal = (user) => {
     selectedUser.value = user;
     editForm.name = user.name;
     editForm.email = user.email;
-    editForm.store_id = user.store_id;
     showEditModal.value = true;
 };
 
@@ -162,9 +159,6 @@ const revokeRole = (user, role) => {
                                             Email
                                         </th>
                                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                            Toko
-                                        </th>
-                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                             Roles
                                         </th>
                                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -179,9 +173,6 @@ const revokeRole = (user, role) => {
                                         </td>
                                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                             {{ user.email }}
-                                        </td>
-                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                            {{ user.store ? user.store.name : '-' }}
                                         </td>
                                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                             <div class="flex flex-wrap gap-1">
@@ -288,22 +279,6 @@ const revokeRole = (user, role) => {
                     </div>
 
                     <div class="mb-4">
-                        <InputLabel for="store_id" value="Toko" />
-                        <select
-                            id="store_id"
-                            v-model="createForm.store_id"
-                            class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
-                            required
-                        >
-                            <option value="">Pilih Toko</option>
-                            <option v-for="store in stores" :key="store.id" :value="store.id">
-                                {{ store.name }}
-                            </option>
-                        </select>
-                        <InputError :message="createForm.errors.store_id" class="mt-2" />
-                    </div>
-
-                    <div class="mb-4">
                         <InputLabel for="password" value="Password" />
                         <TextInput
                             id="password"
@@ -370,21 +345,6 @@ const revokeRole = (user, role) => {
                     </div>
 
                     <div class="mb-6">
-                        <InputLabel for="edit_store_id" value="Toko" />
-                        <select
-                            id="edit_store_id"
-                            v-model="editForm.store_id"
-                            class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
-                            required
-                        >
-                            <option value="">Pilih Toko</option>
-                            <option v-for="store in stores" :key="store.id" :value="store.id">
-                                {{ store.name }}
-                            </option>
-                        </select>
-                        <InputError :message="editForm.errors.store_id" class="mt-2" />
-                    </div>
-
                     <div class="flex justify-end space-x-3">
                         <SecondaryButton @click="showEditModal = false" type="button">
                             Batal

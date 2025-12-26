@@ -13,7 +13,6 @@ return new class extends Migration
     {
         Schema::create('purchase_plans', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('store_id')->constrained()->onDelete('cascade');
             $table->foreignId('supplier_id')->constrained()->onDelete('cascade');
             $table->foreignId('created_by')->constrained('users')->onDelete('cascade');
             $table->unsignedBigInteger('doc_no');
@@ -22,8 +21,8 @@ return new class extends Migration
             $table->unsignedInteger('total_qty')->default(0);
             $table->timestamps();
 
-            $table->unique(['store_id', 'doc_no']);
-            $table->index(['store_id', 'supplier_id']);
+            $table->unique(['doc_no']);
+            $table->index(['supplier_id']);
         });
     }
 

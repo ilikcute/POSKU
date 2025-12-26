@@ -13,13 +13,12 @@ return new class extends Migration
     {
         Schema::create('pending_sales', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('store_id')->constrained()->cascadeOnDelete();
             $table->foreignId('station_id')->constrained()->cascadeOnDelete();
             $table->foreignId('user_id')->constrained()->cascadeOnDelete();
             $table->json('payload');
             $table->timestamps();
 
-            $table->index(['store_id', 'station_id']);
+            $table->index(['station_id']);
         });
     }
 

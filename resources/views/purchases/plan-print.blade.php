@@ -143,14 +143,14 @@
 <body>
     <div class="sheet">
         <div class="header-top">
-            {{ $plan->store?->name ?? 'TOKO' }}
+            {{ $store?->name ?? 'TOKO' }}
         </div>
 
         <div class="header-row">
             <div class="header-left">
-                <p>{{ $plan->store?->address ?? '-' }}</p>
-                <p>{{ $plan->store?->phone ?? '-' }}</p>
-                <p>{{ $plan->store?->email ?? '-' }}</p>
+                <p>{{ $store?->address ?? '-' }}</p>
+                <p>{{ $store?->phone ?? '-' }}</p>
+                <p>{{ $store?->email ?? '-' }}</p>
             </div>
             <div class="header-right">
                 <p style="font-size: 18px; font-weight: 700;">PURCHASE ORDER</p>

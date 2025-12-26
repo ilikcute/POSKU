@@ -34,7 +34,6 @@
                             <div class="space-y-2 text-xs text-[#1f1f1f]">
                                 <p><strong>Tanggal:</strong> {{ formatDate(salesReturn.return_date) }}</p>
                                 <p><strong>Kasir:</strong> {{ salesReturn.user?.name || "-" }}</p>
-                                <p><strong>Toko:</strong> {{ salesReturn.store?.name || "-" }}</p>
                             </div>
                         </div>
                         <div class="bg-white border border-[#9c9c9c] rounded p-4">

@@ -12,7 +12,7 @@ class CustomerController extends Controller
     public function index(Request $request)
     {
         $store = $this->currentStore();
-        $query = Customer::query()->where('store_id', $store->id);
+        $query = Customer::query();
 
         // Search by name, code, phone
         if ($request->search) {
@@ -24,7 +24,7 @@ class CustomerController extends Controller
             });
         }
 
-        $customers = $query->with(['customerType', 'store'])->latest()->paginate(10)->withQueryString();
+        $customers = $query->with(['customerType'])->latest()->paginate(10)->withQueryString();
 
         // Selalu render ke halaman Members/Index untuk route /master/members
         return Inertia::render('Master/Members/Index', [
@@ -45,14 +45,12 @@ class CustomerController extends Controller
             'address' => 'nullable|string',
             'customer_type_id' => 'nullable|exists:customer_types,id',
             'is_active' => 'boolean',
-            'store_id' => 'nullable|exists:stores,id',
             'points' => 'nullable|integer|min:0',
             'photo' => 'nullable|string',
             'status' => 'nullable|in:active,inactive',
             'joined_at' => 'nullable|date',
         ]);
 
-        $validated['store_id'] = $this->currentStoreId();
         $validated['points'] = $validated['points'] ?? 0;
         $validated['status'] = $validated['status'] ?? 'active';
 
@@ -89,9 +87,6 @@ class CustomerController extends Controller
 
     public function update(Request $request, Customer $customer)
     {
-        if ($customer->store_id !== $this->currentStoreId()) {
-            abort(403, 'Unauthorized');
-        }
         $validated = $request->validate([
             'customer_code' => 'nullable|string|max:50|unique:customers,customer_code,' . $customer->id,
             'member_code' => 'nullable|string|unique:customers,member_code,' . $customer->id,
@@ -101,7 +96,6 @@ class CustomerController extends Controller
             'address' => 'nullable|string',
             'customer_type_id' => 'nullable|exists:customer_types,id',
             'is_active' => 'boolean',
-            'store_id' => 'nullable|exists:stores,id',
             'points' => 'nullable|integer|min:0',
             'photo' => 'nullable|string',
             'status' => 'nullable|in:active,inactive',
@@ -113,9 +107,6 @@ class CustomerController extends Controller
 
     public function destroy(Customer $customer)
     {
-        if ($customer->store_id !== $this->currentStoreId()) {
-            abort(403, 'Unauthorized');
-        }
         $customer->delete();
         return redirect()->back()->with('success', 'Data berhasil dihapus.');
     }
@@ -123,11 +114,7 @@ class CustomerController extends Controller
     // Tambahkan fitur generateCard jika perlu
     public function generateCard(Customer $customer)
     {
-        $storeId = $this->currentStoreId();
-        if ($customer->store_id !== $storeId) {
-            abort(403, 'Unauthorized');
-        }
-        $store = Store::find($storeId);
+        $store = $this->currentStore();
         return response()->json([
             'member' => $customer,
             'store' => $store,

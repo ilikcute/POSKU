@@ -76,7 +76,6 @@ class UserController extends Controller implements HasMiddleware
             'name' => $validated['name'],
             'email' => $validated['email'],
             'password' => Hash::make($validated['password']),
-            'store_id' => $request->user()->store_id,
         ]);
 
         if (!empty($validated['roles'])) {
@@ -93,10 +92,6 @@ class UserController extends Controller implements HasMiddleware
             'email' => ['required', 'email', 'unique:users,email,' . $user->id],
             'password' => ['nullable', 'min:8', 'confirmed'],
 
-            // Catatan: ini sensitif. Kalau user biasa tidak boleh pindah store,
-            // sebaiknya store_id hanya boleh untuk role tertentu.
-            'store_id' => ['required', 'exists:stores,id'],
-
             'roles' => ['sometimes', 'array'],
             'roles.*' => ['exists:roles,name'],
         ]);
@@ -104,7 +99,6 @@ class UserController extends Controller implements HasMiddleware
         $updateData = [
             'name' => $validated['name'],
             'email' => $validated['email'],
-            'store_id' => $validated['store_id'],
         ];
 
         if (!empty($validated['password'])) {

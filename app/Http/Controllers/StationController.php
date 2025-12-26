@@ -10,9 +10,8 @@ class StationController extends Controller
 {
     public function index(Request $request)
     {
-        $storeId = $this->currentStoreId();
         $query = Station::query()
-            ->where('store_id', $storeId);
+            ->latest();
 
         if ($request->filled('search')) {
             $search = $request->string('search')->toString();
@@ -42,7 +41,6 @@ class StationController extends Controller
         ]);
 
         Station::create([
-            'store_id' => $this->currentStoreId(),
             'name' => $validated['name'],
             'device_identifier' => $validated['device_identifier'],
             'description' => $validated['description'] ?? null,
@@ -55,10 +53,6 @@ class StationController extends Controller
 
     public function update(Request $request, Station $station)
     {
-        if ($station->store_id !== $this->currentStoreId()) {
-            return back()->with('error', 'Station tidak valid.');
-        }
-
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'device_identifier' => ['required', 'string', 'max:255', 'unique:stations,device_identifier,' . $station->id],
@@ -79,10 +73,6 @@ class StationController extends Controller
 
     public function destroy(Station $station)
     {
-        if ($station->store_id !== $this->currentStoreId()) {
-            return back()->with('error', 'Station tidak valid.');
-        }
-
         $station->delete();
 
         return redirect()->route('stations.index')

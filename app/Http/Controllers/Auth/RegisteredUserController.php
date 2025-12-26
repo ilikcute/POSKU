@@ -3,7 +3,6 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
-use App\Models\Store;
 use App\Models\User;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Http\RedirectResponse;
@@ -39,15 +38,11 @@ class RegisteredUserController extends Controller
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
         ]);
 
-        // 1. CARI TOKO UTAMA
-        $mainStore = Store::where('is_main_store', true)->firstOrFail();
-
-        // 2. BUAT USER BARU DENGAN STORE_ID
+        // 1. BUAT USER BARU
         $user = User::create([
             'name' => $request->name,
             'email' => $request->email,
             'password' => Hash::make($request->password),
-            'store_id' => $mainStore->id, // <-- BAGIAN INI SANGAT PENTING
         ]);
 
         // 3. BERI ROLE 'KASIR' SECARA OTOMATIS
@@ -60,7 +55,7 @@ class RegisteredUserController extends Controller
 
         Auth::login($user);
 
-        // 4. REDIRECT KE DASHBOARD DENGAN NOTIFIKASI
+        // 3. REDIRECT KE DASHBOARD DENGAN NOTIFIKASI
         return redirect()->route('dashboard')->with('success', 'Pendaftaran berhasil! Selamat datang.');
     }
 }

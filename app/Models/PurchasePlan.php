@@ -10,7 +10,6 @@ class PurchasePlan extends Model
     use HasFactory;
 
     protected $fillable = [
-        'store_id',
         'supplier_id',
         'created_by',
         'doc_no',
@@ -28,11 +27,6 @@ class PurchasePlan extends Model
     public function supplier()
     {
         return $this->belongsTo(Supplier::class);
-    }
-
-    public function store()
-    {
-        return $this->belongsTo(Store::class);
     }
 
     public function creator()

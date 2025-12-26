@@ -23,9 +23,8 @@ class ReportController extends Controller
 
     public function sales(Request $request)
     {
-        $storeId = $this->currentStoreId();
-        $query = Sale::with(['user', 'store', 'member'])
-            ->byStore($storeId);
+        $query = Sale::with(['user', 'member'])
+            ->latest();
 
         if ($request->start_date) {
             $query->whereDate('transaction_date', '>=', $request->start_date);
@@ -55,11 +54,9 @@ class ReportController extends Controller
 
     public function salesDetails(Request $request)
     {
-        $storeId = $this->currentStoreId();
         $query = SaleDetail::query()
             ->with(['sale.user', 'sale.customer', 'product'])
-            ->whereHas('sale', function ($q) use ($storeId, $request) {
-                $q->byStore($storeId);
+            ->whereHas('sale', function ($q) use ($request) {
                 if ($request->start_date) {
                     $q->whereDate('transaction_date', '>=', $request->start_date);
                 }
@@ -93,9 +90,8 @@ class ReportController extends Controller
 
     public function purchases(Request $request)
     {
-        $storeId = $this->currentStoreId();
-        $query = Purchase::with(['user', 'store', 'supplier'])
-            ->byStore($storeId);
+        $query = Purchase::with(['user', 'supplier'])
+            ->latest();
 
         if ($request->start_date) {
             $query->whereDate('transaction_date', '>=', $request->start_date);
@@ -121,10 +117,8 @@ class ReportController extends Controller
 
     public function salesReturns(Request $request)
     {
-        $storeId = $this->currentStoreId();
         $query = SalesReturn::query()
-            ->with(['sale', 'user', 'station'])
-            ->where('store_id', $storeId);
+            ->with(['sale', 'user', 'station']);
 
         if ($request->start_date) {
             $query->whereDate('return_date', '>=', $request->start_date);
@@ -154,9 +148,8 @@ class ReportController extends Controller
 
     public function salesReprint(Request $request)
     {
-        $storeId = $this->currentStoreId();
         $query = Sale::with(['user', 'customer'])
-            ->byStore($storeId);
+            ->latest();
 
         if ($request->start_date) {
             $query->whereDate('transaction_date', '>=', $request->start_date);
@@ -181,8 +174,7 @@ class ReportController extends Controller
 
     public function stock(Request $request)
     {
-        $stocks = Stock::with(['product', 'store'])
-            ->where('store_id', $this->currentStoreId())
+        $stocks = Stock::with(['product'])
             ->get();
 
         $totalValue = $stocks->sum(function ($stock) {
@@ -201,9 +193,7 @@ class ReportController extends Controller
 
     public function lowStock(Request $request)
     {
-        $storeId = $this->currentStoreId();
         $query = Stock::with(['product.category', 'product.supplier'])
-            ->byStore($storeId)
             ->lowStock();
 
         if ($request->search) {
@@ -227,13 +217,11 @@ class ReportController extends Controller
 
     public function stockMutation(Request $request)
     {
-        $storeId = $this->currentStoreId();
         $year = (int) ($request->input('year') ?? now()->year);
         $month = (int) ($request->input('month') ?? now()->month);
 
         $query = StockMonthClosing::query()
             ->with(['product.category', 'product.supplier'])
-            ->where('store_id', $storeId)
             ->where('year', $year)
             ->where('month', $month);
 
@@ -274,7 +262,6 @@ class ReportController extends Controller
         $categories = \App\Models\Category::orderBy('name')->get();
 
         $alreadyClosed = StockMonthClosing::query()
-            ->where('store_id', $storeId)
             ->where('year', $year)
             ->where('month', $month)
             ->exists();
@@ -290,8 +277,6 @@ class ReportController extends Controller
 
     public function closeStockMonth(Request $request)
     {
-        $storeId = $this->currentStoreId();
-
         $validated = $request->validate([
             'year' => ['required', 'integer', 'min:2000', 'max:2100'],
             'month' => ['required', 'integer', 'min:1', 'max:12'],
@@ -302,7 +287,6 @@ class ReportController extends Controller
         $month = (int) $validated['month'];
 
         $exists = StockMonthClosing::query()
-            ->where('store_id', $storeId)
             ->where('year', $year)
             ->where('month', $month)
             ->exists();
@@ -314,9 +298,7 @@ class ReportController extends Controller
         $periodStart = Carbon::create($year, $month, 1)->startOfMonth();
         $periodEnd = Carbon::create($year, $month, 1)->endOfMonth();
 
-        $stocks = Stock::with('product')
-            ->where('store_id', $storeId)
-            ->get();
+        $stocks = Stock::with('product')->get();
 
         $stockIds = $stocks->pluck('id')->all();
 
@@ -351,7 +333,6 @@ class ReportController extends Controller
 
         $prevMonth = $periodStart->copy()->subMonth();
         $prevClosings = StockMonthClosing::query()
-            ->where('store_id', $storeId)
             ->where('year', $prevMonth->year)
             ->where('month', $prevMonth->month)
             ->get()
@@ -362,7 +343,6 @@ class ReportController extends Controller
             $periodMovements,
             $beforeMovements,
             $prevClosings,
-            $storeId,
             $year,
             $month,
             $validated
@@ -395,7 +375,6 @@ class ReportController extends Controller
                 $priceFinal = (float) ($product->final_price ?? $product->selling_price ?? 0);
 
                 StockMonthClosing::create([
-                    'store_id' => $storeId,
                     'product_id' => $product->id,
                     'year' => $year,
                     'month' => $month,
@@ -424,11 +403,8 @@ class ReportController extends Controller
 
     public function stockMovements(Request $request)
     {
-        $storeId = $this->currentStoreId();
-        $query = StockMovement::with(['stock.product', 'stock.store', 'user'])
-            ->whereHas('stock', function ($q) use ($storeId) {
-                $q->where('store_id', $storeId);
-            });
+        $query = StockMovement::with(['stock.product', 'user'])
+            ->latest();
 
         if ($request->start_date) {
             $query->whereDate('created_at', '>=', $request->start_date);
@@ -461,11 +437,9 @@ class ReportController extends Controller
         $endDate = $request->end_date ?? now()->endOfMonth();
 
         $sales = Sale::whereBetween('transaction_date', [$startDate, $endDate])
-            ->byStore($this->currentStoreId())
             ->sum('final_amount');
 
         $purchases = Purchase::whereBetween('transaction_date', [$startDate, $endDate])
-            ->byStore($this->currentStoreId())
             ->sum('final_amount');
 
         $profit = $sales - $purchases;

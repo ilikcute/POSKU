@@ -2,27 +2,28 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Store;
 use Illuminate\Support\Facades\Auth;
 
 abstract class Controller
 {
     protected function currentStoreId(): int
     {
-        $storeId = Auth::user()?->store_id;
+        $store = Store::where('is_main_store', true)->first();
 
-        if (! $storeId) {
-            abort(403, 'Anda belum terhubung dengan toko manapun.');
+        if (! $store) {
+            abort(403, 'Toko utama belum terdaftar.');
         }
 
-        return $storeId;
+        return $store->id;
     }
 
     protected function currentStore()
     {
-        $store = Auth::user()?->store;
+        $store = Store::where('is_main_store', true)->first();
 
         if (! $store) {
-            abort(403, 'Data toko tidak ditemukan.');
+            abort(403, 'Toko utama belum terdaftar.');
         }
 
         return $store;

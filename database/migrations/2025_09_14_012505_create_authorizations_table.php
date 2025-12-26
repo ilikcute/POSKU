@@ -14,9 +14,8 @@ return new class extends Migration
         Schema::create('authorizations', function (Blueprint $table) {
             $table->id();
             $table->string('name');
-            $table->unique(['store_id', 'name']);
+            $table->unique('name');
             $table->string('password');
-            $table->foreignId('store_id')->constrained();
             $table->timestamps();
         });
     }

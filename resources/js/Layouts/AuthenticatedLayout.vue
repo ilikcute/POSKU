@@ -21,13 +21,16 @@ const handleSidebarNavigate = () => {
 //     }
 // );
 
-watch(() => sidebarOpen, (isOpen) => {
+watch(sidebarOpen, (isOpen) => {
     if (isOpen) {
         document.body.style.overflow = 'hidden';
     } else {
         document.body.style.overflow = '';
     }
 });
+
+const sidebarWidth = computed(() => (isSidebarMinimized.value ? '4rem' : '16rem'));
+const mainWidth = computed(() => `calc(100% - ${sidebarWidth.value})`);
 
 // Menu states
 const isMasterMenuActive = computed(() => route().current("master.*"));
@@ -144,7 +147,7 @@ const menuItems = [
 </script>
 
 <template>
-    <div class="relative h-screen overflow-hidden bg-[#e6e6e6] font-[Tahoma] text-[#1f1f1f] flex">
+    <div class="relative h-screen overflow-hidden bg-[#e6e6e6] font-[Tahoma] text-[#1f1f1f] flex w-full">
         <!-- Desktop Background -->
         <div class="absolute inset-0 bg-[#e6e6e6]"></div>
 
@@ -154,9 +157,7 @@ const menuItems = [
         <aside :class="[
             sidebarOpen ? 'translate-x-0' : '-translate-x-full',
         ]" class="fixed inset-y-0 left-0 z-50 bg-[#1f7bd7] border-r border-[#0b4f9b] transition-all duration-300 ease-in-out lg:translate-x-0 lg:static lg:inset-0 flex-shrink-0"
-            :style="{
-                width: isSidebarMinimized ? '80px' : '256px',
-            }">
+            :style="{ width: sidebarWidth }">
             <div class="flex flex-col h-full">
                 <!-- Sidebar Header -->
                 <button @click="sidebarOpen = !sidebarOpen" class="lg:hidden p-2 rounded-md hover:bg-gray-100"
@@ -259,7 +260,8 @@ const menuItems = [
         </aside>
 
         <!-- Main content -->
-        <div class="flex-1 flex flex-col relative">
+        <div class="flex flex-col relative min-w-0 transition-all duration-300"
+            :style="{ width: mainWidth }">
             <!-- Header -->
             <header
                 class="flex justify-between items-center h-16 bg-white border-b border-[#9c9c9c] px-4 sm:px-6 lg:px-8 flex-shrink-0 z-10">

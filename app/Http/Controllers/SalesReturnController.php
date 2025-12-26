@@ -6,6 +6,7 @@ use App\Models\Sale;
 use App\Models\SalesReturn;
 use App\Models\SalesReturnDetail;
 use App\Models\Stock;
+use App\Models\Shift;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
@@ -21,9 +22,7 @@ class SalesReturnController extends Controller
      */
     public function index(Request $request)
     {
-        $storeId = $this->currentStoreId();
-        $query = SalesReturn::with(['sale', 'user', 'store', 'salesReturnDetails.product'])
-            ->where('store_id', $storeId);
+        $query = SalesReturn::with(['sale', 'user', 'salesReturnDetails.product']);
 
         // Filter by date range
         if ($request->has('start_date') && $request->start_date) {
@@ -49,27 +48,31 @@ class SalesReturnController extends Controller
      */
     public function create(Request $request)
     {
-        $storeId = $this->currentStoreId();
         $saleId = $request->get('sale_id');
         $sale = null;
         
         if ($saleId) {
             $sale = Sale::with(['saleDetails.product'])
                 ->where('id', $saleId)
-                ->where('store_id', $storeId)
                 ->first();
         }
 
         $sales = Sale::with(['saleDetails'])
-            ->where('store_id', $storeId)
             ->orderBy('transaction_date', 'desc')
             ->limit(50)
             ->get();
 
+        $station = StationResolver::resolve();
+        $shift = Shift::query()
+            ->where('station_id', $station->id)
+            ->where('status', 'open')
+            ->latest('start_time')
+            ->first();
+
         return Inertia::render('SalesReturns/Create', [
             'sale' => $sale,
             'sales' => $sales,
-            'shift_id' => $shift->id,
+            'shift_id' => $shift?->id,
             'station_id' => $station->id,
 
         ]);
@@ -90,24 +93,17 @@ class SalesReturnController extends Controller
             'notes' => 'nullable|string|max:1000',
         ]);
 
-        $storeId = $this->currentStoreId();
         $station = StationResolver::resolve();
         $sale = Sale::findOrFail($validated['sale_id']);
 
         $station = StationResolver::resolve();
 
         $shift = Shift::query()
-            ->where('store_id', $storeId)
             ->where('station_id', $station->id)
             ->where('status', 'open')
             ->latest('start_time')
             ->firstOrFail();
 
-
-        // Validate that sale belongs to current store
-        if ($sale->store_id !== $storeId) {
-            return back()->withErrors(['sale_id' => 'Invalid sale selected.']);
-        }
 
         $returnables = $this->calculateSaleReturnables($sale);
 
@@ -144,7 +140,6 @@ class SalesReturnController extends Controller
             $salesReturn = SalesReturn::create([
                 'sale_id' => $sale->id,
                 'user_id' => Auth::id(),
-                'store_id' => $sale->store_id,
                 'station_id' => $station->id,
                 'total_amount' => $totalAmount,
                 'final_amount' => $finalAmount,
@@ -167,7 +162,6 @@ class SalesReturnController extends Controller
                 $stock = Stock::firstOrCreate(
                     [
                         'product_id' => $item['product_id'],
-                        'store_id' => $sale->store_id,
                     ],
                     ['quantity' => 0]
                 );
@@ -194,7 +188,6 @@ class SalesReturnController extends Controller
         $salesReturn->load([
             'sale',
             'user', 
-            'store', 
             'salesReturnDetails.product'
         ]);
 
@@ -238,7 +231,6 @@ class SalesReturnController extends Controller
             // Revert previous stock changes (remove the returned items)
             foreach ($salesReturn->salesReturnDetails as $detail) {
                 $stock = Stock::where('product_id', $detail->product_id)
-                    ->where('store_id', $salesReturn->store_id)
                     ->first();
                     
                 if ($stock) {
@@ -304,7 +296,6 @@ class SalesReturnController extends Controller
                 $stock = Stock::firstOrCreate(
                     [
                         'product_id' => $item['product_id'],
-                        'store_id' => $salesReturn->store_id,
                     ],
                     ['quantity' => 0]
                 );
@@ -332,7 +323,6 @@ class SalesReturnController extends Controller
             // Revert stock changes (remove the returned items)
             foreach ($salesReturn->salesReturnDetails as $detail) {
                 $stock = Stock::where('product_id', $detail->product_id)
-                    ->where('store_id', $salesReturn->store_id)
                     ->first();
                     
                 if ($stock) {

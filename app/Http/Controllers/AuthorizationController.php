@@ -12,9 +12,7 @@ class AuthorizationController extends Controller
 {
     public function index()
     {
-        $authorizations = Authorization::where('store_id', auth()->user()->store_id)
-            ->latest()
-            ->paginate(10);
+        $authorizations = Authorization::latest()->paginate(10);
 
         return Inertia::render('Shifts/Authorizations/Index', [
             'authorizations' => $authorizations,
@@ -33,7 +31,7 @@ class AuthorizationController extends Controller
                 'required',
                 'string',
                 'max:255',
-                Rule::unique('authorizations')->where('store_id', auth()->user()->store_id),
+                Rule::unique('authorizations'),
             ],
             'password' => 'required|string|min:4',
         ]);
@@ -41,7 +39,6 @@ class AuthorizationController extends Controller
         Authorization::create([
             'name' => $request->name,
             'password' => Hash::make($request->password),
-            'store_id' => auth()->user()->store_id,
         ]);
 
         return redirect()->route('shifts.authorizations.index')->with('success', 'Authorization berhasil ditambahkan.');
@@ -49,11 +46,6 @@ class AuthorizationController extends Controller
 
     public function show(Authorization $authorization)
     {
-        // Ensure the authorization belongs to the user's store
-        if ($authorization->store_id !== auth()->user()->store_id) {
-            abort(403);
-        }
-
         return Inertia::render('Shifts/Authorizations/Show', [
             'authorization' => $authorization,
         ]);
@@ -61,11 +53,6 @@ class AuthorizationController extends Controller
 
     public function edit(Authorization $authorization)
     {
-        // Ensure the authorization belongs to the user's store
-        if ($authorization->store_id !== auth()->user()->store_id) {
-            abort(403);
-        }
-
         return Inertia::render('Shifts/Authorizations/Edit', [
             'authorization' => $authorization,
         ]);
@@ -73,19 +60,12 @@ class AuthorizationController extends Controller
 
     public function update(Request $request, Authorization $authorization)
     {
-        // Ensure the authorization belongs to the user's store
-        if ($authorization->store_id !== auth()->user()->store_id) {
-            abort(403);
-        }
-
         $request->validate([
             'name' => [
                 'required',
                 'string',
                 'max:255',
-                Rule::unique('authorizations')
-                    ->where('store_id', auth()->user()->store_id)
-                    ->ignore($authorization->id),
+                Rule::unique('authorizations')->ignore($authorization->id),
             ],
             'password' => 'nullable|string|min:4',
         ]);
@@ -105,11 +85,6 @@ class AuthorizationController extends Controller
 
     public function destroy(Authorization $authorization)
     {
-        // Ensure the authorization belongs to the user's store
-        if ($authorization->store_id !== auth()->user()->store_id) {
-            abort(403);
-        }
-
         $authorization->delete();
 
         return redirect()->route('shifts.authorizations.index')->with('success', 'Authorization berhasil dihapus.');

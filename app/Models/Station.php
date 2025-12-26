@@ -10,7 +10,6 @@ class Station extends Model
     use HasFactory;
 
     protected $fillable = [
-        'store_id',
         'name',
         'device_identifier',
         'description',
@@ -22,11 +21,6 @@ class Station extends Model
         'is_active' => 'boolean',
         'last_seen_at' => 'datetime',
     ];
-
-    public function store()
-    {
-        return $this->belongsTo(Store::class);
-    }
 
     public function sales()
     {

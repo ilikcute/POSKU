@@ -15,7 +15,6 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
-        'store_id',
     ];
 
     protected $hidden = [
@@ -29,11 +28,6 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
         ];
-    }
-
-    public function store()
-    {
-        return $this->belongsTo(Store::class);
     }
 
     public function sales()

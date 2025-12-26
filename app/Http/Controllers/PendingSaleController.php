@@ -11,11 +11,9 @@ class PendingSaleController extends Controller
 {
     public function index(Request $request)
     {
-        $storeId = $this->currentStoreId();
         $station = StationResolver::resolve();
 
         $pending = PendingSale::query()
-            ->where('store_id', $storeId)
             ->where('station_id', $station->id)
             ->orderByDesc('created_at')
             ->get();
@@ -29,11 +27,9 @@ class PendingSaleController extends Controller
             'payload' => ['required', 'array'],
         ]);
 
-        $storeId = $this->currentStoreId();
         $station = StationResolver::resolve();
 
         $pending = PendingSale::create([
-            'store_id' => $storeId,
             'station_id' => $station->id,
             'user_id' => Auth::id(),
             'payload' => $validated['payload'],
@@ -44,10 +40,6 @@ class PendingSaleController extends Controller
 
     public function destroy(PendingSale $pendingSale)
     {
-        if ($pendingSale->store_id !== $this->currentStoreId()) {
-            abort(404);
-        }
-
         $station = StationResolver::resolve();
         if ($pendingSale->station_id !== $station->id) {
             abort(403);

@@ -2,7 +2,6 @@
 
 namespace App\Models;
 
-use App\Models\Store;
 use App\Models\Product;
 use App\Models\StockMovement;
 use Illuminate\Database\Eloquent\Model;
@@ -15,7 +14,6 @@ class Stock extends Model
 
     protected $fillable = [
         'product_id',
-        'store_id',
         'quantity',
     ];
 
@@ -26,11 +24,6 @@ class Stock extends Model
     public function product()
     {
         return $this->belongsTo(Product::class);
-    }
-
-    public function store()
-    {
-        return $this->belongsTo(Store::class);
     }
 
     public function stockMovements()
@@ -44,11 +37,6 @@ class Stock extends Model
         return $query->whereHas('product', function ($q) {
             $q->whereRaw('stocks.quantity <= products.min_stock_alert');
         });
-    }
-
-    public function scopeByStore($query, $storeId)
-    {
-        return $query->where('store_id', $storeId);
     }
 
     public function scopeByProduct($query, $productId)

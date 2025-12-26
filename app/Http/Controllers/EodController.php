@@ -23,10 +23,8 @@ class EodController extends Controller
 {
     public function index(Request $request)
     {
-        $storeId = $this->currentStoreId();
-
         $closings = DailyClosing::query()
-            ->where('store_id', $storeId)
+            
             ->orderByDesc('business_date')
             ->paginate(10)
             ->withQueryString();
@@ -43,9 +41,8 @@ class EodController extends Controller
     public function showStationCloseForm(Request $request)
     {
         $user = Auth::user();
-        $storeId = $user->store_id;
-
-        $businessDate = $this->resolveBusinessDate($request, $storeId);
+        
+        $businessDate = $this->resolveBusinessDate($request);
         $dayStart = now()->parse($businessDate)->startOfDay();
         $dayEnd = now()->parse($businessDate)->endOfDay();
 
@@ -53,7 +50,7 @@ class EodController extends Controller
 
         // jika sudah ada store-level EOD, station tidak boleh close lagi
         $storeClosed = DailyClosing::query()
-            ->where('store_id', $storeId)
+            
             ->where('business_date', $businessDate)
             ->exists();
 
@@ -65,7 +62,7 @@ class EodController extends Controller
 
         // Pastikan tidak ada shift OPEN di station pada business date
         $hasOpenShift = Shift::query()
-            ->where('store_id', $storeId)
+            
             ->where('station_id', $station->id)
             ->where('status', 'open')
             ->whereBetween('start_time', [$dayStart, $dayEnd])
@@ -78,12 +75,12 @@ class EodController extends Controller
         }
 
         $existing = StationDailyClosing::query()
-            ->where('store_id', $storeId)
+            
             ->where('station_id', $station->id)
             ->where('business_date', $businessDate)
             ->first();
 
-        $summary = $this->buildStationDaySummary($storeId, $station->id, $dayStart, $dayEnd);
+        $summary = $this->buildStationDaySummary($station->id, $dayStart, $dayEnd);
 
         return Inertia::render('EOD/StationClose', [
             'businessDate' => $businessDate,
@@ -106,8 +103,7 @@ class EodController extends Controller
         ]);
 
         $user = Auth::user();
-        $storeId = $user->store_id;
-        $businessDate = $validated['business_date'];
+                $businessDate = $validated['business_date'];
         $dayStart = now()->parse($businessDate)->startOfDay();
         $dayEnd = now()->parse($businessDate)->endOfDay();
 
@@ -116,7 +112,7 @@ class EodController extends Controller
         // verifikasi otorisasi
         $auth = Authorization::query()
             ->where('name', 'Tutup Harian')
-            ->where('store_id', $storeId)
+            
             ->first();
 
         if (! $auth || ! Hash::check($validated['authorization_password'], $auth->password)) {
@@ -127,7 +123,7 @@ class EodController extends Controller
 
         // tidak boleh jika store sudah finalize EOD
         $storeClosed = DailyClosing::query()
-            ->where('store_id', $storeId)
+            
             ->where('business_date', $businessDate)
             ->exists();
 
@@ -139,7 +135,7 @@ class EodController extends Controller
 
         // tidak boleh ada shift open di station tanggal itu
         $hasOpenShift = Shift::query()
-            ->where('store_id', $storeId)
+            
             ->where('station_id', $station->id)
             ->where('status', 'open')
             ->whereBetween('start_time', [$dayStart, $dayEnd])
@@ -153,7 +149,7 @@ class EodController extends Controller
 
         // unique per (store, station, date)
         $existing = StationDailyClosing::query()
-            ->where('store_id', $storeId)
+            
             ->where('station_id', $station->id)
             ->where('business_date', $businessDate)
             ->first();
@@ -164,13 +160,12 @@ class EodController extends Controller
             ]);
         }
 
-        $summary = $this->buildStationDaySummary($storeId, $station->id, $dayStart, $dayEnd);
+        $summary = $this->buildStationDaySummary($station->id, $dayStart, $dayEnd);
 
         $variance = (float) $validated['cash_counted'] - (float) $summary['expectedCash'];
 
         StationDailyClosing::create([
-            'store_id' => $storeId,
-            'station_id' => $station->id,
+                        'station_id' => $station->id,
             'business_date' => $businessDate,
             'closed_by' => $user->id,
             'closed_at' => now(),
@@ -205,22 +200,21 @@ class EodController extends Controller
     public function showFinalizeForm(Request $request)
     {
         $user = Auth::user();
-        $storeId = $user->store_id;
-
-        $businessDate = $this->resolveBusinessDate($request, $storeId);
+        
+        $businessDate = $this->resolveBusinessDate($request);
         $dayStart = now()->parse($businessDate)->startOfDay();
         $dayEnd = now()->parse($businessDate)->endOfDay();
 
         $alreadyFinal = DailyClosing::query()
-            ->where('store_id', $storeId)
+            
             ->where('business_date', $businessDate)
             ->first();
 
         // station yang dianggap "harus ikut EOD" = yang punya shift atau transaksi hari itu
-        $stationsInvolved = $this->stationsInvolved($storeId, $dayStart, $dayEnd);
+        $stationsInvolved = $this->stationsInvolved($dayStart, $dayEnd);
 
         $stationClosingsQuery = StationDailyClosing::query()
-            ->where('store_id', $storeId)
+            
             ->where('business_date', $businessDate)
             ->with(['station:id,name,device_identifier', 'closedByUser:id,name']);
 
@@ -232,7 +226,7 @@ class EodController extends Controller
         }
 
         $stations = Station::query()
-            ->where('store_id', $storeId)
+            
             ->whereIn('id', $stationsInvolved)
             ->orderBy('name')
             ->get()
@@ -260,7 +254,7 @@ class EodController extends Controller
             && $stations->every(fn($s) => $s['is_closed'] === true);
 
         // summary store (jika semua closed, ambil dari station closings sum)
-        $storeSummary = $this->buildStoreSummaryFromStationClosings($storeId, $businessDate);
+        $storeSummary = $this->buildStoreSummaryFromStationClosings($businessDate);
 
         return Inertia::render('EOD/Finalize', [
             'businessDate' => $businessDate,
@@ -284,15 +278,14 @@ class EodController extends Controller
         ]);
 
         $user = Auth::user();
-        $storeId = $user->store_id;
-        $businessDate = $validated['business_date'];
+                $businessDate = $validated['business_date'];
         $dayStart = now()->parse($businessDate)->startOfDay();
         $dayEnd = now()->parse($businessDate)->endOfDay();
 
         // verifikasi otorisasi
         $auth = Authorization::query()
             ->where('name', 'Tutup Harian')
-            ->where('store_id', $storeId)
+            
             ->first();
 
         if (! $auth || ! Hash::check($validated['authorization_password'], $auth->password)) {
@@ -303,7 +296,7 @@ class EodController extends Controller
 
         // prevent double finalize
         $exists = DailyClosing::query()
-            ->where('store_id', $storeId)
+            
             ->where('business_date', $businessDate)
             ->exists();
 
@@ -315,7 +308,7 @@ class EodController extends Controller
 
         // pastikan tidak ada shift open pada store di business date
         $hasOpenShift = Shift::query()
-            ->where('store_id', $storeId)
+            
             ->where('status', 'open')
             ->whereBetween('start_time', [$dayStart, $dayEnd])
             ->exists();
@@ -327,10 +320,10 @@ class EodController extends Controller
         }
 
         // station yang wajib ikut
-        $stationsInvolved = $this->stationsInvolved($storeId, $dayStart, $dayEnd);
+        $stationsInvolved = $this->stationsInvolved($dayStart, $dayEnd);
 
         $stationClosings = StationDailyClosing::query()
-            ->where('store_id', $storeId)
+            
             ->where('business_date', $businessDate)
             ->whereIn('station_id', $stationsInvolved)
             ->get();
@@ -341,11 +334,10 @@ class EodController extends Controller
             ]);
         }
 
-        $storeSummary = $this->buildStoreSummaryFromStationClosings($storeId, $businessDate);
+        $storeSummary = $this->buildStoreSummaryFromStationClosings($businessDate);
 
         $final = DailyClosing::create([
-            'store_id' => $storeId,
-            'business_date' => $businessDate,
+                        'business_date' => $businessDate,
             'finalized_by' => $user->id,
             'finalized_at' => now(),
 
@@ -383,10 +375,10 @@ class EodController extends Controller
      * Catatan: SalesReturn/PurchaseReturn Anda tidak punya payment_method, jadi di sini dianggap cash impact.
      * Kalau nanti Anda tambah payment_method di return, formula bisa dibuat lebih presisi.
      */
-    private function buildStationDaySummary(int $storeId, int $stationId, $dayStart, $dayEnd): array
+    private function buildStationDaySummary(int $stationId, $dayStart, $dayEnd): array
     {
         $salesQ = Sale::query()
-            ->where('store_id', $storeId)
+            
             ->where('station_id', $stationId)
             ->whereBetween('transaction_date', [$dayStart, $dayEnd]);
 
@@ -407,13 +399,13 @@ class EodController extends Controller
             ->sum('final_amount');
 
         $totalSalesReturn = (float) SalesReturn::query()
-            ->where('store_id', $storeId)
+            
             ->where('station_id', $stationId)
             ->whereBetween('return_date', [$dayStart, $dayEnd])
             ->sum('final_amount');
 
         $purchaseQ = Purchase::query()
-            ->where('store_id', $storeId)
+            
             ->where('station_id', $stationId)
             ->whereBetween('transaction_date', [$dayStart, $dayEnd]);
 
@@ -424,26 +416,26 @@ class EodController extends Controller
             ->sum('final_amount');
 
         $totalPurchaseReturn = (float) PurchaseReturn::query()
-            ->where('store_id', $storeId)
+            
             ->where('station_id', $stationId)
             ->whereBetween('return_date', [$dayStart, $dayEnd])
             ->sum('final_amount');
 
         $shiftCount = (int) Shift::query()
-            ->where('store_id', $storeId)
+            
             ->where('station_id', $stationId)
             ->whereBetween('start_time', [$dayStart, $dayEnd])
             ->where('status', 'closed') // EOD mensyaratkan shift sudah ditutup
             ->count();
 
         $initialCashSum = (float) Shift::query()
-            ->where('store_id', $storeId)
+            
             ->where('station_id', $stationId)
             ->whereBetween('start_time', [$dayStart, $dayEnd])
             ->sum('initial_cash');
 
         $cashSalesReturn = (float) SalesReturn::query()
-            ->where('store_id', $storeId)
+            
             ->where('station_id', $stationId)
             ->whereBetween('return_date', [$dayStart, $dayEnd])
             ->where(function ($q) {
@@ -453,7 +445,7 @@ class EodController extends Controller
             ->sum('final_amount');
 
         $cashPurchaseReturn = (float) PurchaseReturn::query()
-            ->where('store_id', $storeId)
+            
             ->where('station_id', $stationId)
             ->whereBetween('return_date', [$dayStart, $dayEnd])
             ->where(function ($q) {
@@ -484,10 +476,10 @@ class EodController extends Controller
         ];
     }
 
-    private function stationsInvolved(int $storeId, $dayStart, $dayEnd): array
+    private function stationsInvolved($dayStart, $dayEnd): array
     {
         $shiftStations = Shift::query()
-            ->where('store_id', $storeId)
+            
             ->whereBetween('start_time', [$dayStart, $dayEnd])
             ->pluck('station_id')
             ->filter()
@@ -496,7 +488,7 @@ class EodController extends Controller
             ->all();
 
         $saleStations = Sale::query()
-            ->where('store_id', $storeId)
+            
             ->whereBetween('transaction_date', [$dayStart, $dayEnd])
             ->pluck('station_id')
             ->filter()
@@ -505,7 +497,7 @@ class EodController extends Controller
             ->all();
 
         $purchaseStations = Purchase::query()
-            ->where('store_id', $storeId)
+            
             ->whereBetween('transaction_date', [$dayStart, $dayEnd])
             ->pluck('station_id')
             ->filter()
@@ -514,7 +506,7 @@ class EodController extends Controller
             ->all();
 
         $returnStations = SalesReturn::query()
-            ->where('store_id', $storeId)
+            
             ->whereBetween('return_date', [$dayStart, $dayEnd])
             ->pluck('station_id')
             ->filter()
@@ -523,7 +515,7 @@ class EodController extends Controller
             ->all();
 
         $purchaseReturnStations = PurchaseReturn::query()
-            ->where('store_id', $storeId)
+            
             ->whereBetween('return_date', [$dayStart, $dayEnd])
             ->pluck('station_id')
             ->filter()
@@ -540,10 +532,10 @@ class EodController extends Controller
         ])->unique()->values()->all();
     }
 
-    private function buildStoreSummaryFromStationClosings(int $storeId, string $businessDate): array
+    private function buildStoreSummaryFromStationClosings(string $businessDate): array
     {
         $closings = StationDailyClosing::query()
-            ->where('store_id', $storeId)
+            
             ->where('business_date', $businessDate)
             ->with('station:id,name,device_identifier')
             ->get();
@@ -584,7 +576,7 @@ class EodController extends Controller
         ];
     }
 
-    private function resolveBusinessDate(Request $request, int $storeId): string
+    private function resolveBusinessDate(Request $request): string
     {
         $requestedDate = $request->date('date');
         if ($requestedDate) {
@@ -592,11 +584,11 @@ class EodController extends Controller
         }
 
         $dates = collect([
-            Shift::query()->where('store_id', $storeId)->max('start_time'),
-            Sale::query()->where('store_id', $storeId)->max('transaction_date'),
-            Purchase::query()->where('store_id', $storeId)->max('transaction_date'),
-            SalesReturn::query()->where('store_id', $storeId)->max('return_date'),
-            PurchaseReturn::query()->where('store_id', $storeId)->max('return_date'),
+            Shift::query()->max('start_time'),
+            Sale::query()->max('transaction_date'),
+            Purchase::query()->max('transaction_date'),
+            SalesReturn::query()->max('return_date'),
+            PurchaseReturn::query()->max('return_date'),
         ])->filter();
 
         if ($dates->isEmpty()) {
@@ -611,3 +603,5 @@ class EodController extends Controller
         return $latest?->toDateString() ?? now()->toDateString();
     }
 }
+
+

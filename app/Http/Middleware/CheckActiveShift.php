@@ -26,7 +26,6 @@ class CheckActiveShift
 
         // GATE 1: ada shift kemarin/before today yang masih open di store?
         $hasUnclosedPrevShift = Shift::query()
-            ->where('store_id', $user->store_id)
             ->where('status', 'open')
             ->where('start_time', '<', $todayStart)
             ->exists();
@@ -53,7 +52,6 @@ class CheckActiveShift
         // GATE 2: shift aktif hari ini tetap wajib per user (sesuai requirement awal)
         $station = StationResolver::resolve();
         $hasActiveShiftTodayForUser = Shift::query()
-            ->where('store_id', $user->store_id)
             ->where('station_id', $station->id)
             ->where('status', 'open')
             ->where('start_time', '>=', $todayStart)

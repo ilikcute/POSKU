@@ -37,7 +37,6 @@
                                 <p><strong>Invoice:</strong> {{ sale.invoice_number }}</p>
                                 <p><strong>Tanggal:</strong> {{ sale.transaction_date }}</p>
                                 <p><strong>Kasir:</strong> {{ sale.user.name }}</p>
-                                <p><strong>Toko:</strong> {{ sale.store.name }}</p>
                                 <p v-if="sale.member"><strong>Pelanggan:</strong> {{ sale.member.name }}</p>
                             </div>
                         </div>

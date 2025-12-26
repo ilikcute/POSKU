@@ -16,7 +16,6 @@ class PurchasePlanController extends Controller
     public function index()
     {
         $plans = PurchasePlan::with(['supplier', 'creator'])
-            ->where('store_id', $this->currentStoreId())
             ->orderBy('plan_date', 'desc')
             ->orderBy('doc_no', 'desc')
             ->paginate(15);
@@ -28,10 +27,6 @@ class PurchasePlanController extends Controller
 
     public function show(PurchasePlan $plan)
     {
-        if ($plan->store_id !== $this->currentStoreId()) {
-            abort(403, 'Rencana pembelian ini bukan milik toko Anda.');
-        }
-
         $plan->load(['supplier', 'creator', 'items.product']);
 
         return Inertia::render('Purchases/Plans/Show', [
@@ -41,10 +36,6 @@ class PurchasePlanController extends Controller
 
     public function items(PurchasePlan $plan)
     {
-        if ($plan->store_id !== $this->currentStoreId()) {
-            abort(403, 'Rencana pembelian ini bukan milik toko Anda.');
-        }
-
         $plan->load(['supplier', 'items.product']);
 
         return response()->json([
@@ -73,27 +64,22 @@ class PurchasePlanController extends Controller
 
     public function print(PurchasePlan $plan)
     {
-        if ($plan->store_id !== $this->currentStoreId()) {
-            abort(403, 'Rencana pembelian ini bukan milik toko Anda.');
-        }
-
-        $plan->load(['supplier', 'creator', 'items.product', 'store']);
+        $plan->load(['supplier', 'creator', 'items.product']);
 
         return view('purchases.plan-print', [
             'plan' => $plan,
+            'store' => $this->currentStore(),
         ]);
     }
 
     public function generatePDF(PurchasePlan $plan)
     {
-        if ($plan->store_id !== $this->currentStoreId()) {
-            abort(403, 'Rencana pembelian ini bukan milik toko Anda.');
-        }
-
-        $plan->load(['supplier', 'creator', 'items.product', 'store']);
+        $plan->load(['supplier', 'creator', 'items.product']);
+        $store = $this->currentStore();
 
         $pdf = Pdf::loadView('purchases.plan-print', [
             'plan' => $plan,
+            'store' => $store,
         ]);
 
         return $pdf->download('rencana-pembelian-' . $plan->doc_no . '.pdf');
@@ -101,14 +87,12 @@ class PurchasePlanController extends Controller
 
     public function generate(Request $request)
     {
-        $storeId = $this->currentStoreId();
         $today = now()->toDateString();
 
         $products = Product::query()
             ->select('products.*', DB::raw('COALESCE(stocks.quantity, 0) as current_stock'))
-            ->leftJoin('stocks', function ($join) use ($storeId) {
+            ->leftJoin('stocks', function ($join) {
                 $join->on('stocks.product_id', '=', 'products.id')
-                    ->where('stocks.store_id', '=', $storeId)
                     ->whereNull('stocks.deleted_at');
             })
             ->whereNotNull('products.supplier_id')
@@ -146,8 +130,8 @@ class PurchasePlanController extends Controller
             return back()->with('error', 'Tidak ada item yang perlu direncanakan.');
         }
 
-        DB::transaction(function () use ($grouped, $storeId, $today) {
-            $nextDocNo = (int) PurchasePlan::where('store_id', $storeId)->max('doc_no');
+        DB::transaction(function () use ($grouped, $today) {
+            $nextDocNo = (int) PurchasePlan::max('doc_no');
 
             foreach ($grouped as $supplierId => $items) {
                 $nextDocNo++;
@@ -155,7 +139,6 @@ class PurchasePlanController extends Controller
                 $totalQty = collect($items)->sum('planned_qty');
 
                 $plan = PurchasePlan::create([
-                    'store_id' => $storeId,
                     'supplier_id' => $supplierId,
                     'created_by' => Auth::id(),
                     'doc_no' => $nextDocNo,

@@ -38,7 +38,7 @@
 
 <body>
     <div class="header">
-        <h1>{{ $purchase->store->name ?? 'POSKU' }}</h1>
+        <h1>{{ $store->name ?? 'POSKU' }}</h1>
         <p>Purchase Receipt</p>
         <p>Invoice: {{ $purchase->invoice_number }}</p>
         <p>Date: {{ $purchase->transaction_date->format('d/m/Y H:i') }}</p>

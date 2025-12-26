@@ -13,7 +13,6 @@ class Sale extends Model
     protected $fillable = [
         'invoice_number',
         'user_id',
-        'store_id',
         'station_id',
         'customer_id',
         'total_amount',
@@ -94,11 +93,6 @@ class Sale extends Model
         return $this->customer();
     }
 
-    public function store()
-    {
-        return $this->belongsTo(Store::class);
-    }
-
     public function station()
     {
         return $this->belongsTo(Station::class);
@@ -126,17 +120,11 @@ class Sale extends Model
                     ->whereYear('transaction_date', now()->year);
     }
 
-    public function scopeByStore($query, $storeId)
-    {
-        return $query->where('store_id', $storeId);
-    }
-
     // Methods
     public function updateStock()
     {
         foreach ($this->saleDetails as $detail) {
             $stock = Stock::where('product_id', $detail->product_id)
-                         ->where('store_id', $this->store_id)
                          ->first();
             
             if ($stock) {

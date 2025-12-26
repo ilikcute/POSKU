@@ -10,7 +10,6 @@ return new class extends Migration
     {
         Schema::create('stock_month_closings', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('store_id')->constrained()->cascadeOnDelete();
             $table->foreignId('product_id')->constrained()->cascadeOnDelete();
             $table->unsignedSmallInteger('year');
             $table->unsignedTinyInteger('month');
@@ -34,8 +33,8 @@ return new class extends Migration
             $table->text('notes')->nullable();
             $table->timestamps();
 
-            $table->unique(['store_id', 'product_id', 'year', 'month'], 'stock_month_closings_unique');
-            $table->index(['store_id', 'year', 'month']);
+            $table->unique(['product_id', 'year', 'month'], 'stock_month_closings_unique');
+            $table->index(['year', 'month']);
         });
     }
 

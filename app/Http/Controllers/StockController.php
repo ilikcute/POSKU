@@ -21,9 +21,8 @@ class StockController extends Controller
      */
     public function index(Request $request)
     {
-        $storeId = $this->currentStoreId();
-        $query = Stock::with(['product.category', 'product.supplier', 'store'])
-            ->byStore($storeId);
+        $query = Stock::with(['product.category', 'product.supplier'])
+            ->latest();
 
         // Filter by category
         if ($request->has('category_id') && $request->category_id) {
@@ -57,7 +56,6 @@ class StockController extends Controller
             'stocks' => $stocks,
             'categories' => $categories,
             'filters' => $request->only(['category_id', 'low_stock', 'search']),
-            'store' => $this->currentStore(),
         ]);
     }
 
@@ -66,11 +64,8 @@ class StockController extends Controller
      */
     public function movements(Request $request)
     {
-        $storeId = $this->currentStoreId();
         $query = StockMovement::with(['stock.product', 'user'])
-            ->whereHas('stock', function ($q) use ($storeId) {
-                $q->where('store_id', $storeId);
-            });
+            ->latest();
 
         // Filter by product
         if ($request->has('product_id') && $request->product_id) {
@@ -111,7 +106,6 @@ class StockController extends Controller
      */
     public function opname(Request $request)
     {
-        $storeId = $this->currentStoreId();
         $docno = $request->string('docno')->toString();
 
         $opname = null;
@@ -119,7 +113,6 @@ class StockController extends Controller
 
         if ($docno !== '') {
             $opname = \App\Models\StockOpname::query()
-                ->where('store_id', $storeId)
                 ->where('docno', $docno)
                 ->first();
 
@@ -140,10 +133,7 @@ class StockController extends Controller
 
     public function opnameHistory(Request $request)
     {
-        $storeId = $this->currentStoreId();
-
         $opnames = StockOpname::query()
-            ->where('store_id', $storeId)
             ->withCount('items')
             ->orderByDesc('id')
             ->paginate(20)
@@ -163,10 +153,7 @@ class StockController extends Controller
             'docno' => ['required', 'string'],
         ]);
 
-        $storeId = $this->currentStoreId();
-
         $opname = StockOpname::query()
-            ->where('store_id', $storeId)
             ->where('docno', $validated['docno'])
             ->firstOrFail();
 
@@ -182,7 +169,7 @@ class StockController extends Controller
             return back()->with('warning', 'Masih ada item status I. Lengkapi fisik terlebih dahulu sebelum finalize.');
         }
 
-        DB::transaction(function () use ($opname, $items, $storeId) {
+        DB::transaction(function () use ($opname, $items) {
             foreach ($items as $item) {
                 if ($item->status !== 'E') {
                     continue;
@@ -191,7 +178,6 @@ class StockController extends Controller
                 $stock = Stock::firstOrCreate(
                     [
                         'product_id' => $item->product_id,
-                        'store_id' => $storeId,
                     ],
                     ['quantity' => 0]
                 );
@@ -222,16 +208,12 @@ class StockController extends Controller
 
     public function createOpname(Request $request)
     {
-        $storeId = $this->currentStoreId();
-
         $maxDocno = StockOpname::query()
-            ->where('store_id', $storeId)
             ->max('docno');
 
         $nextDocno = $maxDocno ? (string) ((int) $maxDocno + 1) : '1';
 
         $opname = StockOpname::create([
-            'store_id' => $storeId,
             'docno' => $nextDocno,
             'created_by' => Auth::id(),
             'status' => 'I',
@@ -249,10 +231,7 @@ class StockController extends Controller
             'product_code' => ['required', 'string'],
         ]);
 
-        $storeId = $this->currentStoreId();
-
         $opname = StockOpname::query()
-            ->where('store_id', $storeId)
             ->where('docno', $validated['docno'])
             ->firstOrFail();
 
@@ -273,7 +252,7 @@ class StockController extends Controller
             ->exists();
 
         if (! $exists) {
-            $systemQty = $product->stocks()->where('store_id', $storeId)->value('quantity') ?? 0;
+            $systemQty = $product->stocks()->value('quantity') ?? 0;
 
             $opname->items()->create([
                 'product_id' => $product->id,
@@ -293,7 +272,7 @@ class StockController extends Controller
         ]);
 
         $opname = $item->opname;
-        if (! $opname || $opname->store_id !== $this->currentStoreId()) {
+        if (! $opname) {
             return back()->with('error', 'Item opname tidak valid.');
         }
 
@@ -314,7 +293,7 @@ class StockController extends Controller
     public function deleteOpnameItem(StockOpnameItem $item)
     {
         $opname = $item->opname;
-        if (! $opname || $opname->store_id !== $this->currentStoreId()) {
+        if (! $opname) {
             return back()->with('error', 'Item opname tidak valid.');
         }
 
@@ -334,10 +313,7 @@ class StockController extends Controller
             'file' => ['required', 'file', 'mimes:xlsx,csv,txt'],
         ]);
 
-        $storeId = $this->currentStoreId();
-
         $opname = StockOpname::query()
-            ->where('store_id', $storeId)
             ->where('docno', $validated['docno'])
             ->firstOrFail();
 
@@ -377,7 +353,7 @@ class StockController extends Controller
                 continue;
             }
 
-            $systemQty = $product->stocks()->where('store_id', $storeId)->value('quantity') ?? 0;
+            $systemQty = $product->stocks()->value('quantity') ?? 0;
 
             $opname->items()->create([
                 'product_id' => $product->id,
@@ -408,11 +384,6 @@ class StockController extends Controller
             'reason' => 'required|string|max:255',
         ]);
 
-        // Verify stock belongs to current store
-        if ($stock->store_id !== $this->currentStoreId()) {
-            return back()->withErrors(['stock' => 'Invalid stock selected.']);
-        }
-
         $stock->adjustStock(
             $request->quantity,
             $request->reason,
@@ -427,7 +398,7 @@ class StockController extends Controller
      */
     public function show(Stock $stock)
     {
-        $stock->load(['product.category', 'product.supplier', 'store']);
+        $stock->load(['product.category', 'product.supplier']);
 
         // Get recent stock movements
         $movements = $stock->stockMovements()
@@ -449,7 +420,6 @@ class StockController extends Controller
     {
         $lowStocks = Stock::lowStock()
             ->with(['product.category', 'product.supplier'])
-            ->byStore($this->currentStoreId())
             ->orderBy('quantity', 'asc')
             ->get();
 
@@ -462,7 +432,7 @@ class StockController extends Controller
     public function export(Request $request)
     {
         $query = Stock::with(['product.category', 'product.supplier'])
-            ->byStore($this->currentStoreId());
+            ->latest();
 
         // Apply same filters as index
         if ($request->has('category_id') && $request->category_id) {
@@ -516,14 +486,11 @@ class StockController extends Controller
             'adjustments.*.reason' => 'required|string|max:255',
         ]);
 
-        $storeId = $this->currentStoreId();
-
-        DB::transaction(function () use ($request, $storeId) {
+        DB::transaction(function () use ($request) {
             foreach ($request->adjustments as $adjustment) {
                 $stock = Stock::firstOrCreate(
                     [
                         'product_id' => $adjustment['product_id'],
-                        'store_id' => $storeId,
                     ],
                     ['quantity' => 0]
                 );
@@ -544,14 +511,11 @@ class StockController extends Controller
      */
     public function summary()
     {
-        $storeId = $this->currentStoreId();
+        $totalProducts = Stock::count();
+        $lowStockCount = Stock::lowStock()->count();
+        $outOfStockCount = Stock::where('quantity', 0)->count();
 
-        $totalProducts = Stock::byStore($storeId)->count();
-        $lowStockCount = Stock::lowStock()->byStore($storeId)->count();
-        $outOfStockCount = Stock::byStore($storeId)->where('quantity', 0)->count();
-
-        $totalStockValue = Stock::byStore($storeId)
-            ->with('product')
+        $totalStockValue = Stock::with('product')
             ->get()
             ->sum(function ($stock) {
                 return $stock->getStockValue();

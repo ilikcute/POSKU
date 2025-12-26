@@ -34,12 +34,13 @@ class DatabaseSeeder extends Seeder
             SaleSeeder::class,
             ShiftSeeder::class,
         ]);
-        $mainStore = Store::create([
-            'name' => 'Toko Utama',
-            'address' => 'Jl. Jend. Sudirman No. 1',
-            'is_main_store' => true,
-        ])->first();
-        $mainStore = \App\Models\Store::where('is_main_store', true)->first();
+        $mainStore = Store::firstOrCreate(
+            ['is_main_store' => true],
+            [
+                'name' => 'Toko Utama',
+                'address' => 'Jl. Jend. Sudirman No. 1',
+            ]
+        );
         if ($mainStore) {
             $adminRole = Role::firstOrCreate(['name' => 'Admin']);
             $supervisorRole = Role::firstOrCreate(['name' => 'Supervisor']);
@@ -49,7 +50,6 @@ class DatabaseSeeder extends Seeder
             ], [
                 'name' => 'Admin User',
                 'password' => bcrypt('password'),
-                'store_id' => $mainStore->id,
             ]);
             $adminUser->assignRole($adminRole);
 
@@ -58,7 +58,6 @@ class DatabaseSeeder extends Seeder
             ], [
                 'name' => 'Kasir User',
                 'password' => bcrypt('password'),
-                'store_id' => $mainStore->id,
             ]);
             $kasirUser->assignRole($kasirRole);
 
@@ -67,7 +66,6 @@ class DatabaseSeeder extends Seeder
             ], [
                 'name' => 'Superadmin User',
                 'password' => bcrypt('password'),
-                'store_id' => $mainStore->id,
             ]);
             $superadminUser->assignRole($supervisorRole);
         }

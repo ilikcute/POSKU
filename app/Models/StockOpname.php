@@ -10,7 +10,6 @@ class StockOpname extends Model
     use HasFactory;
 
     protected $fillable = [
-        'store_id',
         'docno',
         'created_by',
         'status',
@@ -27,8 +26,4 @@ class StockOpname extends Model
         return $this->hasMany(StockOpnameItem::class);
     }
 
-    public function store()
-    {
-        return $this->belongsTo(Store::class);
-    }
 }

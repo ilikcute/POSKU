@@ -13,14 +13,13 @@ class StationResolver
     {
         $user = Auth::user();
 
-        if (! $user || ! $user->store_id) {
-            throw new RuntimeException('Pengguna tidak terhubung ke toko.');
+        if (! $user) {
+            throw new RuntimeException('Pengguna belum login.');
         }
 
         $deviceIdentifier = DeviceHelper::getDeviceId();
 
-        $station = Station::where('store_id', $user->store_id)
-            ->where('device_identifier', $deviceIdentifier)
+        $station = Station::where('device_identifier', $deviceIdentifier)
             ->first();
 
         if (! $station) {
@@ -29,7 +28,6 @@ class StationResolver
             }
 
             $station = Station::create([
-                'store_id' => $user->store_id,
                 'device_identifier' => $deviceIdentifier,
                 'name' => $user->name . ' Station',
                 'is_active' => true,

@@ -9,6 +9,73 @@ import TextInput from '@/Components/TextInput.vue';
 import Pagination from '@/Components/Pagination.vue';
 import { debounce } from 'lodash';
 
+// Tambahkan state untuk wizard
+const currentStep = ref(1);
+const totalSteps = 3;
+
+const stepTitles = ['Informasi Dasar', 'Harga & Pajak', 'Stok & Inventory'];
+
+const nextStep = () => {
+    if (currentStep.value < totalSteps) {
+        currentStep.value++;
+    }
+};
+
+const prevStep = () => {
+    if (currentStep.value > 1) {
+        currentStep.value--;
+    }
+};
+
+// Update openModal untuk reset step
+const openModal = (editMode = false, product = null) => {
+    isEditMode.value = editMode;
+    currentStep.value = 1; // Reset ke step 1
+
+    if (editMode && product) {
+        form.id = product.id;
+        form.product_code = product.product_code;
+        form.barcode = product.barcode;
+        form.name = product.name;
+        form.description = product.description;
+        form.image = product.image;
+        form.purchase_price = product.purchase_price;
+        form.selling_price = product.selling_price;
+        form.final_price = product.final_price ?? 0;
+        form.member_price = product.member_price;
+        form.vip_price = product.vip_price;
+        form.wholesale_price = product.wholesale_price;
+        form.tax_rate = product.tax_rate;
+        form.tax_type = product.tax_type;
+        form.min_wholesale_qty = product.min_wholesale_qty;
+        form.min_order_qty = product.min_order_qty ?? 1;
+        form.category_id = product.category_id;
+        form.division_id = product.division_id;
+        form.rack_id = product.rack_id;
+        form.supplier_id = product.supplier_id;
+        form.unit = product.unit ?? 'Pcs';
+        form.weight = product.weight;
+        form.min_stock_alert = product.min_stock_alert;
+        form.max_stock_alert = product.max_stock_alert;
+        form.reorder = product.reorder;
+    } else {
+        form.reset();
+        form.unit = 'Pcs';
+        form.tax_type = 'Y';
+    }
+
+    isModalOpen.value = true;
+};
+
+// Update closeModal untuk reset step
+const closeModal = () => {
+    isModalOpen.value = false;
+    currentStep.value = 1; // Reset ke step 1
+    form.reset();
+    form.unit = 'Pcs';
+};
+
+
 const props = defineProps({
     products: {
         type: Object,
@@ -139,49 +206,6 @@ const getProductInitial = (name) => {
     return name.charAt(0).toUpperCase();
 };
 
-const openModal = (editMode = false, product = null) => {
-    isEditMode.value = editMode;
-
-    if (editMode && product) {
-        form.id = product.id;
-        form.product_code = product.product_code;
-        form.barcode = product.barcode;
-        form.name = product.name;
-        form.description = product.description;
-        form.image = product.image;
-        form.purchase_price = product.purchase_price;
-        form.selling_price = product.selling_price;
-        form.final_price = product.final_price ?? 0;
-        form.member_price = product.member_price;
-        form.vip_price = product.vip_price;
-        form.wholesale_price = product.wholesale_price;
-        form.tax_rate = product.tax_rate;
-        form.tax_type = product.tax_type;
-        form.min_wholesale_qty = product.min_wholesale_qty;
-        form.min_order_qty = product.min_order_qty ?? 1;
-        form.category_id = product.category_id;
-        form.division_id = product.division_id;
-        form.rack_id = product.rack_id;
-        form.supplier_id = product.supplier_id;
-        form.unit = product.unit ?? 'Pcs';
-        form.weight = product.weight;
-        form.min_stock_alert = product.min_stock_alert;
-        form.max_stock_alert = product.max_stock_alert;
-        form.reorder = product.reorder;
-    } else {
-        form.reset();
-        form.unit = 'Pcs';
-        form.tax_type = 'Y';
-    }
-
-    isModalOpen.value = true;
-};
-
-const closeModal = () => {
-    isModalOpen.value = false;
-    form.reset();
-    form.unit = 'Pcs';
-};
 
 watch(
     () => [form.selling_price, form.tax_rate, form.tax_type],
@@ -279,14 +303,14 @@ const deleteProduct = (productId) => {
 
                 <div class="flex flex-wrap gap-3 justify-end">
                     <Link :href="route('master.products.import.form')" class="inline-flex">
-                    <button
-                        class="inline-flex items-center bg-[#e9e9e9] text-[#1f1f1f] border border-[#9c9c9c] py-2 px-4 text-xs font-semibold shadow-sm hover:bg-white transition-colors">
-                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M4 12l4 4m0 0l4-4m-4 4V4" />
-                        </svg>
-                        Impor
-                    </button>
+                        <button
+                            class="inline-flex items-center bg-[#e9e9e9] text-[#1f1f1f] border border-[#9c9c9c] py-2 px-4 text-xs font-semibold shadow-sm hover:bg-white transition-colors">
+                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M4 12l4 4m0 0l4-4m-4 4V4" />
+                            </svg>
+                            Impor
+                        </button>
                     </Link>
                     <a :href="route('master.products.export')" class="inline-flex">
                         <button
@@ -302,12 +326,10 @@ const deleteProduct = (productId) => {
             </div>
 
             <div v-if="productsList.length">
-                <div v-if="viewMode === 'table'"
-                    class="bg-white border border-[#9c9c9c] rounded overflow-hidden">
+                <div v-if="viewMode === 'table'" class="bg-white border border-[#9c9c9c] rounded overflow-hidden">
                     <div class="hidden lg:block overflow-x-auto">
                         <table class="min-w-full text-sm text-[#1f1f1f]">
-                            <thead
-                                class="bg-[#efefef] border-b border-[#9c9c9c]">
+                            <thead class="bg-[#efefef] border-b border-[#9c9c9c]">
                                 <tr>
                                     <th
                                         class="px-6 py-3 text-left text-xs uppercase tracking-wider font-semibold text-[#1f1f1f]">
@@ -361,7 +383,7 @@ const deleteProduct = (productId) => {
                                     <td class="px-6 py-4 text-[#1f1f1f]">{{ product.rack?.name || '-' }}</td>
                                     <td class="px-6 py-4 text-[#1f1f1f] font-medium">{{
                                         formatCurrency(product.purchase_price)
-                                        }}</td>
+                                    }}</td>
                                     <td class="px-6 py-4 text-[#1f1f1f] font-medium">{{
                                         formatCurrency(product.selling_price) }}
                                     </td>
@@ -399,8 +421,7 @@ const deleteProduct = (productId) => {
 
                     <div class="lg:hidden overflow-x-auto">
                         <table class="min-w-full text-xs text-[#1f1f1f]">
-                            <thead
-                                class="bg-[#efefef] border-b border-[#9c9c9c]">
+                            <thead class="bg-[#efefef] border-b border-[#9c9c9c]">
                                 <tr>
                                     <th class="px-3 py-3 text-left font-semibold text-[#1f1f1f]">Produk</th>
                                     <th class="px-3 py-3 text-left font-semibold text-[#1f1f1f]">Harga</th>
@@ -471,17 +492,18 @@ const deleteProduct = (productId) => {
                             <div class="flex justify-between text-sm">
                                 <span class="text-[#1f1f1f]">Harga Beli</span>
                                 <span class="font-medium">{{ formatCurrency(product.purchase_price)
-                                    }}</span>
+                                }}</span>
                             </div>
                             <div class="flex justify-between text-sm">
                                 <span class="text-[#1f1f1f]">Harga Jual</span>
-                                <span class="font-medium">{{ formatCurrency(product.final_price ?? product.selling_price)
+                                <span class="font-medium">{{ formatCurrency(product.final_price ??
+                                    product.selling_price)
                                     }}</span>
                             </div>
                             <div class="flex justify-between text-sm">
                                 <span class="text-[#1f1f1f]">Harga Member</span>
                                 <span class="font-medium">{{ formatCurrency(product.member_price)
-                                    }}</span>
+                                }}</span>
                             </div>
                             <div class="flex justify-between text-sm">
                                 <span class="text-[#1f1f1f]">Stok</span>
@@ -523,255 +545,273 @@ const deleteProduct = (productId) => {
             <Pagination v-if="props.products?.links" :links="props.products.links" />
         </div>
 
-        <Modal :show="isModalOpen" @close="closeModal">
-            <div
-                class="p-6 bg-[#f7f7f7] border border-[#9c9c9c] rounded shadow-lg max-w-4xl mx-auto space-y-6 text-[#1f1f1f]">
-                <h2 class="text-lg font-semibold">
-                    {{ isEditMode ? 'Edit Produk' : 'Tambah Produk Baru' }}
-                </h2>
+        <Modal :show="isModalOpen" @close="closeModal" max-width="2xl">
+            <div class="p-6 bg-white">
+                <!-- Header -->
+                <div class="flex items-center justify-between border-b border-[#9c9c9c] pb-4">
+                    <h3 class="text-lg font-bold text-[#1f1f1f]">
+                        {{ isEditMode ? 'Edit Produk' : 'Tambah Produk Baru' }}
+                    </h3>
+                    <span class="text-xs text-[#555]">
+                        Langkah {{ currentStep }} dari {{ totalSteps }}
+                    </span>
+                </div>
 
-                <form @submit.prevent="saveProduct" class="mt-6 space-y-8">
+                <!-- Step Indicator -->
+                <div class="flex items-center justify-center gap-2 py-4 border-b border-[#e9e9e9]">
+                    <template v-for="step in totalSteps" :key="step">
+                        <button @click="currentStep = step" :class="[
+                            'flex items-center gap-2 px-3 py-1.5 text-xs font-semibold rounded transition-colors',
+                            currentStep === step
+                                ? 'bg-[#1f1f1f] text-white'
+                                : 'bg-[#f7f7f7] text-[#555] border border-[#9c9c9c] hover:bg-white'
+                        ]">
+                            <span class="w-5 h-5 flex items-center justify-center rounded-full border text-[10px]"
+                                :class="currentStep === step ? 'border-white' : 'border-[#9c9c9c]'">
+                                {{ step }}
+                            </span>
+                            <span class="hidden sm:inline">{{ stepTitles[step - 1] }}</span>
+                        </button>
+                        <div v-if="step < totalSteps" class="w-6 h-px bg-[#9c9c9c]"></div>
+                    </template>
+                </div>
 
-                    <!-- Basic Information Section -->
-                    <div class="space-y-4">
-                        <h3 class="text-sm font-semibold text-[#1f1f1f] border-b border-[#9c9c9c] pb-2">Informasi Dasar</h3>
-                        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <!-- Form Content -->
+                <form @submit.prevent="saveProduct" class="mt-4">
+
+                    <!-- Step 1: Informasi Dasar -->
+                    <div v-show="currentStep === 1" class="space-y-4">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                             <div>
-                                <InputLabel for="product_code" value="Kode Produk" class="text-[#1f1f1f]" />
-                                <TextInput id="product_code" v-model="form.product_code"
-                                    class="mt-1 block w-full bg-white border-[#9c9c9c] rounded text-[#1f1f1f] focus:ring-blue-500 focus:border-blue-500"
-                                    required />
-                                <InputError :message="form.errors.product_code" class="mt-2 text-red-600" />
+                                <InputLabel for="product_code" value="Kode Produk" />
+                                <TextInput id="product_code" v-model="form.product_code" type="text"
+                                    class="mt-1 block w-full" />
+                                <InputError :message="form.errors.product_code" />
                             </div>
 
                             <div>
-                                <InputLabel for="barcode" value="Barcode" class="text-[#1f1f1f]" />
-                                <TextInput id="barcode" v-model="form.barcode"
-                                    class="mt-1 block w-full bg-white border-[#9c9c9c] rounded text-[#1f1f1f] focus:ring-blue-500 focus:border-blue-500" />
-                                <InputError :message="form.errors.barcode" class="mt-2 text-red-600" />
+                                <InputLabel for="barcode" value="Barcode" />
+                                <TextInput id="barcode" v-model="form.barcode" type="text" class="mt-1 block w-full" />
+                                <InputError :message="form.errors.barcode" />
                             </div>
 
                             <div>
-                                <InputLabel for="name" value="Nama Produk" class="text-[#1f1f1f]" />
-                                <TextInput id="name" v-model="form.name"
-                                    class="mt-1 block w-full bg-white border-[#9c9c9c] rounded text-[#1f1f1f] focus:ring-blue-500 focus:border-blue-500"
-                                    required />
-                                <InputError :message="form.errors.name" class="mt-2 text-red-600" />
+                                <InputLabel for="name" value="Nama Produk" />
+                                <TextInput id="name" v-model="form.name" type="text" class="mt-1 block w-full" />
+                                <InputError :message="form.errors.name" />
                             </div>
 
-                            <div class="md:col-span-3">
-                                <InputLabel for="description" value="Deskripsi" class="text-[#1f1f1f]" />
-                                <TextInput id="description" v-model="form.description"
-                                    class="mt-1 block w-full bg-white border-[#9c9c9c] rounded text-[#1f1f1f] focus:ring-blue-500 focus:border-blue-500" />
-                                <InputError :message="form.errors.description" class="mt-2 text-red-600" />
-                            </div>
-
-                            <div>
-                                <InputLabel for="image" value="URL Gambar" class="text-[#1f1f1f]" />
-                                <TextInput id="image" v-model="form.image"
-                                    class="mt-1 block w-full bg-white border-[#9c9c9c] rounded text-[#1f1f1f] focus:ring-blue-500 focus:border-blue-500" />
-                                <InputError :message="form.errors.image" class="mt-2 text-red-600" />
+                            <div class="sm:col-span-2 lg:col-span-3">
+                                <InputLabel for="description" value="Deskripsi" />
+                                <TextInput id="description" v-model="form.description" type="text"
+                                    class="mt-1 block w-full" />
+                                <InputError :message="form.errors.description" />
                             </div>
 
                             <div>
-                                <InputLabel for="category_id" value="Kategori" class="text-[#1f1f1f]" />
+                                <InputLabel for="image" value="URL Gambar" />
+                                <TextInput id="image" v-model="form.image" type="text" class="mt-1 block w-full" />
+                                <InputError :message="form.errors.image" />
+                            </div>
+
+                            <div>
+                                <InputLabel for="category_id" value="Kategori" />
                                 <select id="category_id" v-model="form.category_id"
-                                    class="mt-1 block w-full bg-white border-[#9c9c9c] rounded text-[#1f1f1f] focus:ring-blue-500 focus:border-blue-500">
-                                    <option value="">Pilih Kategori</option>
-                                    <option v-for="cat in props.categories" :key="cat.id" :value="cat.id">{{ cat.name }}
+                                    class="mt-1 block w-full border-[#9c9c9c] rounded text-sm">
+                                    <option :value="null">Pilih Kategori</option>
+                                    <option v-for="cat in categories" :key="cat.id" :value="cat.id">{{ cat.name }}
                                     </option>
                                 </select>
-                                <InputError :message="form.errors.category_id" class="mt-2 text-red-600" />
+                                <InputError :message="form.errors.category_id" />
                             </div>
 
                             <div>
-                                <InputLabel for="division_id" value="Divisi" class="text-[#1f1f1f]" />
+                                <InputLabel for="division_id" value="Divisi" />
                                 <select id="division_id" v-model="form.division_id"
-                                    class="mt-1 block w-full bg-white border-[#9c9c9c] rounded text-[#1f1f1f] focus:ring-blue-500 focus:border-blue-500">
-                                    <option value="">Pilih Divisi</option>
-                                    <option v-for="div in props.divisions" :key="div.id" :value="div.id">{{ div.name }}
+                                    class="mt-1 block w-full border-[#9c9c9c] rounded text-sm">
+                                    <option :value="null">Pilih Divisi</option>
+                                    <option v-for="div in divisions" :key="div.id" :value="div.id">{{ div.name }}
                                     </option>
                                 </select>
-                                <InputError :message="form.errors.division_id" class="mt-2 text-red-600" />
+                                <InputError :message="form.errors.division_id" />
                             </div>
 
                             <div>
-                                <InputLabel for="rack_id" value="Rak" class="text-[#1f1f1f]" />
+                                <InputLabel for="rack_id" value="Rak" />
                                 <select id="rack_id" v-model="form.rack_id"
-                                    class="mt-1 block w-full bg-white border-[#9c9c9c] rounded text-[#1f1f1f] focus:ring-blue-500 focus:border-blue-500">
-                                    <option value="">Pilih Rak</option>
-                                    <option v-for="rack in props.racks" :key="rack.id" :value="rack.id">{{ rack.name }}
+                                    class="mt-1 block w-full border-[#9c9c9c] rounded text-sm">
+                                    <option :value="null">Pilih Rak</option>
+                                    <option v-for="rack in racks" :key="rack.id" :value="rack.id">{{ rack.name }}
                                     </option>
                                 </select>
-                                <InputError :message="form.errors.rack_id" class="mt-2 text-red-600" />
+                                <InputError :message="form.errors.rack_id" />
                             </div>
 
                             <div>
-                                <InputLabel for="supplier_id" value="Supplier" class="text-[#1f1f1f]" />
+                                <InputLabel for="supplier_id" value="Supplier" />
                                 <select id="supplier_id" v-model="form.supplier_id"
-                                    class="mt-1 block w-full bg-white border-[#9c9c9c] rounded text-[#1f1f1f] focus:ring-blue-500 focus:border-blue-500">
-                                    <option value="">Pilih Supplier</option>
-                                    <option v-for="sup in props.suppliers" :key="sup.id" :value="sup.id">{{ sup.name }}
+                                    class="mt-1 block w-full border-[#9c9c9c] rounded text-sm">
+                                    <option :value="null">Pilih Supplier</option>
+                                    <option v-for="sup in suppliers" :key="sup.id" :value="sup.id">{{ sup.name }}
                                     </option>
                                 </select>
-                                <InputError :message="form.errors.supplier_id" class="mt-2 text-red-600" />
+                                <InputError :message="form.errors.supplier_id" />
                             </div>
 
                             <div>
-                                <InputLabel for="unit" value="Satuan" class="text-[#1f1f1f]" />
+                                <InputLabel for="unit" value="Satuan" />
                                 <select id="unit" v-model="form.unit"
-                                    class="mt-1 block w-full bg-white border-[#9c9c9c] rounded text-[#1f1f1f] focus:ring-blue-500 focus:border-blue-500">
+                                    class="mt-1 block w-full border-[#9c9c9c] rounded text-sm">
                                     <option value="Pcs">Pcs</option>
                                     <option value="Box">Box</option>
                                     <option value="Kg">Kg</option>
                                     <option value="Liter">Liter</option>
                                     <option value="Pack">Pack</option>
                                 </select>
-                                <InputError :message="form.errors.unit" class="mt-2 text-red-600" />
+                                <InputError :message="form.errors.unit" />
                             </div>
 
                             <div>
-                                <InputLabel for="weight" value="Berat (kg)" class="text-[#1f1f1f]" />
-                                <TextInput id="weight" type="number" step="0.01" v-model="form.weight"
-                                    class="mt-1 block w-full bg-white border-[#9c9c9c] rounded text-[#1f1f1f] focus:ring-blue-500 focus:border-blue-500" />
-                                <InputError :message="form.errors.weight" class="mt-2 text-red-600" />
+                                <InputLabel for="weight" value="Berat (gram)" />
+                                <TextInput id="weight" v-model="form.weight" type="number" class="mt-1 block w-full" />
+                                <InputError :message="form.errors.weight" />
                             </div>
                         </div>
                     </div>
 
-                    <!-- Pricing Section -->
-                    <div class="space-y-4">
-                        <h3 class="text-sm font-semibold text-[#1f1f1f] border-b border-[#9c9c9c] pb-2">Harga & Pajak</h3>
-                        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <!-- Step 2: Harga & Pajak -->
+                    <div v-show="currentStep === 2" class="space-y-4">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                             <div>
-                                <InputLabel for="purchase_price" value="Harga Beli" class="text-[#1f1f1f]" />
-                                <TextInput id="purchase_price" type="number" v-model="form.purchase_price"
-                                    class="mt-1 block w-full bg-white border-[#9c9c9c] rounded text-[#1f1f1f] focus:ring-blue-500 focus:border-blue-500"
-                                    required />
-                                <InputError :message="form.errors.purchase_price" class="mt-2 text-red-600" />
+                                <InputLabel for="purchase_price" value="Harga Beli" />
+                                <TextInput id="purchase_price" v-model="form.purchase_price" type="number"
+                                    class="mt-1 block w-full" />
+                                <InputError :message="form.errors.purchase_price" />
                             </div>
 
                             <div>
-                                <InputLabel for="selling_price" value="Harga Jual" class="text-[#1f1f1f]" />
-                                <TextInput id="selling_price" type="number" v-model="form.selling_price"
-                                    class="mt-1 block w-full bg-white border-[#9c9c9c] rounded text-[#1f1f1f] focus:ring-blue-500 focus:border-blue-500"
-                                    required />
-                                <InputError :message="form.errors.selling_price" class="mt-2 text-red-600" />
+                                <InputLabel for="selling_price" value="Harga Jual" />
+                                <TextInput id="selling_price" v-model="form.selling_price" type="number"
+                                    class="mt-1 block w-full" />
+                                <InputError :message="form.errors.selling_price" />
                             </div>
 
                             <div>
-                                <InputLabel for="final_price" value="Harga Final (Include PPN)" class="text-[#1f1f1f]" />
-                                <TextInput id="final_price" type="number" v-model="form.final_price" readonly
-                                    class="mt-1 block w-full bg-[#f1f1f1] border-[#9c9c9c] rounded text-[#1f1f1f] focus:ring-blue-500 focus:border-blue-500" />
+                                <InputLabel for="final_price" value="Harga Final" />
+                                <TextInput id="final_price" :value="finalPrice" type="number"
+                                    class="mt-1 block w-full bg-[#f7f7f7]" disabled />
                             </div>
 
                             <div>
-                                <InputLabel for="tax_rate" value="Tarif Pajak (%)" class="text-[#1f1f1f]" />
-                                <TextInput id="tax_rate" type="number" step="0.01" v-model="form.tax_rate"
-                                    class="mt-1 block w-full bg-white border-[#9c9c9c] rounded text-[#1f1f1f] focus:ring-blue-500 focus:border-blue-500" />
-                                <InputError :message="form.errors.tax_rate" class="mt-2 text-red-600" />
+                                <InputLabel for="member_price" value="Harga Member" />
+                                <TextInput id="member_price" v-model="form.member_price" type="number"
+                                    class="mt-1 block w-full" />
+                                <InputError :message="form.errors.member_price" />
                             </div>
 
                             <div>
-                                <InputLabel for="tax_type" value="Tipe Pajak" class="text-[#1f1f1f]" />
+                                <InputLabel for="vip_price" value="Harga VIP" />
+                                <TextInput id="vip_price" v-model="form.vip_price" type="number"
+                                    class="mt-1 block w-full" />
+                                <InputError :message="form.errors.vip_price" />
+                            </div>
+
+                            <div>
+                                <InputLabel for="wholesale_price" value="Harga Grosir" />
+                                <TextInput id="wholesale_price" v-model="form.wholesale_price" type="number"
+                                    class="mt-1 block w-full" />
+                                <InputError :message="form.errors.wholesale_price" />
+                            </div>
+
+                            <div>
+                                <InputLabel for="tax_rate" value="Tarif Pajak (%)" />
+                                <TextInput id="tax_rate" v-model="form.tax_rate" type="number"
+                                    class="mt-1 block w-full" />
+                                <InputError :message="form.errors.tax_rate" />
+                            </div>
+
+                            <div>
+                                <InputLabel for="tax_type" value="Kena Pajak" />
                                 <select id="tax_type" v-model="form.tax_type"
-                                    class="mt-1 block w-full bg-white border-[#9c9c9c] rounded text-[#1f1f1f] focus:ring-blue-500 focus:border-blue-500">
+                                    class="mt-1 block w-full border-[#9c9c9c] rounded text-sm">
                                     <option value="Y">Ya</option>
                                     <option value="N">Tidak</option>
                                 </select>
-                                <InputError :message="form.errors.tax_type" class="mt-2 text-red-600" />
+                                <InputError :message="form.errors.tax_type" />
                             </div>
 
                             <div>
-                                <InputLabel for="member_price" value="Harga Member" class="text-[#1f1f1f]" />
-                                <TextInput id="member_price" type="number" v-model="form.member_price"
-                                    class="mt-1 block w-full bg-white border-[#9c9c9c] rounded text-[#1f1f1f] focus:ring-blue-500 focus:border-blue-500" />
-                                <InputError :message="form.errors.member_price" class="mt-2 text-red-600" />
+                                <InputLabel for="min_wholesale_qty" value="Min. Qty Grosir" />
+                                <TextInput id="min_wholesale_qty" v-model="form.min_wholesale_qty" type="number"
+                                    class="mt-1 block w-full" />
+                                <InputError :message="form.errors.min_wholesale_qty" />
                             </div>
 
                             <div>
-                                <InputLabel for="vip_price" value="Harga VIP" class="text-[#1f1f1f]" />
-                                <TextInput id="vip_price" type="number" v-model="form.vip_price"
-                                    class="mt-1 block w-full bg-white border-[#9c9c9c] rounded text-[#1f1f1f] focus:ring-blue-500 focus:border-blue-500" />
-                                <InputError :message="form.errors.vip_price" class="mt-2 text-red-600" />
+                                <InputLabel for="min_order_qty" value="Min. Qty Order" />
+                                <TextInput id="min_order_qty" v-model="form.min_order_qty" type="number"
+                                    class="mt-1 block w-full" />
+                                <InputError :message="form.errors.min_order_qty" />
                             </div>
 
-                            <div>
-                                <InputLabel for="wholesale_price" value="Harga Grosir" class="text-[#1f1f1f]" />
-                                <TextInput id="wholesale_price" type="number" v-model="form.wholesale_price"
-                                    class="mt-1 block w-full bg-white border-[#9c9c9c] rounded text-[#1f1f1f] focus:ring-blue-500 focus:border-blue-500" />
-                                <InputError :message="form.errors.wholesale_price" class="mt-2 text-red-600" />
-                            </div>
-
-                            <div>
-                                <InputLabel for="min_wholesale_qty" value="Min Qty Grosir" class="text-[#1f1f1f]" />
-                                <TextInput id="min_wholesale_qty" type="number" v-model="form.min_wholesale_qty"
-                                    class="mt-1 block w-full bg-white border-[#9c9c9c] rounded text-[#1f1f1f] focus:ring-blue-500 focus:border-blue-500" />
-                                <InputError :message="form.errors.min_wholesale_qty" class="mt-2 text-red-600" />
-                            </div>
-
-                            <div>
-                                <InputLabel for="min_order_qty" value="Min Order (Pembelian)" class="text-[#1f1f1f]" />
-                                <TextInput id="min_order_qty" type="number" v-model="form.min_order_qty"
-                                    class="mt-1 block w-full bg-white border-[#9c9c9c] rounded text-[#1f1f1f] focus:ring-blue-500 focus:border-blue-500" />
-                                <InputError :message="form.errors.min_order_qty" class="mt-2 text-red-600" />
-                            </div>
-
-                            <div class="md:col-span-3">
-                                <div class="bg-white rounded p-3 border border-[#9c9c9c]">
-                                    <div class="flex justify-between items-center">
-                                        <div>
-                                            <span class="text-[#1f1f1f]">Margin:</span>
-                                            <span class="text-green-400 font-semibold ml-2">{{ formatCurrency(margin)
-                                                }}</span>
-                                        </div>
-                                        <div>
-                                            <span class="text-[#1f1f1f]">Margin %:</span>
-                                            <span class="text-blue-400 font-semibold ml-2">{{ marginPercentage
-                                                }}%</span>
-                                        </div>
+                            <!-- Margin Display -->
+                            <div class="sm:col-span-2 lg:col-span-3 bg-[#f7f7f7] border border-[#9c9c9c] p-4 rounded">
+                                <div class="flex flex-wrap gap-6 text-sm">
+                                    <div>
+                                        <span class="text-[#555]">Margin:</span>
+                                        <span class="font-bold text-[#1f1f1f] ml-2">{{ formatCurrency(margin) }}</span>
+                                    </div>
+                                    <div>
+                                        <span class="text-[#555]">Margin %:</span>
+                                        <span class="font-bold text-[#1f1f1f] ml-2">{{ marginPercentage }}%</span>
                                     </div>
                                 </div>
                             </div>
                         </div>
                     </div>
 
-                    <!-- Inventory Section -->
-                    <div class="space-y-4">
-                        <h3 class="text-sm font-semibold text-[#1f1f1f] border-b border-[#9c9c9c] pb-2">Stok & Inventory</h3>
-                        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <!-- Step 3: Stok & Inventory -->
+                    <div v-show="currentStep === 3" class="space-y-4">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div>
-                                <InputLabel for="stock" value="Stok" class="text-[#1f1f1f]" />
-                                <TextInput id="stock" type="number" v-model="form.stock"
-                                    class="mt-1 block w-full bg-white border-[#9c9c9c] rounded text-[#1f1f1f] focus:ring-blue-500 focus:border-blue-500" />
-                                <InputError :message="form.errors.stock" class="mt-2 text-red-600" />
+                                <InputLabel for="min_stock_alert" value="Alert Stok Minimum" />
+                                <TextInput id="min_stock_alert" v-model="form.min_stock_alert" type="number"
+                                    class="mt-1 block w-full" />
+                                <InputError :message="form.errors.min_stock_alert" />
                             </div>
 
                             <div>
-                                <InputLabel for="min_stock_alert" value="Min Stok Alert" class="text-[#1f1f1f]" />
-                                <TextInput id="min_stock_alert" type="number" v-model="form.min_stock_alert"
-                                    class="mt-1 block w-full bg-white border-[#9c9c9c] rounded text-[#1f1f1f] focus:ring-blue-500 focus:border-blue-500" />
-                                <InputError :message="form.errors.min_stock_alert" class="mt-2 text-red-600" />
+                                <InputLabel for="max_stock_alert" value="Alert Stok Maksimum" />
+                                <TextInput id="max_stock_alert" v-model="form.max_stock_alert" type="number"
+                                    class="mt-1 block w-full" />
+                                <InputError :message="form.errors.max_stock_alert" />
                             </div>
 
-                            <div>
-                                <InputLabel for="max_stock_alert" value="Max Stok Alert" class="text-[#1f1f1f]" />
-                                <TextInput id="max_stock_alert" type="number" v-model="form.max_stock_alert"
-                                    class="mt-1 block w-full bg-white border-[#9c9c9c] rounded text-[#1f1f1f] focus:ring-blue-500 focus:border-blue-500" />
-                                <InputError :message="form.errors.max_stock_alert" class="mt-2 text-red-600" />
+                            <div class="sm:col-span-2">
+                                <InputLabel for="reorder" value="Catatan Reorder" />
+                                <TextInput id="reorder" v-model="form.reorder" type="text" class="mt-1 block w-full" />
+                                <InputError :message="form.errors.reorder" />
                             </div>
+                        </div>
 
-                            <div>
-                                <InputLabel for="reorder" value="Reorder Point" class="text-[#1f1f1f]" />
-                                <TextInput id="reorder" v-model="form.reorder"
-                                    class="mt-1 block w-full bg-white border-[#9c9c9c] rounded text-[#1f1f1f] focus:ring-blue-500 focus:border-blue-500" />
-                                <InputError :message="form.errors.reorder" class="mt-2 text-red-600" />
+                        <!-- Summary Preview -->
+                        <div class="bg-[#f7f7f7] border border-[#9c9c9c] p-4 rounded mt-6">
+                            <h4 class="font-bold text-sm text-[#1f1f1f] mb-3">Ringkasan Produk</h4>
+                            <div class="grid grid-cols-2 sm:grid-cols-3 gap-3 text-xs text-[#555]">
+                                <div><span class="font-semibold">Kode:</span> {{ form.product_code || '-' }}</div>
+                                <div><span class="font-semibold">Nama:</span> {{ form.name || '-' }}</div>
+                                <div><span class="font-semibold">Harga Jual:</span> {{
+                                    formatCurrency(form.selling_price) }}</div>
+                                <div><span class="font-semibold">Harga Final:</span> {{ formatCurrency(finalPrice) }}
+                                </div>
+                                <div><span class="font-semibold">Satuan:</span> {{ form.unit }}</div>
+                                <div><span class="font-semibold">Min Stok:</span> {{ form.min_stock_alert }}</div>
                             </div>
                         </div>
                     </div>
 
-                    <!-- Actions -->
-                    <div class="flex justify-end gap-3 pt-6 border-t border-[#9c9c9c]">
+                    <!-- Navigation Buttons -->
+                    <div class="flex items-center justify-between mt-6 pt-4 border-t border-[#e9e9e9]">
                         <button type="button" @click="closeModal"
                             class="inline-flex items-center bg-[#e9e9e9] text-[#1f1f1f] border border-[#9c9c9c] py-2 px-5 text-xs font-semibold shadow-sm hover:bg-white transition-colors">
                             <svg class="w-3 h-3 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -780,15 +820,36 @@ const deleteProduct = (productId) => {
                             </svg>
                             Batal
                         </button>
-                        <button type="submit" :disabled="form.processing"
-                            class="inline-flex items-center bg-[#e9e9e9] text-[#1f1f1f] border border-[#9c9c9c] py-2 px-5 text-xs font-semibold shadow-sm hover:bg-white transition-colors"
-                            :class="{ 'opacity-25': form.processing }">
-                            <svg class="w-3 h-3 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                    d="M5 13l4 4L19 7" />
-                            </svg>
-                            {{ isEditMode ? 'Perbarui' : 'Simpan' }}
-                        </button>
+
+                        <div class="flex items-center gap-2">
+                            <button v-if="currentStep > 1" type="button" @click="prevStep"
+                                class="inline-flex items-center bg-[#f7f7f7] text-[#1f1f1f] border border-[#9c9c9c] py-2 px-5 text-xs font-semibold shadow-sm hover:bg-white transition-colors">
+                                <svg class="w-3 h-3 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M15 19l-7-7 7-7" />
+                                </svg>
+                                Sebelumnya
+                            </button>
+
+                            <button v-if="currentStep < totalSteps" type="button" @click="nextStep"
+                                class="inline-flex items-center bg-[#e9e9e9] text-[#1f1f1f] border border-[#9c9c9c] py-2 px-5 text-xs font-semibold shadow-sm hover:bg-white transition-colors">
+                                Selanjutnya
+                                <svg class="w-3 h-3 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M9 5l7 7-7 7" />
+                                </svg>
+                            </button>
+
+                            <button v-if="currentStep === totalSteps" type="submit" :disabled="form.processing"
+                                class="inline-flex items-center bg-[#1f1f1f] text-white border border-[#1f1f1f] py-2 px-5 text-xs font-semibold shadow-sm hover:bg-[#333] transition-colors"
+                                :class="{ 'opacity-25': form.processing }">
+                                <svg class="w-3 h-3 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M5 13l4 4L19 7" />
+                                </svg>
+                                {{ isEditMode ? 'Perbarui' : 'Simpan' }}
+                            </button>
+                        </div>
                     </div>
                 </form>
             </div>

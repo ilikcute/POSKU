@@ -23,7 +23,6 @@ return new class extends Migration
             $table->string('country')->nullable();
             $table->string('zip_code')->nullable();
             $table->foreignId('customer_type_id')->nullable()->constrained()->nullOnDelete();
-            $table->foreignId('store_id')->default('1')->constrained();
             $table->enum('status', ['active', 'inactive'])->default('active');
             $table->timestamp('joined_at')->nullable();
             $table->integer('points')->default(0);
@@ -31,8 +30,8 @@ return new class extends Migration
             $table->timestamps();
             $table->softDeletes();
 
-            $table->index(['store_id', 'customer_code']);
-            $table->index(['store_id', 'status']);
+            $table->index('customer_code');
+            $table->index('status');
             $table->index('name');
             $table->index('phone');
         });

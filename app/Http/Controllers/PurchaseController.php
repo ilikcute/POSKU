@@ -5,7 +5,6 @@ namespace App\Http\Controllers;
 use App\Models\Purchase;
 use App\Models\PurchaseDetail;
 use App\Models\Product;
-use App\Models\Store;
 use App\Models\Stock;
 use App\Models\Supplier;
 use App\Models\Shift;
@@ -25,8 +24,8 @@ class PurchaseController extends Controller
      */
     public function index(Request $request)
     {
-        $query = Purchase::with(['user', 'store', 'supplier', 'purchaseDetails.product'])
-            ->byStore($this->currentStoreId());
+        $query = Purchase::with(['user', 'supplier', 'purchaseDetails.product'])
+            ->latest();
 
         // Filter by date range
         if ($request->has('start_date') && $request->start_date) {
@@ -64,14 +63,11 @@ class PurchaseController extends Controller
 
         $suppliers = Supplier::orderBy('name')->get();
         $purchasePlans = \App\Models\PurchasePlan::with('supplier')
-            ->where('store_id', $this->currentStoreId())
             ->orderBy('plan_date', 'desc')
             ->orderBy('doc_no', 'desc')
             ->get();
-        $storeId = $this->currentStoreId();
         $station = StationResolver::resolve();
         $activeShift = Shift::query()
-            ->where('store_id', $storeId)
             ->where('station_id', $station->id)
             ->where('status', 'open')
             ->latest('start_time')
@@ -188,7 +184,6 @@ class PurchaseController extends Controller
             'notes' => 'nullable|string|max:1000',
         ]);
 
-        $storeId = $this->currentStoreId();
         $station = StationResolver::resolve();
         $items = collect($validated['items']);
         $supplier = Supplier::findOrFail($validated['supplier_id']);
@@ -223,33 +218,7 @@ class PurchaseController extends Controller
         } catch (\RuntimeException $exception) {
             return back()->withErrors(['items' => $exception->getMessage()]);
         }
-        $product = $products->get($item['product_id']);
-        if (! $product) {
-            throw new \RuntimeException('Produk tidak ditemukan.');
-        }
-        if ($product->supplier_id && (int) $product->supplier_id !== (int) $supplier->id) {
-            throw new \RuntimeException('Produk tidak sesuai supplier yang dipilih.');
-        }
-
-        $price = (float) $item['price'];
-        $discountPerItem = max(0, (float) ($item['discount_per_item'] ?? 0));
-        $taxPerItem = 0;
-        if ($supplier->is_pkp && ($product->tax_type ?? 'N') === 'Y') {
-            $taxPerItem = round($price * ((float) ($product->tax_rate ?? 0) / 100), 2);
-        }
-
-        return [
-            'product_id' => $product->id,
-            'quantity' => (int) $item['quantity'],
-            'price' => $price,
-            'tax_per_item' => $taxPerItem,
-            'discount_per_item' => $discountPerItem,
-        ];
-
-        $station = StationResolver::resolve();
-
         $shift = Shift::query()
-            ->where('store_id', $storeId)
             ->where('station_id', $station->id)
             ->where('status', 'open')
             ->latest('start_time')
@@ -259,7 +228,7 @@ class PurchaseController extends Controller
         $attempts = 0;
         while ($attempts < 3) {
             try {
-                DB::transaction(function () use ($validated, $normalizedItems, $storeId, $station) {
+                DB::transaction(function () use ($validated, $normalizedItems, $station) {
                     // Calculate totals
                     $totalAmount = 0;
                     $totalDiscount = 0;
@@ -287,7 +256,6 @@ class PurchaseController extends Controller
                     $purchase = Purchase::create([
                         'invoice_number' => $invoiceNumber,
                         'user_id' => Auth::id(),
-                        'store_id' => $storeId,
                         'station_id' => $station->id,
                         'supplier_id' => $validated['supplier_id'],
                         'total_amount' => $totalAmount,
@@ -321,7 +289,6 @@ class PurchaseController extends Controller
                         $stock = Stock::firstOrCreate(
                             [
                                 'product_id' => $item['product_id'],
-                                'store_id' => $purchase->store_id,
                             ],
                             ['quantity' => 0]
                         );
@@ -359,7 +326,7 @@ class PurchaseController extends Controller
      */
     public function show(Purchase $purchase)
     {
-        $purchase->load(['user', 'store', 'supplier', 'purchaseDetails.product', 'purchaseReturns']);
+        $purchase->load(['user', 'supplier', 'purchaseDetails.product', 'purchaseReturns']);
 
         return Inertia::render('Purchases/Show', [
             'purchase' => $purchase,
@@ -443,7 +410,6 @@ class PurchaseController extends Controller
             // Revert previous stock changes
             foreach ($purchase->purchaseDetails as $detail) {
                 $stock = Stock::where('product_id', $detail->product_id)
-                    ->where('store_id', $purchase->store_id)
                     ->first();
 
                 if ($stock) {
@@ -516,7 +482,6 @@ class PurchaseController extends Controller
                 $stock = Stock::firstOrCreate(
                     [
                         'product_id' => $item['product_id'],
-                        'store_id' => $purchase->store_id,
                     ],
                     ['quantity' => 0]
                 );
@@ -544,7 +509,6 @@ class PurchaseController extends Controller
             // Revert stock changes
             foreach ($purchase->purchaseDetails as $detail) {
                 $stock = Stock::where('product_id', $detail->product_id)
-                    ->where('store_id', $purchase->store_id)
                     ->first();
 
                 if ($stock) {
@@ -570,9 +534,10 @@ class PurchaseController extends Controller
      */
     public function generatePDF(Purchase $purchase)
     {
-        $purchase->load(['user', 'store', 'supplier', 'purchaseDetails.product']);
+        $purchase->load(['user', 'supplier', 'purchaseDetails.product']);
+        $store = $this->currentStore();
 
-        $pdf = Pdf::loadView('purchases.pdf', compact('purchase'));
+        $pdf = Pdf::loadView('purchases.pdf', compact('purchase', 'store'));
         return $pdf->download('purchase-' . $purchase->invoice_number . '.pdf');
     }
 
@@ -581,7 +546,7 @@ class PurchaseController extends Controller
      */
     public function print(Purchase $purchase)
     {
-        $purchase->load(['user', 'store', 'supplier', 'purchaseDetails.product']);
+        $purchase->load(['user', 'supplier', 'purchaseDetails.product']);
 
         return Inertia::render('Purchases/Print', [
             'purchase' => $purchase,

@@ -5,7 +5,6 @@ namespace App\Http\Controllers;
 use App\Models\Sale;
 use App\Models\SaleDetail;
 use App\Models\Product;
-use App\Models\Store;
 use App\Models\Stock;
 use App\Models\Customer;
 use App\Models\Promotion;
@@ -26,8 +25,8 @@ class SaleController extends Controller
      */
     public function index(Request $request)
     {
-        $query = Sale::with(['user', 'store', 'member', 'saleDetails.product'])
-            ->byStore($this->currentStoreId());
+        $query = Sale::with(['user', 'member', 'saleDetails.product'])
+            ->latest();
 
         // Filter by date range
         if ($request->has('start_date') && $request->start_date) {
@@ -58,16 +57,11 @@ class SaleController extends Controller
      */
     public function create()
     {
-        $storeId = $this->currentStoreId();
-
-        $products = Product::with(['supplier', 'category', 'stocks' => function ($query) use ($storeId) {
-            $query->where('store_id', $storeId);
-        }, 'promotions' => function ($query) {
+        $products = Product::with(['supplier', 'category', 'stocks', 'promotions' => function ($query) {
             $query->active()->with(['tiers', 'bundles.getProduct', 'bundles.buyProduct']);
         }])
-            ->whereHas('stocks', function ($query) use ($storeId) {
-                $query->where('store_id', $storeId)
-                    ->where('quantity', '>', 0);
+            ->whereHas('stocks', function ($query) {
+                $query->where('quantity', '>', 0);
             })
             ->orderBy('name')
             ->get()
@@ -88,7 +82,6 @@ class SaleController extends Controller
         // Get active shift for current user and store
         $station = StationResolver::resolve();
         $activeShift = Shift::query()
-            ->where('store_id', $storeId)
             ->where('station_id', $station->id)
             ->where('status', 'open')
             ->latest('start_time')
@@ -99,6 +92,7 @@ class SaleController extends Controller
             'promotions' => $promotions,
             'customers' => $customers,
             'activeShift' => $activeShift,
+            'store' => $this->currentStore(),
             'auth' => [
                 'user' => auth()->user(),
             ],
@@ -126,13 +120,11 @@ class SaleController extends Controller
             'tax' => 'nullable|numeric|min:0',
         ]);
 
-        $storeId = $this->currentStoreId();
         $itemsInput = collect($validated['items']);
 
         // Check stock availability
         foreach ($itemsInput as $item) {
             $stock = Stock::where('product_id', $item['product_id'])
-                ->where('store_id', $storeId)
                 ->first();
 
             if (! $stock || $stock->quantity < $item['quantity']) {
@@ -146,7 +138,6 @@ class SaleController extends Controller
         $customer = $validated['customer_id'] ? Customer::find($validated['customer_id']) : null;
         $station = StationResolver::resolve();
         $shift = Shift::query()
-            ->where('store_id', $storeId)
             ->where('station_id', $station->id)
             ->where('status', 'open')
             ->latest('start_time')
@@ -156,7 +147,7 @@ class SaleController extends Controller
         $attempts = 0;
         while ($attempts < 3) {
             try {
-                DB::transaction(function () use ($validated, $itemsInput, $customer, $storeId, $station, &$sale) {
+                DB::transaction(function () use ($validated, $itemsInput, $customer, $station, &$sale) {
             // Get customer for promotion calculation
             // Calculate totals with promotions
             $totalAmount = 0;
@@ -237,7 +228,6 @@ class SaleController extends Controller
             $sale = Sale::create([
                 'invoice_number' => $invoiceNumber,
                 'user_id' => Auth::id(),
-                'store_id' => $storeId,
                 'station_id' => $station->id,
                 'customer_id' => $validated['customer_id'],
                 'total_amount' => $totalAmount,
@@ -268,7 +258,6 @@ class SaleController extends Controller
 
                 // Update stock
                 $stock = Stock::where('product_id', $item['product_id'])
-                    ->where('store_id', $sale->store_id)
                     ->first();
 
                 if ($stock) {
@@ -307,7 +296,7 @@ class SaleController extends Controller
      */
     public function show(Sale $sale)
     {
-        $sale->load(['user', 'store', 'member', 'saleDetails.product', 'salesReturns']);
+        $sale->load(['user', 'member', 'saleDetails.product', 'salesReturns']);
 
         return Inertia::render('Sales/Show', [
             'sale' => $sale,
@@ -356,7 +345,6 @@ class SaleController extends Controller
                 $stock = Stock::firstOrCreate(
                     [
                         'product_id' => $detail->product_id,
-                        'store_id' => $sale->store_id,
                     ],
                     ['quantity' => 0]
                 );
@@ -373,7 +361,6 @@ class SaleController extends Controller
             // Check stock availability for new quantities
             foreach ($request->items as $item) {
                 $stock = Stock::where('product_id', $item['product_id'])
-                    ->where('store_id', $sale->store_id)
                     ->first();
 
                 if (!$stock || $stock->quantity < $item['quantity']) {
@@ -443,7 +430,6 @@ class SaleController extends Controller
 
                 // Update stock
                 $stock = Stock::where('product_id', $item['product_id'])
-                    ->where('store_id', $sale->store_id)
                     ->first();
 
                 if ($stock) {
@@ -473,7 +459,6 @@ class SaleController extends Controller
                 $stock = Stock::firstOrCreate(
                     [
                         'product_id' => $detail->product_id,
-                        'store_id' => $sale->store_id,
                     ],
                     ['quantity' => 0]
                 );
@@ -499,9 +484,10 @@ class SaleController extends Controller
      */
     public function generatePDF(Sale $sale)
     {
-        $sale->load(['user', 'store', 'member', 'saleDetails.product']);
+        $sale->load(['user', 'member', 'saleDetails.product']);
+        $store = $this->currentStore();
 
-        $pdf = Pdf::loadView('sales.pdf', compact('sale'));
+        $pdf = Pdf::loadView('sales.pdf', compact('sale', 'store'));
         return $pdf->download('sale-' . $sale->invoice_number . '.pdf');
     }
 
@@ -510,10 +496,11 @@ class SaleController extends Controller
      */
     public function print(Sale $sale)
     {
-        $sale->load(['user', 'store', 'member', 'saleDetails.product']);
+        $sale->load(['user', 'member', 'saleDetails.product']);
 
         return Inertia::render('Sales/Print', [
             'sale' => $sale,
+            'store' => $this->currentStore(),
         ]);
     }
 
@@ -527,7 +514,7 @@ class SaleController extends Controller
             'message' => 'nullable|string'
         ]);
 
-        $sale->load(['user', 'store', 'member', 'saleDetails.product']);
+        $sale->load(['user', 'member', 'saleDetails.product']);
 
         // Here you would integrate with WhatsApp API
         // For now, return JSON response
@@ -544,7 +531,6 @@ class SaleController extends Controller
     public function getProductStock(Product $product)
     {
         $stock = Stock::where('product_id', $product->id)
-            ->where('store_id', $this->currentStoreId())
             ->first();
 
         return response()->json([

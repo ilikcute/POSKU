@@ -10,7 +10,6 @@ class StockMonthClosing extends Model
     use HasFactory;
 
     protected $fillable = [
-        'store_id',
         'product_id',
         'year',
         'month',
@@ -50,8 +49,4 @@ class StockMonthClosing extends Model
         return $this->belongsTo(Product::class);
     }
 
-    public function store()
-    {
-        return $this->belongsTo(Store::class);
-    }
 }

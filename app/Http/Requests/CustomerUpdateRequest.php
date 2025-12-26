@@ -22,7 +22,6 @@ class CustomerUpdateRequest extends FormRequest
             'address' => ['nullable', 'string', 'max:500'],
             'customer_type_id' => ['nullable', 'exists:customer_types,id'],
             'is_active' => ['boolean'],
-            'store_id' => ['nullable', 'exists:stores,id'],
             'points' => ['nullable', 'integer', 'min:0'],
             'photo' => ['nullable', 'string'],
             'status' => ['nullable', 'in:active,inactive'],

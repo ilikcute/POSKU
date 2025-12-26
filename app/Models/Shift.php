@@ -15,7 +15,6 @@ class Shift extends Model
         'user_id',
         'shift_code',
         'name',
-        'store_id',
         'start_time',
         'end_time',
         'total_struk',
@@ -37,11 +36,6 @@ class Shift extends Model
     public function user()
     {
         return $this->belongsTo(User::class);
-    }
-
-    public function store()
-    {
-        return $this->belongsTo(Store::class);
     }
 
     public function station()

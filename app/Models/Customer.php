@@ -19,7 +19,6 @@ class Customer extends Model
         'address',
         'customer_type_id',
         'is_active',
-        'store_id',
         'points',
         'photo',
         'status',
@@ -37,11 +36,6 @@ class Customer extends Model
     public function customerType()
     {
         return $this->belongsTo(CustomerType::class);
-    }
-
-    public function store()
-    {
-        return $this->belongsTo(Store::class);
     }
 
     public function scopeActive($query)

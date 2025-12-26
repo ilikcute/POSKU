@@ -227,10 +227,9 @@ class Product extends Model
         $existingStocks = $this->stocks();
 
         if ($existingStocks->count() == 0) {
-            // Create a default stock record for store_id=1 (assuming default store exists)
+            // Create a default stock record if none exists
             $stock = Stock::create([
                 'product_id' => $this->id,
-                'store_id' => 1, // Default store
                 'quantity' => 0,
             ]);
 

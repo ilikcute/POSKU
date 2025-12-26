@@ -22,28 +22,22 @@ class DashboardController extends Controller
         $store = Store::where('is_main_store', true)->first()
             ?? Store::first();
 
-        // Ambil store_id dari user yang sedang login
-        $storeId = Auth::user()->store_id;
         $station = StationResolver::resolve();
         $activeShift = Shift::query()
-            ->where('store_id', $storeId)
             ->where('station_id', $station->id)
             ->where('status', 'open')
             ->latest('start_time')
             ->first();
 
         // Metrik untuk Kartu (sekarang difilter per toko)
-        $totalSalesToday = Sale::where('store_id', $storeId)
-            ->whereDate('created_at', Carbon::today())->sum('final_amount');
-        $transactionCountToday = Sale::where('store_id', $storeId)
-            ->whereDate('created_at', Carbon::today())->count();
+        $totalSalesToday = Sale::whereDate('created_at', Carbon::today())->sum('final_amount');
+        $transactionCountToday = Sale::whereDate('created_at', Carbon::today())->count();
         $newCustomersThisMonth = \App\Models\Customer::whereMonth('created_at', Carbon::now()->month)->count();
 
         // Top 5 Produk Terlaris Bulan Ini (per toko)
         $topProductsThisMonth = DB::table('sale_details')
             ->join('sales', 'sale_details.sale_id', '=', 'sales.id')
             ->join('products', 'sale_details.product_id', '=', 'products.id')
-            ->where('sales.store_id', $storeId)
             ->whereMonth('sales.created_at', Carbon::now()->month)
             ->select('products.name', DB::raw('SUM(sale_details.quantity) as total_quantity'))
             ->groupBy('products.name')
@@ -54,7 +48,6 @@ class DashboardController extends Controller
         $topPurchasedProducts = DB::table('purchase_details')
             ->join('purchases', 'purchase_details.purchase_id', '=', 'purchases.id')
             ->join('products', 'purchase_details.product_id', '=', 'products.id')
-            ->where('purchases.store_id', $storeId)
             ->whereMonth('purchases.created_at', Carbon::now()->month)
             ->select('products.name', DB::raw('SUM(purchase_details.quantity) as total_quantity'))
             ->groupBy('products.name')
@@ -64,7 +57,6 @@ class DashboardController extends Controller
 
         $topSuppliers = DB::table('purchases')
             ->join('suppliers', 'purchases.supplier_id', '=', 'suppliers.id')
-            ->where('purchases.store_id', $storeId)
             ->whereMonth('purchases.created_at', Carbon::now()->month)
             ->select('suppliers.name', DB::raw('SUM(purchases.final_amount) as total_amount'))
             ->groupBy('suppliers.name')
@@ -73,8 +65,7 @@ class DashboardController extends Controller
             ->get();
 
         // Data untuk Grafik Penjualan 30 Hari Terakhir (per toko)
-        $salesLast30Days = Sale::where('store_id', $storeId)
-            ->where('created_at', '>=', Carbon::now()->subDays(30))
+        $salesLast30Days = Sale::where('created_at', '>=', Carbon::now()->subDays(30))
             ->groupBy('date')
             ->orderBy('date', 'ASC')
             ->get([
@@ -93,7 +84,6 @@ class DashboardController extends Controller
 
         // --- PERBAIKAN QUERY STOK MENIPIS ---
         $lowStockProducts = Product::join('stocks', 'products.id', '=', 'stocks.product_id')
-            ->where('stocks.store_id', $storeId)
             ->whereColumn('stocks.quantity', '<=', 'products.min_stock_alert')
             ->orderBy('stocks.quantity', 'asc')
             ->select('products.name', 'stocks.quantity', 'products.min_stock_alert')

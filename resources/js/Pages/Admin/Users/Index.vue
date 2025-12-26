@@ -74,7 +74,6 @@ const openEditModal = (user) => {
         email: user.email || '',
         password: '',
         password_confirmation: '',
-        store_id: user.store_id || '',
         roles: user.roles?.map(role => role.name) || []
     }
     showEditModal.value = true
@@ -552,13 +551,6 @@ const getRoleBadgeClass = (roleName) => {
                 class="p-8 bg-[#f7f7f7] border border-[#9c9c9c] rounded shadow-sm max-w-lg mx-auto space-y-6 text-[#1f1f1f]">
                 <h2 class="text-xs font-semibold">Edit User</h2>
                 <form @submit.prevent="updateUser" class="space-y-4">
-                    <div>
-                        <InputLabel for="edit_store_id" value="Toko" class="text-[#1f1f1f]" />
-                        <TextInput id="edit_store_id" v-model="form.store_id" type="text"
-                            class="mt-1 block w-full bg-white border-[#9c9c9c] rounded text-[#1f1f1f] focus:ring-blue-500 focus:border-blue-500"
-                            required />
-                        <InputError :message="page.props.errors?.store_id" class="mt-2 text-red-600" />
-                    </div>
                     <div>
                         <InputLabel for="edit_name" value="Nama" class="text-[#1f1f1f]" />
                         <TextInput id="edit_name" v-model="form.name" type="text"

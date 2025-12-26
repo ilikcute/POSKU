@@ -4,7 +4,6 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Authorization extends Model
 {
@@ -14,7 +13,6 @@ class Authorization extends Model
     protected $fillable = [
         'name',
         'password',
-        'store_id',
     ];
 
     protected $hidden = [
@@ -25,8 +23,4 @@ class Authorization extends Model
         'password' => 'hashed',
     ];
 
-    public function store(): BelongsTo
-    {
-        return $this->belongsTo(Store::class);
-    }
 }

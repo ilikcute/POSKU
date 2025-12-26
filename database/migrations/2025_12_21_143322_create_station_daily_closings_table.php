@@ -10,7 +10,6 @@ return new class extends Migration {
         Schema::create('station_daily_closings', function (Blueprint $table) {
             $table->id();
 
-            $table->foreignId('store_id')->constrained();
             $table->foreignId('station_id')->constrained();
             $table->date('business_date');
 
@@ -51,8 +50,8 @@ return new class extends Migration {
 
             $table->timestamps();
 
-            $table->unique(['store_id', 'station_id', 'business_date'], 'uniq_station_daily_close');
-            $table->index(['store_id', 'business_date']);
+            $table->unique(['station_id', 'business_date'], 'uniq_station_daily_close');
+            $table->index(['business_date']);
         });
     }
 

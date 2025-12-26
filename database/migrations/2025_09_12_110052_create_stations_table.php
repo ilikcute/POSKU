@@ -10,7 +10,6 @@ return new class extends Migration
     {
         Schema::create('stations', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('store_id')->constrained()->cascadeOnDelete();
             $table->string('name');
             $table->string('device_identifier')->unique();
             $table->string('description')->nullable();

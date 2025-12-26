@@ -284,12 +284,12 @@ const salesChartOptions = computed(() => ({
                         </div>
                     </div>
 
-                    <div class="mt-4 grid grid-cols-1 lg:grid-cols-[1fr_200px] gap-4">
-                        <div class="bg-white/95 text-[#1f1f1f] border border-[#9c9c9c] p-3 min-h-[260px]">
+                    <div class="mt-4 grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_200px] gap-4">
+                        <div class="bg-white/95 text-[#1f1f1f] border border-[#9c9c9c] p-3 min-h-[260px] min-w-0">
                             <div class="text-xs font-semibold border-b border-[#9c9c9c] pb-1">
                                 Grafik Penjualan 1 Bulan Terakhir
                             </div>
-                            <div class="h-52 mt-2">
+                            <div class="h-52 mt-2 w-full min-w-0">
                                 <Line v-if="salesChartData.labels.length" :data="salesChartData"
                                     :options="salesChartOptions" />
                                 <div v-else class="h-full flex items-center justify-center text-[#666] text-xs">
@@ -298,7 +298,7 @@ const salesChartOptions = computed(() => ({
                             </div>
                         </div>
 
-                        <div class="bg-white/95 text-[#1f1f1f] border border-[#9c9c9c] p-3">
+                        <div class="bg-white/95 text-[#1f1f1f] border border-[#9c9c9c] p-3 min-w-0">
                             <div class="text-xs font-semibold border-b border-[#9c9c9c] pb-1">Shortcut</div>
                             <div class="mt-3 space-y-2">
                                 <Link :href="route('sales.create')"

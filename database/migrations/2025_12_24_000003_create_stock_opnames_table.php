@@ -10,7 +10,6 @@ return new class extends Migration
     {
         Schema::create('stock_opnames', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('store_id')->constrained()->cascadeOnDelete();
             $table->string('docno', 20);
             $table->foreignId('created_by')->nullable()->constrained('users')->nullOnDelete();
             $table->enum('status', ['I', 'E', 'A'])->default('I');
@@ -18,8 +17,8 @@ return new class extends Migration
             $table->timestamp('adjusted_at')->nullable();
             $table->timestamps();
 
-            $table->unique(['store_id', 'docno'], 'stock_opnames_docno_unique');
-            $table->index(['store_id', 'status']);
+            $table->unique(['docno'], 'stock_opnames_docno_unique');
+            $table->index(['status']);
         });
     }
 

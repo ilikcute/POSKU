@@ -15,7 +15,6 @@ return new class extends Migration
             $table->id();
             $table->foreignId('sale_id')->constrained()->onDelete('cascade');
             $table->foreignId('user_id')->constrained();
-            $table->foreignId('store_id')->constrained();
             $table->foreignId('station_id')->nullable()->constrained('stations');
             $table->decimal('total_amount', 15, 2);
             $table->decimal('final_amount', 15, 2);
@@ -27,9 +26,8 @@ return new class extends Migration
             $table->softDeletes();
             $table->index('sale_id');
             $table->index('user_id');
-            $table->index('store_id');
 
-            $table->index(['store_id', 'station_id', 'return_date']);
+            $table->index(['station_id', 'return_date']);
         });
     }
 

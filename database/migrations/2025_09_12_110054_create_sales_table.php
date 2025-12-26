@@ -15,7 +15,6 @@ return new class extends Migration
             $table->id();
             $table->string('invoice_number', 100)->unique();
             $table->foreignId('user_id')->constrained();
-            $table->foreignId('store_id')->constrained();
             $table->foreignId('station_id')->nullable()->constrained('stations');
             $table->foreignId('customer_id')->nullable()->constrained();
             $table->decimal('total_amount', 15, 2);
@@ -30,7 +29,7 @@ return new class extends Migration
             $table->timestamps();
             $table->softDeletes();
 
-            $table->index(['store_id', 'station_id', 'transaction_date']);
+            $table->index(['station_id', 'transaction_date']);
         });
     }
 

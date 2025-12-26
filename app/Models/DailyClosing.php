@@ -7,7 +7,6 @@ use Illuminate\Database\Eloquent\Model;
 class DailyClosing extends Model
 {
     protected $fillable = [
-        'store_id',
         'business_date',
         'finalized_by',
         'finalized_at',
@@ -42,10 +41,6 @@ class DailyClosing extends Model
         'meta' => 'array',
     ];
 
-    public function store()
-    {
-        return $this->belongsTo(Store::class);
-    }
     public function finalizedByUser()
     {
         return $this->belongsTo(User::class, 'finalized_by');

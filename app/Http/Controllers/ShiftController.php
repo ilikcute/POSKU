@@ -21,7 +21,7 @@ class ShiftController extends Controller
     public function index()
     {
         $shifts = Shift::query()
-            ->with(['user:id,name', 'store:id,name', 'station:id,name,device_identifier'])
+            ->with(['user:id,name', 'station:id,name,device_identifier'])
             ->latest()
             ->paginate(10)
             ->withQueryString();
@@ -43,7 +43,7 @@ class ShiftController extends Controller
         $todayStart = now()->startOfDay();
 
         $hasUnclosedPrevShift = Shift::query()
-            ->where('store_id', $user->store_id)
+            
             ->where('status', 'open')
             ->where('start_time', '<', $todayStart)
             ->exists();
@@ -57,7 +57,7 @@ class ShiftController extends Controller
         $station = StationResolver::resolve();
 
         $openShiftOnThisStation = Shift::query()
-            ->where('store_id', $user->store_id)
+            
             ->where('station_id', $station->id)
             ->where('status', 'open')
             ->first();
@@ -89,7 +89,7 @@ class ShiftController extends Controller
 
         // Guard: harus bersih dari shift hari sebelumnya
         $hasUnclosedPrevShift = Shift::query()
-            ->where('store_id', $user->store_id)
+            
             ->where('status', 'open')
             ->where('start_time', '<', $todayStart)
             ->exists();
@@ -101,7 +101,7 @@ class ShiftController extends Controller
         // Verifikasi otorisasi "Buka Shift"
         $auth = Authorization::query()
             ->where('name', 'Buka Shift')
-            ->where('store_id', $user->store_id)
+            
             ->first();
 
         if (! $auth || ! Hash::check($validated['authorization_password'], $auth->password)) {
@@ -114,7 +114,7 @@ class ShiftController extends Controller
 
         // Guard: 1 shift open per station/device (sesuai implementasi Anda)
         $alreadyOpenOnStation = Shift::query()
-            ->where('store_id', $user->store_id)
+            
             ->where('station_id', $station->id)
             ->where('status', 'open')
             ->exists();
@@ -127,7 +127,7 @@ class ShiftController extends Controller
 
         // Generate shift_code sederhana per hari (lebih aman: gunakan increment/uuid jika perlu)
         $todayCount = Shift::query()
-            ->where('store_id', $user->store_id)
+            
             ->where('start_time', '>=', $todayStart)
             ->count();
 
@@ -137,8 +137,7 @@ class ShiftController extends Controller
             'user_id' => $user->id,
             'shift_code' => $shiftCode,
             'name' => $validated['name'],
-            'store_id' => $user->store_id,
-            'station_id' => $station->id,
+                        'station_id' => $station->id,
             'device_id' => $station->device_identifier,
 
             'start_time' => now(),
@@ -175,7 +174,7 @@ class ShiftController extends Controller
 
         // SHIFT KEMARIN (store-level)
         $unclosedShifts = Shift::query()
-            ->where('store_id', $user->store_id)
+            
             ->where('status', 'open')
             ->where('start_time', '<', $todayStart)
             ->with(['user:id,name', 'station:id,name,device_identifier'])
@@ -194,7 +193,7 @@ class ShiftController extends Controller
                 $activeShift = $unclosedShifts->first();
             }
 
-            $summary = $this->buildShiftSummary($user->store_id, $activeShift);
+            $summary = $this->buildShiftSummary($activeShift);
 
             return Inertia::render('Shifts/Close', [
                 'mode' => 'force_previous',
@@ -208,7 +207,7 @@ class ShiftController extends Controller
         $station = StationResolver::resolve();
 
         $activeShiftToday = Shift::query()
-            ->where('store_id', $user->store_id)
+            
             ->where('station_id', $station->id)
             ->where('status', 'open')
             ->with(['user:id,name', 'station:id,name,device_identifier'])
@@ -220,7 +219,7 @@ class ShiftController extends Controller
                 ->with('warning', 'Tidak ada shift yang sedang aktif.');
         }
 
-        $summary = $this->buildShiftSummary($user->store_id, $activeShiftToday);
+        $summary = $this->buildShiftSummary($activeShiftToday);
 
         return Inertia::render('Shifts/Close', [
             'mode' => 'normal_today',
@@ -249,7 +248,7 @@ class ShiftController extends Controller
         // Verifikasi otorisasi "Tutup Shift"
         $auth = Authorization::query()
             ->where('name', 'Tutup Shift')
-            ->where('store_id', $user->store_id)
+            
             ->first();
 
         if (! $auth || ! Hash::check($validated['authorization_password'], $auth->password)) {
@@ -264,7 +263,7 @@ class ShiftController extends Controller
         // - hari sebelumnya (start_time < today)
         $activeShift = Shift::query()
             ->where('id', $validated['shift_id'])
-            ->where('store_id', $user->store_id)
+            
             ->where('status', 'open')
             ->firstOrFail();
 
@@ -283,70 +282,70 @@ class ShiftController extends Controller
         $startTime = $activeShift->start_time;
 
         $totalStruk = Sale::query()
-            ->where('store_id', $user->store_id)
+            
             ->where('user_id', $ownerUserId)
             ->where('transaction_date', '>=', $startTime)
             ->count();
 
         $totalSales = Sale::query()
-            ->where('store_id', $user->store_id)
+            
             ->where('user_id', $ownerUserId)
             ->where('transaction_date', '>=', $startTime)
             ->sum('final_amount');
 
         $cashSales = Sale::query()
-            ->where('store_id', $user->store_id)
+            
             ->where('user_id', $ownerUserId)
             ->where('transaction_date', '>=', $startTime)
             ->where('payment_method', 'cash')
             ->sum('final_amount');
 
         $totalSalesReturn = SalesReturn::query()
-            ->where('store_id', $user->store_id)
+            
             ->where('user_id', $ownerUserId)
             ->where('return_date', '>=', $startTime)
             ->sum('final_amount');
 
         $totalPurchase = Purchase::query()
-            ->where('store_id', $user->store_id)
+            
             ->where('user_id', $ownerUserId)
             ->where('transaction_date', '>=', $startTime)
             ->sum('final_amount');
 
         $cashPurchase = Purchase::query()
-            ->where('store_id', $user->store_id)
+            
             ->where('user_id', $ownerUserId)
             ->where('transaction_date', '>=', $startTime)
             ->where('payment_method', 'cash')
             ->sum('final_amount');
 
         $totalPurchaseReturn = PurchaseReturn::query()
-            ->where('store_id', $user->store_id)
+            
             ->where('user_id', $ownerUserId)
             ->where('return_date', '>=', $startTime)
             ->sum('final_amount');
 
         $totalDiscount = Sale::query()
-            ->where('store_id', $user->store_id)
+            
             ->where('user_id', $ownerUserId)
             ->where('transaction_date', '>=', $startTime)
             ->sum('discount') ?? 0;
 
         $totalTax = Sale::query()
-            ->where('store_id', $user->store_id)
+            
             ->where('user_id', $ownerUserId)
             ->where('transaction_date', '>=', $startTime)
             ->sum('tax') ?? 0;
 
         $totalStockMovements = StockMovement::query()
             ->whereHas('stock', function ($q) use ($user) {
-                $q->where('store_id', $user->store_id);
+                $q;
             })
             ->where('created_at', '>=', $startTime)
             ->count();
 
         $cashSalesReturn = SalesReturn::query()
-            ->where('store_id', $user->store_id)
+            
             ->where('user_id', $ownerUserId)
             ->where('return_date', '>=', $startTime)
             ->where(function ($q) {
@@ -356,7 +355,7 @@ class ShiftController extends Controller
             ->sum('final_amount');
 
         $cashPurchaseReturn = PurchaseReturn::query()
-            ->where('store_id', $user->store_id)
+            
             ->where('user_id', $ownerUserId)
             ->where('return_date', '>=', $startTime)
             ->where(function ($q) {
@@ -400,51 +399,51 @@ class ShiftController extends Controller
             ->with('success', 'Shift hari ini berhasil ditutup.');
     }
 
-    private function buildShiftSummary(int $storeId, Shift $shift): array
+    private function buildShiftSummary(Shift $shift): array
     {
         $ownerUserId = $shift->user_id;
         $startTime = $shift->start_time;
 
         $totalSales = Sale::query()
-            ->where('store_id', $storeId)
+            
             ->where('user_id', $ownerUserId)
             ->where('transaction_date', '>=', $startTime)
             ->sum('final_amount');
 
         $cashSales = Sale::query()
-            ->where('store_id', $storeId)
+            
             ->where('user_id', $ownerUserId)
             ->where('transaction_date', '>=', $startTime)
             ->where('payment_method', 'cash')
             ->sum('final_amount');
 
         $totalSalesReturn = SalesReturn::query()
-            ->where('store_id', $storeId)
+            
             ->where('user_id', $ownerUserId)
             ->where('return_date', '>=', $startTime)
             ->sum('final_amount');
 
         $totalPurchase = Purchase::query()
-            ->where('store_id', $storeId)
+            
             ->where('user_id', $ownerUserId)
             ->where('transaction_date', '>=', $startTime)
             ->sum('final_amount');
 
         $cashPurchase = Purchase::query()
-            ->where('store_id', $storeId)
+            
             ->where('user_id', $ownerUserId)
             ->where('transaction_date', '>=', $startTime)
             ->where('payment_method', 'cash')
             ->sum('final_amount');
 
         $totalPurchaseReturn = PurchaseReturn::query()
-            ->where('store_id', $storeId)
+            
             ->where('user_id', $ownerUserId)
             ->where('return_date', '>=', $startTime)
             ->sum('final_amount');
 
         $cashSalesReturn = SalesReturn::query()
-            ->where('store_id', $storeId)
+            
             ->where('user_id', $ownerUserId)
             ->where('return_date', '>=', $startTime)
             ->where(function ($q) {
@@ -454,7 +453,7 @@ class ShiftController extends Controller
             ->sum('final_amount');
 
         $cashPurchaseReturn = PurchaseReturn::query()
-            ->where('store_id', $storeId)
+            
             ->where('user_id', $ownerUserId)
             ->where('return_date', '>=', $startTime)
             ->where(function ($q) {
@@ -475,3 +474,4 @@ class ShiftController extends Controller
         ];
     }
 }
+

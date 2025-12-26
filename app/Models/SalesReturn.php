@@ -13,7 +13,6 @@ class SalesReturn extends Model
     protected $fillable = [
         'sale_id',
         'user_id',
-        'store_id',
         'station_id',
         'total_amount',
         'final_amount',
@@ -49,11 +48,6 @@ class SalesReturn extends Model
         return $this->belongsTo(User::class);
     }
 
-    public function store()
-    {
-        return $this->belongsTo(Store::class);
-    }
-
     public function station()
     {
         return $this->belongsTo(Station::class);
@@ -71,7 +65,6 @@ class SalesReturn extends Model
             $stock = Stock::firstOrCreate(
                 [
                     'product_id' => $detail->product_id,
-                    'store_id' => $this->store_id,
                 ],
                 ['quantity' => 0]
             );

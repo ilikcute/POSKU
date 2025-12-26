@@ -13,7 +13,6 @@ class PurchaseReturn extends Model
     protected $fillable = [
         'purchase_id',
         'user_id',
-        'store_id',
         'station_id',
         'total_amount',
         'final_amount',
@@ -49,11 +48,6 @@ class PurchaseReturn extends Model
         return $this->belongsTo(User::class);
     }
 
-    public function store()
-    {
-        return $this->belongsTo(Store::class);
-    }
-
     public function station()
     {
         return $this->belongsTo(Station::class);
@@ -69,7 +63,6 @@ class PurchaseReturn extends Model
     {
         foreach ($this->purchaseReturnDetails as $detail) {
             $stock = Stock::where('product_id', $detail->product_id)
-                         ->where('store_id', $this->store_id)
                          ->first();
             
             if ($stock) {

@@ -7,7 +7,6 @@ use Illuminate\Database\Eloquent\Model;
 class StationDailyClosing extends Model
 {
     protected $fillable = [
-        'store_id',
         'station_id',
         'business_date',
         'closed_by',
@@ -47,10 +46,6 @@ class StationDailyClosing extends Model
         'meta' => 'array',
     ];
 
-    public function store()
-    {
-        return $this->belongsTo(Store::class);
-    }
     public function station()
     {
         return $this->belongsTo(Station::class);
