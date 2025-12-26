@@ -464,10 +464,13 @@ Route::middleware(['auth', 'verified'])->group(function () {
             Route::prefix('racks')->name('racks.')->controller(RackController::class)->group(function () {
                 Route::middleware('check.permission:view_racks')->group(function () {
                     Route::get('/', 'index')->name('index');
+                    Route::get('/planogram', 'planogram')->name('planogram');
+                    Route::get('/planogram/report', 'planogramReport')->name('planogram.report');
                 });
 
                 Route::post('/', 'store')->name('store')->middleware('check.permission:create_racks');
                 Route::patch('/{rack}', 'update')->name('update')->middleware('check.permission:edit_racks');
+                Route::patch('/{rack}/planogram', 'updatePlanogram')->name('planogram.update')->middleware('check.permission:edit_racks');
                 Route::delete('/{rack}', 'destroy')->name('destroy')->middleware('check.permission:delete_racks');
             });
 

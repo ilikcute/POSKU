@@ -43,6 +43,15 @@
                         </button>
                     </div>
 
+                    <Link :href="route('master.racks.planogram')"
+                        class="inline-flex items-center justify-center bg-[#e9e9e9] text-[#1f1f1f] border border-[#9c9c9c] font-semibold py-3 px-6 rounded text-xs hover:bg-white transition-colors">
+                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M4 6h16M4 12h16M4 18h16" />
+                        </svg>
+                        Planogram
+                    </Link>
+
                     <button @click="openModal(false)"
                         class="inline-flex items-center justify-center bg-[#e9e9e9] text-[#1f1f1f] border border-[#9c9c9c] font-semibold py-3 px-6 rounded text-xs hover:bg-white transition-colors">
                         <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -79,6 +88,15 @@
                                             class="px-6 py-4 text-left text-xs uppercase tracking-wider font-semibold text-[#1f1f1f]">
                                             Nama Rak</th>
                                         <th
+                                            class="px-6 py-4 text-left text-xs uppercase tracking-wider font-semibold text-[#1f1f1f]">
+                                            Kode</th>
+                                        <th
+                                            class="px-6 py-4 text-left text-xs uppercase tracking-wider font-semibold text-[#1f1f1f]">
+                                            Tipe</th>
+                                        <th
+                                            class="px-6 py-4 text-left text-xs uppercase tracking-wider font-semibold text-[#1f1f1f]">
+                                            Shelf</th>
+                                        <th
                                             class="px-6 py-4 text-right text-xs uppercase tracking-wider font-semibold text-[#1f1f1f]">
                                             Aksi</th>
                                     </tr>
@@ -97,6 +115,11 @@
                                                     <p class="font-semibold text-[#1f1f1f]">{{ rack.name }}</p>
                                                 </div>
                                             </div>
+                                        </td>
+                                        <td class="px-6 py-4 text-sm text-[#1f1f1f]">{{ rack.rack_code || '-' }}</td>
+                                        <td class="px-6 py-4 text-sm text-[#1f1f1f]">{{ rack.rack_type || '-' }}</td>
+                                        <td class="px-6 py-4 text-sm text-[#1f1f1f]">
+                                            {{ rack.shelf_count || '-' }}
                                         </td>
                                         <td class="px-6 py-4">
                                             <div class="flex justify-end gap-2">
@@ -133,6 +156,7 @@
                                     class="bg-[#efefef] border-b border-[#9c9c9c]">
                                     <tr>
                                         <th class="px-3 py-3 text-left font-semibold text-[#1f1f1f]">Rak</th>
+                                        <th class="px-3 py-3 text-left font-semibold text-[#1f1f1f]">Info</th>
                                         <th class="px-3 py-3 text-left font-semibold text-[#1f1f1f]">Aksi</th>
                                     </tr>
                                 </thead>
@@ -140,6 +164,11 @@
                                     <tr v-for="rack in racks.data" :key="rack.id" class="hover:bg-white">
                                         <td class="px-3 py-3">
                                             <div class="font-semibold text-[#1f1f1f] text-xs">{{ rack.name }}</div>
+                                        </td>
+                                        <td class="px-3 py-3 text-[11px] text-[#555]">
+                                            {{ rack.rack_code || '-' }} | {{ rack.rack_type || '-' }} | Shelf {{
+                                                rack.shelf_count || 0
+                                            }}
                                         </td>
                                         <td class="px-3 py-3">
                                             <div class="flex flex-col gap-2">
@@ -171,6 +200,11 @@
                                         </div>
                                         <div>
                                             <h3 class="font-semibold text-[#1f1f1f]">{{ rack.name }}</h3>
+                                            <p class="text-[11px] text-[#555] mt-1">
+                                                {{ rack.rack_code || '-' }} | {{ rack.rack_type || '-' }} | Shelf {{
+                                                    rack.shelf_count || 0
+                                                }}
+                                            </p>
                                         </div>
                                     </div>
                                 </div>
@@ -220,11 +254,33 @@
                 </h2>
                 <form @submit.prevent="saveRack" class="mt-6 grid grid-cols-1 gap-6">
                     <div>
+                        <InputLabel for="rack_code" value="Kode Rak" class="text-[#555]" />
+                        <TextInput id="rack_code" v-model="form.rack_code"
+                            class="mt-1 block w-full bg-white border-[#9c9c9c] rounded text-[#1f1f1f] focus:ring-blue-500 focus:border-blue-500"
+                            placeholder="Contoh: A-01" />
+                        <InputError :message="form.errors.rack_code" class="mt-2 text-red-400" />
+                    </div>
+                    <div>
                         <InputLabel for="name" value="Nama Rak" class="text-[#555]" />
                         <TextInput id="name" v-model="form.name"
                             class="mt-1 block w-full bg-white border-[#9c9c9c] rounded text-[#1f1f1f] focus:ring-blue-500 focus:border-blue-500"
                             required />
                         <InputError :message="form.errors.name" class="mt-2 text-red-400" />
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <InputLabel for="rack_type" value="Tipe Rak" class="text-[#555]" />
+                            <TextInput id="rack_type" v-model="form.rack_type"
+                                class="mt-1 block w-full bg-white border-[#9c9c9c] rounded text-[#1f1f1f] focus:ring-blue-500 focus:border-blue-500"
+                                placeholder="Contoh: Single / Gondola" />
+                            <InputError :message="form.errors.rack_type" class="mt-2 text-red-400" />
+                        </div>
+                        <div>
+                            <InputLabel for="shelf_count" value="Jumlah Shelf" class="text-[#555]" />
+                            <TextInput id="shelf_count" v-model.number="form.shelf_count" type="number" min="1"
+                                class="mt-1 block w-full bg-white border-[#9c9c9c] rounded text-[#1f1f1f] focus:ring-blue-500 focus:border-blue-500" />
+                            <InputError :message="form.errors.shelf_count" class="mt-2 text-red-400" />
+                        </div>
                     </div>
                     <div class="flex justify-end gap-3 mt-4">
                         <button type="button" @click="closeModal"
@@ -253,7 +309,7 @@
 
 <script setup>
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout.vue";
-import { Head, useForm, router } from "@inertiajs/vue3";
+import { Head, useForm, router, Link } from "@inertiajs/vue3";
 import { ref, watch } from "vue";
 import { debounce } from "lodash";
 
@@ -276,6 +332,9 @@ const search = ref(props.filters.search);
 const form = useForm({
     id: null,
     name: "",
+    rack_code: "",
+    rack_type: "",
+    shelf_count: "",
 });
 
 watch(
@@ -297,6 +356,9 @@ const openModal = (editMode = false, rack = null) => {
     if (editMode && rack) {
         form.id = rack.id;
         form.name = rack.name;
+        form.rack_code = rack.rack_code || "";
+        form.rack_type = rack.rack_type || "";
+        form.shelf_count = rack.shelf_count || "";
     } else {
         form.reset();
     }

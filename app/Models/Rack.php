@@ -9,5 +9,14 @@ class Rack extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['name'];
+    protected $fillable = ['name', 'rack_code', 'rack_type', 'shelf_count', 'shelf_plan'];
+
+    protected $casts = [
+        'shelf_plan' => 'array',
+    ];
+
+    public function shelves()
+    {
+        return $this->hasMany(RackShelf::class);
+    }
 }

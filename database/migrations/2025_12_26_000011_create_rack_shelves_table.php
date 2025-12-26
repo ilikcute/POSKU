@@ -11,14 +11,14 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('racks', function (Blueprint $table) {
+        Schema::create('rack_shelves', function (Blueprint $table) {
             $table->id();
-            $table->string('rack_code')->nullable();
-            $table->string('rack_type')->nullable();
-            $table->unsignedInteger('shelf_count')->nullable();
-            $table->json('shelf_plan')->nullable();
-            $table->string('name');
+            $table->foreignId('rack_id')->constrained()->cascadeOnDelete();
+            $table->unsignedInteger('shelf_no');
+            $table->string('name')->nullable();
             $table->timestamps();
+
+            $table->unique(['rack_id', 'shelf_no']);
         });
     }
 
@@ -27,6 +27,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('racks');
+        Schema::dropIfExists('rack_shelves');
     }
 };
