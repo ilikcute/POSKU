@@ -88,6 +88,14 @@
                             placeholder="Catatan retur"></textarea>
                     </div>
                     <div class="bg-white border border-[#9c9c9c] rounded p-4">
+                        <label class="block text-xs font-semibold text-[#555] mb-2">Metode Pengembalian</label>
+                        <select v-model="form.payment_method"
+                            class="w-full border border-[#9c9c9c] bg-white rounded text-[#1f1f1f] px-3 py-2 text-xs mb-3">
+                            <option value="cash">Tunai</option>
+                            <option value="card">Kartu</option>
+                            <option value="transfer">Transfer</option>
+                            <option value="credit">Kredit</option>
+                        </select>
                         <div class="flex justify-between text-xs text-[#555]">
                             <span>Total Retur</span>
                             <span class="font-semibold text-[#1f1f1f]">{{ formatCurrency(totalAmount) }}</span>
@@ -121,6 +129,7 @@ const props = defineProps({
 
 const form = useForm({
     items: [],
+    payment_method: props.purchaseReturn?.payment_method || props.purchaseReturn?.purchase?.payment_method || "cash",
     notes: props.purchaseReturn?.notes || "",
 });
 
@@ -206,6 +215,7 @@ const submitReturn = () => {
     }
 
     form.items = items;
+    form.payment_method = form.payment_method || "cash";
     form.patch(route("purchase-returns.update", props.purchaseReturn.id));
 };
 

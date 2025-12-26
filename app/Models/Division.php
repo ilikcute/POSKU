@@ -9,5 +9,10 @@ class Division extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['name'];
+    protected $fillable = ['name', 'code'];
+
+    public function categories()
+    {
+        return $this->hasMany(Category::class);
+    }
 }

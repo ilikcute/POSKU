@@ -16,6 +16,7 @@ use Inertia\Inertia;
 use Illuminate\Validation\Rule;
 use Barryvdh\DomPDF\Facade\Pdf;
 use App\Services\StationResolver;
+use Illuminate\Database\QueryException;
 
 class PurchaseController extends Controller
 {
@@ -58,6 +59,7 @@ class PurchaseController extends Controller
     {
         $products = Product::with(['supplier', 'category'])
             ->orderBy('name')
+            ->limit(150)
             ->get();
 
         $suppliers = Supplier::orderBy('name')->get();
@@ -87,6 +89,86 @@ class PurchaseController extends Controller
         ]);
     }
 
+    public function searchProducts(Request $request)
+    {
+        $validated = $request->validate([
+            'q' => ['nullable', 'string', 'max:100'],
+            'supplier_id' => ['nullable', 'exists:suppliers,id'],
+            'limit' => ['nullable', 'integer', 'min:1', 'max:200'],
+        ]);
+
+        $limit = $validated['limit'] ?? 100;
+        $query = Product::query()
+            ->select([
+                'id',
+                'product_code',
+                'barcode',
+                'name',
+                'purchase_price',
+                'selling_price',
+                'tax_type',
+                'tax_rate',
+                'supplier_id',
+                'unit',
+            ])
+            ->orderBy('name');
+
+        if (! empty($validated['supplier_id'])) {
+            $query->where('supplier_id', $validated['supplier_id']);
+        }
+
+        if (! empty($validated['q'])) {
+            $term = $validated['q'];
+            $query->where(function ($builder) use ($term) {
+                $builder
+                    ->where('name', 'like', '%' . $term . '%')
+                    ->orWhere('product_code', 'like', '%' . $term . '%')
+                    ->orWhere('barcode', 'like', '%' . $term . '%');
+            });
+        }
+
+        return response()->json($query->limit($limit)->get());
+    }
+
+    public function lookupProduct(Request $request)
+    {
+        $validated = $request->validate([
+            'code' => ['required', 'string', 'max:100'],
+            'supplier_id' => ['nullable', 'exists:suppliers,id'],
+        ]);
+
+        $query = Product::query()
+            ->select([
+                'id',
+                'product_code',
+                'barcode',
+                'name',
+                'purchase_price',
+                'selling_price',
+                'tax_type',
+                'tax_rate',
+                'supplier_id',
+                'unit',
+            ])
+            ->where(function ($builder) use ($validated) {
+                $builder
+                    ->where('barcode', $validated['code'])
+                    ->orWhere('product_code', $validated['code']);
+            });
+
+        if (! empty($validated['supplier_id'])) {
+            $query->where('supplier_id', $validated['supplier_id']);
+        }
+
+        $product = $query->first();
+
+        if (! $product) {
+            return response()->json(['message' => 'Produk tidak ditemukan.'], 404);
+        }
+
+        return response()->json($product);
+    }
+
     /**
      * Store a newly created purchase in storage.
      */
@@ -109,6 +191,60 @@ class PurchaseController extends Controller
         $storeId = $this->currentStoreId();
         $station = StationResolver::resolve();
         $items = collect($validated['items']);
+        $supplier = Supplier::findOrFail($validated['supplier_id']);
+        $productIds = $items->pluck('product_id')->unique()->values();
+        $products = Product::whereIn('id', $productIds)->get()->keyBy('id');
+
+        try {
+            $normalizedItems = $items->map(function ($item) use ($products, $supplier) {
+                $product = $products->get($item['product_id']);
+                if (! $product) {
+                    throw new \RuntimeException('Produk tidak ditemukan.');
+                }
+                if ($product->supplier_id && (int) $product->supplier_id !== (int) $supplier->id) {
+                    throw new \RuntimeException('Produk tidak sesuai supplier yang dipilih.');
+                }
+
+                $price = (float) $item['price'];
+                $discountPerItem = max(0, (float) ($item['discount_per_item'] ?? 0));
+                $taxPerItem = 0;
+                if ($supplier->is_pkp && ($product->tax_type ?? 'N') === 'Y') {
+                    $taxPerItem = round($price * ((float) ($product->tax_rate ?? 0) / 100), 2);
+                }
+
+                return [
+                    'product_id' => $product->id,
+                    'quantity' => (int) $item['quantity'],
+                    'price' => $price,
+                    'tax_per_item' => $taxPerItem,
+                    'discount_per_item' => $discountPerItem,
+                ];
+            });
+        } catch (\RuntimeException $exception) {
+            return back()->withErrors(['items' => $exception->getMessage()]);
+        }
+        $product = $products->get($item['product_id']);
+        if (! $product) {
+            throw new \RuntimeException('Produk tidak ditemukan.');
+        }
+        if ($product->supplier_id && (int) $product->supplier_id !== (int) $supplier->id) {
+            throw new \RuntimeException('Produk tidak sesuai supplier yang dipilih.');
+        }
+
+        $price = (float) $item['price'];
+        $discountPerItem = max(0, (float) ($item['discount_per_item'] ?? 0));
+        $taxPerItem = 0;
+        if ($supplier->is_pkp && ($product->tax_type ?? 'N') === 'Y') {
+            $taxPerItem = round($price * ((float) ($product->tax_rate ?? 0) / 100), 2);
+        }
+
+        return [
+            'product_id' => $product->id,
+            'quantity' => (int) $item['quantity'],
+            'price' => $price,
+            'tax_per_item' => $taxPerItem,
+            'discount_per_item' => $discountPerItem,
+        ];
 
         $station = StationResolver::resolve();
 
@@ -120,80 +256,99 @@ class PurchaseController extends Controller
             ->firstOrFail();
 
 
-        DB::transaction(function () use ($validated, $items, $storeId, $station) {
-            // Calculate totals
-            $totalAmount = 0;
-            $totalDiscount = 0;
-            $totalTax = 0;
+        $attempts = 0;
+        while ($attempts < 3) {
+            try {
+                DB::transaction(function () use ($validated, $normalizedItems, $storeId, $station) {
+                    // Calculate totals
+                    $totalAmount = 0;
+                    $totalDiscount = 0;
+                    $totalTax = 0;
 
-            foreach ($items as $item) {
-                $subtotal = $item['quantity'] * $item['price'];
-                $totalAmount += $subtotal;
-                $totalDiscount += ($item['discount_per_item'] ?? 0) * $item['quantity'];
-                $totalTax += ($item['tax_per_item'] ?? 0) * $item['quantity'];
+                    foreach ($normalizedItems as $item) {
+                        $subtotal = $item['quantity'] * $item['price'];
+                        $totalAmount += $subtotal;
+                        $totalDiscount += ($item['discount_per_item'] ?? 0) * $item['quantity'];
+                        $totalTax += ($item['tax_per_item'] ?? 0) * $item['quantity'];
+                    }
+
+                    $finalAmount = $totalAmount - $totalDiscount + $totalTax;
+                    $changeDue = max(0, $validated['amount_paid'] - $finalAmount);
+                    $dueDate = null;
+                    $paymentTermDays = null;
+
+                    if ($validated['payment_method'] === 'credit') {
+                        $paymentTermDays = (int) ($validated['payment_term_days'] ?? 0);
+                        $dueDate = $paymentTermDays > 0 ? now()->addDays($paymentTermDays)->toDateString() : null;
+                    }
+
+                    // Create purchase
+                    $invoiceNumber = Purchase::generateInvoiceNumberForUpdate();
+                    $purchase = Purchase::create([
+                        'invoice_number' => $invoiceNumber,
+                        'user_id' => Auth::id(),
+                        'store_id' => $storeId,
+                        'station_id' => $station->id,
+                        'supplier_id' => $validated['supplier_id'],
+                        'total_amount' => $totalAmount,
+                        'discount' => $totalDiscount,
+                        'tax' => $totalTax,
+                        'final_amount' => $finalAmount,
+                        'payment_method' => $validated['payment_method'],
+                        'payment_term_days' => $paymentTermDays,
+                        'due_date' => $dueDate,
+                        'amount_paid' => $validated['amount_paid'],
+                        'change_due' => $changeDue,
+                        'transaction_date' => now(),
+                        'notes' => $validated['notes'],
+                    ]);
+
+                    // Create purchase details and update stock
+                    foreach ($normalizedItems as $item) {
+                        $subtotal = $item['quantity'] * $item['price'];
+
+                        PurchaseDetail::create([
+                            'purchase_id' => $purchase->id,
+                            'product_id' => $item['product_id'],
+                            'quantity' => $item['quantity'],
+                            'price_at_sale' => $item['price'],
+                            'tax_per_item' => $item['tax_per_item'] ?? 0,
+                            'discount_per_item' => $item['discount_per_item'] ?? 0,
+                            'subtotal' => $subtotal,
+                        ]);
+
+                        // Update stock
+                        $stock = Stock::firstOrCreate(
+                            [
+                                'product_id' => $item['product_id'],
+                                'store_id' => $purchase->store_id,
+                            ],
+                            ['quantity' => 0]
+                        );
+
+                        $stock->addStock(
+                            $item['quantity'],
+                            'Purchase',
+                            'purchase',
+                            $purchase->id,
+                            Auth::id()
+                        );
+                    }
+                });
+                break;
+            } catch (QueryException $exception) {
+                if (str_contains($exception->getMessage(), 'invoice_number')) {
+                    $attempts++;
+                    usleep(100000);
+                    continue;
+                }
+                throw $exception;
             }
+        }
 
-            $finalAmount = $totalAmount - $totalDiscount + $totalTax;
-            $changeDue = max(0, $validated['amount_paid'] - $finalAmount);
-            $dueDate = null;
-            $paymentTermDays = null;
-
-            if ($validated['payment_method'] === 'credit') {
-                $paymentTermDays = (int) ($validated['payment_term_days'] ?? 0);
-                $dueDate = $paymentTermDays > 0 ? now()->addDays($paymentTermDays)->toDateString() : null;
-            }
-
-            // Create purchase
-            $purchase = Purchase::create([
-                'user_id' => Auth::id(),
-                'store_id' => $storeId,
-                'station_id' => $station->id,
-                'supplier_id' => $validated['supplier_id'],
-                'total_amount' => $totalAmount,
-                'discount' => $totalDiscount,
-                'tax' => $totalTax,
-                'final_amount' => $finalAmount,
-                'payment_method' => $validated['payment_method'],
-                'payment_term_days' => $paymentTermDays,
-                'due_date' => $dueDate,
-                'amount_paid' => $validated['amount_paid'],
-                'change_due' => $changeDue,
-                'transaction_date' => now(),
-                'notes' => $validated['notes'],
-            ]);
-
-            // Create purchase details and update stock
-            foreach ($items as $item) {
-                $subtotal = $item['quantity'] * $item['price'];
-
-                PurchaseDetail::create([
-                    'purchase_id' => $purchase->id,
-                    'product_id' => $item['product_id'],
-                    'quantity' => $item['quantity'],
-                    'price_at_sale' => $item['price'],
-                    'tax_per_item' => $item['tax_per_item'] ?? 0,
-                    'discount_per_item' => $item['discount_per_item'] ?? 0,
-                    'subtotal' => $subtotal,
-                ]);
-
-                // Update stock
-                $stock = Stock::firstOrCreate(
-                    [
-                        'product_id' => $item['product_id'],
-                        'store_id' => $purchase->store_id,
-                    ],
-                    ['quantity' => 0]
-                );
-
-                $stock->addStock(
-                    $item['quantity'],
-                    'Purchase',
-                    'purchase',
-                    $purchase->id,
-                    Auth::id()
-                );
-            }
-        });
+        if ($attempts >= 3) {
+            return back()->withErrors(['invoice_number' => 'Gagal membuat nomor invoice. Silakan coba lagi.']);
+        }
 
         return redirect()->route('purchases.index')
             ->with('success', 'Purchase created successfully.');
@@ -250,7 +405,41 @@ class PurchaseController extends Controller
             'notes' => 'nullable|string|max:1000',
         ]);
 
-        DB::transaction(function () use ($request, $purchase) {
+        $supplier = Supplier::findOrFail($request->supplier_id);
+        $items = collect($request->items);
+        $productIds = $items->pluck('product_id')->unique()->values();
+        $products = Product::whereIn('id', $productIds)->get()->keyBy('id');
+
+        try {
+            $normalizedItems = $items->map(function ($item) use ($products, $supplier) {
+                $product = $products->get($item['product_id']);
+                if (! $product) {
+                    throw new \RuntimeException('Produk tidak ditemukan.');
+                }
+                if ($product->supplier_id && (int) $product->supplier_id !== (int) $supplier->id) {
+                    throw new \RuntimeException('Produk tidak sesuai supplier yang dipilih.');
+                }
+
+                $price = (float) $item['price'];
+                $discountPerItem = max(0, (float) ($item['discount_per_item'] ?? 0));
+                $taxPerItem = 0;
+                if ($supplier->is_pkp && ($product->tax_type ?? 'N') === 'Y') {
+                    $taxPerItem = round($price * ((float) ($product->tax_rate ?? 0) / 100), 2);
+                }
+
+                return [
+                    'product_id' => $product->id,
+                    'quantity' => (int) $item['quantity'],
+                    'price' => $price,
+                    'tax_per_item' => $taxPerItem,
+                    'discount_per_item' => $discountPerItem,
+                ];
+            });
+        } catch (\RuntimeException $exception) {
+            return back()->withErrors(['items' => $exception->getMessage()]);
+        }
+
+        DB::transaction(function () use ($request, $purchase, $normalizedItems) {
             // Revert previous stock changes
             foreach ($purchase->purchaseDetails as $detail) {
                 $stock = Stock::where('product_id', $detail->product_id)
@@ -275,7 +464,7 @@ class PurchaseController extends Controller
             $totalAmount = 0;
             $totalDiscount = 0;
             $totalTax = 0;
-            $items = collect($request->items);
+            $items = collect($normalizedItems);
 
             foreach ($items as $item) {
                 $subtotal = $item['quantity'] * $item['price'];

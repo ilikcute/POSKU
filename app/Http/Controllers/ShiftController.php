@@ -285,57 +285,57 @@ class ShiftController extends Controller
         $totalStruk = Sale::query()
             ->where('store_id', $user->store_id)
             ->where('user_id', $ownerUserId)
-            ->where('created_at', '>=', $startTime)
+            ->where('transaction_date', '>=', $startTime)
             ->count();
 
         $totalSales = Sale::query()
             ->where('store_id', $user->store_id)
             ->where('user_id', $ownerUserId)
-            ->where('created_at', '>=', $startTime)
+            ->where('transaction_date', '>=', $startTime)
             ->sum('final_amount');
 
         $cashSales = Sale::query()
             ->where('store_id', $user->store_id)
             ->where('user_id', $ownerUserId)
-            ->where('created_at', '>=', $startTime)
+            ->where('transaction_date', '>=', $startTime)
             ->where('payment_method', 'cash')
             ->sum('final_amount');
 
         $totalSalesReturn = SalesReturn::query()
             ->where('store_id', $user->store_id)
             ->where('user_id', $ownerUserId)
-            ->where('created_at', '>=', $startTime)
+            ->where('return_date', '>=', $startTime)
             ->sum('final_amount');
 
         $totalPurchase = Purchase::query()
             ->where('store_id', $user->store_id)
             ->where('user_id', $ownerUserId)
-            ->where('created_at', '>=', $startTime)
+            ->where('transaction_date', '>=', $startTime)
             ->sum('final_amount');
 
         $cashPurchase = Purchase::query()
             ->where('store_id', $user->store_id)
             ->where('user_id', $ownerUserId)
-            ->where('created_at', '>=', $startTime)
+            ->where('transaction_date', '>=', $startTime)
             ->where('payment_method', 'cash')
             ->sum('final_amount');
 
         $totalPurchaseReturn = PurchaseReturn::query()
             ->where('store_id', $user->store_id)
             ->where('user_id', $ownerUserId)
-            ->where('created_at', '>=', $startTime)
+            ->where('return_date', '>=', $startTime)
             ->sum('final_amount');
 
         $totalDiscount = Sale::query()
             ->where('store_id', $user->store_id)
             ->where('user_id', $ownerUserId)
-            ->where('created_at', '>=', $startTime)
+            ->where('transaction_date', '>=', $startTime)
             ->sum('discount') ?? 0;
 
         $totalTax = Sale::query()
             ->where('store_id', $user->store_id)
             ->where('user_id', $ownerUserId)
-            ->where('created_at', '>=', $startTime)
+            ->where('transaction_date', '>=', $startTime)
             ->sum('tax') ?? 0;
 
         $totalStockMovements = StockMovement::query()
@@ -345,11 +345,31 @@ class ShiftController extends Controller
             ->where('created_at', '>=', $startTime)
             ->count();
 
+        $cashSalesReturn = SalesReturn::query()
+            ->where('store_id', $user->store_id)
+            ->where('user_id', $ownerUserId)
+            ->where('return_date', '>=', $startTime)
+            ->where(function ($q) {
+                $q->where('payment_method', 'cash')
+                    ->orWhereNull('payment_method');
+            })
+            ->sum('final_amount');
+
+        $cashPurchaseReturn = PurchaseReturn::query()
+            ->where('store_id', $user->store_id)
+            ->where('user_id', $ownerUserId)
+            ->where('return_date', '>=', $startTime)
+            ->where(function ($q) {
+                $q->where('payment_method', 'cash')
+                    ->orWhereNull('payment_method');
+            })
+            ->sum('final_amount');
+
         $expectedCash = $activeShift->initial_cash
             + $cashSales
-            - $totalSalesReturn
+            - $cashSalesReturn
             - $cashPurchase
-            + $totalPurchaseReturn;
+            + $cashPurchaseReturn;
 
         $variance = $validated['final_cash'] - $expectedCash;
 
@@ -388,46 +408,66 @@ class ShiftController extends Controller
         $totalSales = Sale::query()
             ->where('store_id', $storeId)
             ->where('user_id', $ownerUserId)
-            ->where('created_at', '>=', $startTime)
+            ->where('transaction_date', '>=', $startTime)
             ->sum('final_amount');
 
         $cashSales = Sale::query()
             ->where('store_id', $storeId)
             ->where('user_id', $ownerUserId)
-            ->where('created_at', '>=', $startTime)
+            ->where('transaction_date', '>=', $startTime)
             ->where('payment_method', 'cash')
             ->sum('final_amount');
 
         $totalSalesReturn = SalesReturn::query()
             ->where('store_id', $storeId)
             ->where('user_id', $ownerUserId)
-            ->where('created_at', '>=', $startTime)
+            ->where('return_date', '>=', $startTime)
             ->sum('final_amount');
 
         $totalPurchase = Purchase::query()
             ->where('store_id', $storeId)
             ->where('user_id', $ownerUserId)
-            ->where('created_at', '>=', $startTime)
+            ->where('transaction_date', '>=', $startTime)
             ->sum('final_amount');
 
         $cashPurchase = Purchase::query()
             ->where('store_id', $storeId)
             ->where('user_id', $ownerUserId)
-            ->where('created_at', '>=', $startTime)
+            ->where('transaction_date', '>=', $startTime)
             ->where('payment_method', 'cash')
             ->sum('final_amount');
 
         $totalPurchaseReturn = PurchaseReturn::query()
             ->where('store_id', $storeId)
             ->where('user_id', $ownerUserId)
-            ->where('created_at', '>=', $startTime)
+            ->where('return_date', '>=', $startTime)
+            ->sum('final_amount');
+
+        $cashSalesReturn = SalesReturn::query()
+            ->where('store_id', $storeId)
+            ->where('user_id', $ownerUserId)
+            ->where('return_date', '>=', $startTime)
+            ->where(function ($q) {
+                $q->where('payment_method', 'cash')
+                    ->orWhereNull('payment_method');
+            })
+            ->sum('final_amount');
+
+        $cashPurchaseReturn = PurchaseReturn::query()
+            ->where('store_id', $storeId)
+            ->where('user_id', $ownerUserId)
+            ->where('return_date', '>=', $startTime)
+            ->where(function ($q) {
+                $q->where('payment_method', 'cash')
+                    ->orWhereNull('payment_method');
+            })
             ->sum('final_amount');
 
         $expectedCash = $shift->initial_cash
             + $cashSales
-            - $totalSalesReturn
+            - $cashSalesReturn
             - $cashPurchase
-            + $totalPurchaseReturn;
+            + $cashPurchaseReturn;
 
         return [
             'totalSales' => (float) $totalSales,

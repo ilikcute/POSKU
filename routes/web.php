@@ -10,6 +10,7 @@ use App\Http\Controllers\SaleController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\PriceController;
 use App\Http\Controllers\ShiftController;
+use App\Http\Controllers\PendingSaleController;
 
 use App\Http\Controllers\StockController;
 use App\Http\Controllers\ReportController;
@@ -130,6 +131,13 @@ Route::middleware(['auth', 'verified'])->group(function () {
                 ->name('plans.generate')
                 ->middleware('check.permission:generate_purchase_plans');
 
+            Route::get('/products/search', [PurchaseController::class, 'searchProducts'])
+                ->name('products.search')
+                ->middleware('check.permission:create_purchases');
+            Route::get('/products/lookup', [PurchaseController::class, 'lookupProduct'])
+                ->name('products.lookup')
+                ->middleware('check.permission:create_purchases');
+
             Route::controller(PurchaseController::class)->group(function () {
 
                 Route::middleware('check.permission:view_purchases')->group(function () {
@@ -229,6 +237,18 @@ Route::middleware(['auth', 'verified'])->group(function () {
             Route::delete('/{sale}', 'destroy')
                 ->name('destroy')
                 ->middleware('check.permission:delete_sales');
+        });
+
+        Route::prefix('sales/pending')->name('sales.pending.')->controller(PendingSaleController::class)->group(function () {
+            Route::get('/', 'index')
+                ->name('index')
+                ->middleware('check.permission:create_sales');
+            Route::post('/', 'store')
+                ->name('store')
+                ->middleware('check.permission:create_sales');
+            Route::delete('/{pendingSale}', 'destroy')
+                ->name('destroy')
+                ->middleware('check.permission:create_sales');
         });
 
         // SALES RETURNS
@@ -345,9 +365,22 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::resource('customers', CustomerController::class);
 
         // PROMOTIONS
-    Route::resource('promotions', PromotionController::class);
-    Route::patch('promotions/{promotion}/clear', [PromotionController::class, 'clear'])->name('promotions.clear');
-    Route::get('promotions-active', [PromotionController::class, 'activePromotions'])->name('promotions.active');
+        Route::prefix('promotions')->name('promotions.')->controller(PromotionController::class)->group(function () {
+            Route::middleware('check.permission:view_promotions')->group(function () {
+                Route::get('/', 'index')->name('index');
+                Route::get('/create', 'create')->name('create')->middleware('check.permission:create_promotions');
+                Route::get('/{promotion}', 'show')->name('show');
+                Route::get('/{promotion}/edit', 'edit')->name('edit')->middleware('check.permission:edit_promotions');
+            });
+
+            Route::post('/', 'store')->name('store')->middleware('check.permission:create_promotions');
+            Route::patch('/{promotion}', 'update')->name('update')->middleware('check.permission:edit_promotions');
+            Route::delete('/{promotion}', 'destroy')->name('destroy')->middleware('check.permission:delete_promotions');
+            Route::patch('/{promotion}/clear', 'clear')->name('clear')->middleware('check.permission:edit_promotions');
+        });
+        Route::get('promotions-active', [PromotionController::class, 'activePromotions'])
+            ->name('promotions.active')
+            ->middleware('check.permission:view_promotions');
 
     Route::prefix('stations')->name('stations.')->controller(\App\Http\Controllers\StationController::class)->group(function () {
         Route::middleware('check.permission:view_stations')->group(function () {

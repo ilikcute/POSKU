@@ -3,26 +3,42 @@
 namespace Database\Seeders;
 
 use App\Models\Category;
+use App\Models\Division;
 use Illuminate\Database\Seeder;
 
 class CategorySeeder extends Seeder
 {
     public function run(): void
     {
-        // Data kategori yang umum
+        $divisionMap = Division::query()->pluck('id', 'code');
+
         $categories = [
-            ['name' => 'Makanan & Minuman'],
-            ['name' => 'ATK (Alat Tulis Kantor)'],
-            ['name' => 'Kebutuhan Rumah Tangga'],
-            ['name' => 'Produk Kebersihan'],
-            ['name' => 'Elektronik'],
+            ['division_code' => '1', 'code' => '1', 'name' => 'TEH CELUP'],
+            ['division_code' => '1', 'code' => '2', 'name' => 'TEH BUBUK'],
+            ['division_code' => '2', 'code' => '1', 'name' => 'SUSU KENTAL MANIS'],
+            ['division_code' => '2', 'code' => '2', 'name' => 'INSTANT MILK POWDER'],
+            ['division_code' => '3', 'code' => '1', 'name' => 'BABY MILK'],
+            ['division_code' => '3', 'code' => '2', 'name' => 'BABY CEREAL'],
+            ['division_code' => '4', 'code' => '1', 'name' => 'LIQUID MILK TETRA'],
+            ['division_code' => '4', 'code' => '2', 'name' => 'LIQUID MILK BTL'],
+            ['division_code' => '5', 'code' => '1', 'name' => 'BERAS'],
+            ['division_code' => '5', 'code' => '2', 'name' => 'GULA (GULA OLAHAN)'],
+            ['division_code' => '5', 'code' => '3', 'name' => 'BIJI-BIJIAN LOKAL'],
         ];
 
         foreach ($categories as $category) {
-            Category::create($category);
-        }
+            $divisionId = $divisionMap[$category['division_code']] ?? null;
+            if (! $divisionId) {
+                continue;
+            }
 
-        // Tambah beberapa kategori random
-        Category::factory(5)->create();
+            Category::updateOrCreate(
+                [
+                    'division_id' => $divisionId,
+                    'code' => $category['code'],
+                ],
+                ['name' => $category['name']]
+            );
+        }
     }
 }

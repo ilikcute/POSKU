@@ -13,6 +13,11 @@ return new class extends Migration
     {
         Schema::create('categories', function (Blueprint $table) {
             $table->id();
+            $table->string('code')->nullable();
+            $table->foreignId('division_id')
+                ->nullable()
+                ->constrained('divisions')
+                ->nullOnDelete();
             $table->string('name');
             $table->timestamps();
         });

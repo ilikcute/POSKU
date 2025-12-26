@@ -66,6 +66,15 @@
                         class="w-full lg:w-72 bg-white border-[#9c9c9c] rounded text-[#1f1f1f] focus:ring-blue-500 focus:border-blue-500"
                         placeholder="Cari nama kategori..." />
                 </div>
+                <div class="w-full lg:w-64">
+                    <select v-model="divisionFilter"
+                        class="w-full bg-white border border-[#9c9c9c] rounded px-3 py-2 text-sm text-[#1f1f1f]">
+                        <option value="">Semua Divisi</option>
+                        <option v-for="division in divisions" :key="division.id" :value="division.id">
+                            {{ division.code ? `${division.code} - ${division.name}` : division.name }}
+                        </option>
+                    </select>
+                </div>
             </div>
 
             <div v-if="categories.data.length">
@@ -79,6 +88,9 @@
                                         <th
                                             class="px-6 py-4 text-left text-xs uppercase tracking-wider font-semibold text-[#1f1f1f]">
                                             Nama Kategori</th>
+                                        <th
+                                            class="px-6 py-4 text-left text-xs uppercase tracking-wider font-semibold text-[#1f1f1f]">
+                                            Divisi</th>
                                         <th
                                             class="px-6 py-4 text-right text-xs uppercase tracking-wider font-semibold text-[#1f1f1f]">
                                             Aksi</th>
@@ -98,6 +110,9 @@
                                                     <p class="font-semibold text-[#1f1f1f]">{{ category.name }}</p>
                                                 </div>
                                             </div>
+                                        </td>
+                                        <td class="px-6 py-4 text-sm text-[#1f1f1f]">
+                                            {{ category.division?.name || '-' }}
                                         </td>
                                         <td class="px-6 py-4">
                                             <div class="flex justify-end gap-2">
@@ -141,6 +156,9 @@
                                     <tr v-for="category in categories.data" :key="category.id" class="hover:bg-white">
                                         <td class="px-3 py-3">
                                             <div class="font-semibold text-[#1f1f1f] text-xs">{{ category.name }}</div>
+                                            <div class="text-[11px] text-[#555] mt-1">
+                                                {{ category.division?.name || '-' }}
+                                            </div>
                                         </td>
                                         <td class="px-3 py-3">
                                             <div class="flex flex-col gap-2">
@@ -172,6 +190,9 @@
                                         </div>
                                         <div>
                                             <h3 class="font-semibold text-[#1f1f1f]">{{ category.name }}</h3>
+                                            <p class="text-[11px] text-[#555]">
+                                                {{ category.division?.name || '-' }}
+                                            </p>
                                         </div>
                                     </div>
                                 </div>
@@ -220,6 +241,18 @@
                 </h2>
 
                 <form @submit.prevent="saveCategory" class="mt-6 grid grid-cols-1 gap-6">
+                    <div>
+                        <InputLabel for="division_id" value="Divisi" class="text-[#555]" />
+                        <select id="division_id" v-model="form.division_id"
+                            class="mt-1 block w-full bg-white border border-[#9c9c9c] rounded text-[#1f1f1f] focus:ring-blue-500 focus:border-blue-500"
+                            required>
+                            <option value="">Pilih Divisi</option>
+                            <option v-for="division in divisions" :key="division.id" :value="division.id">
+                                {{ division.code ? `${division.code} - ${division.name}` : division.name }}
+                            </option>
+                        </select>
+                        <InputError :message="form.errors.division_id" class="mt-2 text-red-400" />
+                    </div>
                     <div>
                         <InputLabel for="name" value="Nama Kategori" class="text-[#555]" />
                         <TextInput id="name" v-model="form.name"
@@ -272,24 +305,28 @@ import InputError from "@/Components/InputError.vue";
 const props = defineProps({
     categories: Object, // Changed from Array to Object to match pagination structure
     filters: Object,
+    divisions: Array,
 });
 
 const viewMode = ref('table');
 const isModalOpen = ref(false);
 const isEditMode = ref(false);
 const search = ref(props.filters.search);
+const divisionFilter = ref(props.filters.division_id || '');
 
 const form = useForm({
     id: null,
     name: "",
+    division_id: "",
 });
 
 watch(
-    search,
+    [search, divisionFilter],
     debounce((value) => {
+        const [nextSearch, nextDivision] = value;
         router.get(
             route("master.categories.index"),
-            { search: value },
+            { search: nextSearch, division_id: nextDivision || null },
             {
                 preserveState: true,
                 replace: true,
@@ -303,6 +340,7 @@ const openModal = (editMode = false, category = null) => {
     if (editMode && category) {
         form.id = category.id;
         form.name = category.name;
+        form.division_id = category.division_id || "";
     } else {
         form.reset();
     }

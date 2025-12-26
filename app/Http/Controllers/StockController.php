@@ -178,6 +178,10 @@ class StockController extends Controller
             ->with('product')
             ->get();
 
+        if ($items->where('status', 'I')->count() > 0) {
+            return back()->with('warning', 'Masih ada item status I. Lengkapi fisik terlebih dahulu sebelum finalize.');
+        }
+
         DB::transaction(function () use ($opname, $items, $storeId) {
             foreach ($items as $item) {
                 if ($item->status !== 'E') {

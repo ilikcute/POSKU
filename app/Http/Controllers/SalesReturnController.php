@@ -12,6 +12,7 @@ use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
 use Illuminate\Validation\ValidationException;
 use App\Services\StationResolver;
+use Illuminate\Validation\Rule;
 
 class SalesReturnController extends Controller
 {
@@ -85,6 +86,7 @@ class SalesReturnController extends Controller
             'items.*.product_id' => 'required|exists:products,id',
             'items.*.quantity' => 'required|integer|min:1',
             'items.*.price' => 'nullable|numeric|min:0',
+            'payment_method' => ['nullable', Rule::in(['cash', 'debit', 'credit', 'transfer'])],
             'notes' => 'nullable|string|max:1000',
         ]);
 
@@ -138,6 +140,7 @@ class SalesReturnController extends Controller
             $finalAmount = $totalAmount;
 
             // Create sales return
+            $paymentMethod = $validated['payment_method'] ?? $sale->payment_method ?? 'cash';
             $salesReturn = SalesReturn::create([
                 'sale_id' => $sale->id,
                 'user_id' => Auth::id(),
@@ -145,6 +148,7 @@ class SalesReturnController extends Controller
                 'station_id' => $station->id,
                 'total_amount' => $totalAmount,
                 'final_amount' => $finalAmount,
+                'payment_method' => $paymentMethod,
                 'notes' => $validated['notes'],
                 'return_date' => now(),
             ]);
@@ -224,6 +228,7 @@ class SalesReturnController extends Controller
             'items.*.product_id' => 'required|exists:products,id',
             'items.*.quantity' => 'required|integer|min:1',
             'items.*.price' => 'nullable|numeric|min:0',
+            'payment_method' => ['nullable', Rule::in(['cash', 'debit', 'credit', 'transfer'])],
             'notes' => 'nullable|string|max:1000',
         ]);
 
@@ -277,9 +282,11 @@ class SalesReturnController extends Controller
             $finalAmount = $totalAmount;
 
             // Update sales return
+            $paymentMethod = $validated['payment_method'] ?? $salesReturn->payment_method ?? 'cash';
             $salesReturn->update([
                 'total_amount' => $totalAmount,
                 'final_amount' => $finalAmount,
+                'payment_method' => $paymentMethod,
                 'notes' => $validated['notes'],
             ]);
 

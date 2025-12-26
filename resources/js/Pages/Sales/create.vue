@@ -3,6 +3,7 @@ import { Head, useForm } from "@inertiajs/vue3";
 import { ref, computed, onMounted, nextTick, watch } from "vue";
 import RawLayout from "@/Layouts/RawLayout.vue";
 import Modal from "@/Components/Modal.vue";
+import axios from "axios";
 
 const props = defineProps({
     products: Array,
@@ -317,7 +318,6 @@ const ensurePrintStyle = () => {
 };
 const pendingSales = ref([]);
 const showPendingModal = ref(false);
-const pendingKey = "posku.sales.pending";
 
 // Cart operations
 const addProductToCart = (product) => {
@@ -609,17 +609,17 @@ watch(receiptWidth, () => {
     ensurePrintStyle();
 });
 
-const loadPendingSales = () => {
+const loadPendingSales = async () => {
     try {
-        const raw = localStorage.getItem(pendingKey);
-        pendingSales.value = raw ? JSON.parse(raw) : [];
+        const response = await axios.get(route("sales.pending.index"));
+        pendingSales.value = (response.data || []).map((item) => ({
+            id: item.id,
+            created_at: item.created_at,
+            ...(item.payload || {}),
+        }));
     } catch (error) {
         pendingSales.value = [];
     }
-};
-
-const persistPendingSales = () => {
-    localStorage.setItem(pendingKey, JSON.stringify(pendingSales.value));
 };
 
 const clearCurrentSale = () => {
@@ -634,31 +634,42 @@ const clearCurrentSale = () => {
     });
 };
 
-const savePendingSale = () => {
+const savePendingSale = async () => {
     if (!cart.value.length) {
         showNotification("Tidak ada item untuk pending.", "warning");
         return;
     }
-    const pendingItem = {
-        id: Date.now(),
-        created_at: new Date().toISOString(),
-        items: JSON.parse(JSON.stringify(cart.value)),
-        customer: selectedCustomer.value ? { ...selectedCustomer.value } : null,
-        notes: form.notes || "",
-    };
-    pendingSales.value.unshift(pendingItem);
-    persistPendingSales();
-    clearCurrentSale();
-    showNotification("Transaksi disimpan ke pending.", "success");
+    try {
+        const payload = {
+            items: JSON.parse(JSON.stringify(cart.value)),
+            customer: selectedCustomer.value ? { ...selectedCustomer.value } : null,
+            notes: form.notes || "",
+        };
+        const response = await axios.post(route("sales.pending.store"), { payload });
+        const saved = response.data;
+        pendingSales.value.unshift({
+            id: saved.id,
+            created_at: saved.created_at,
+            ...(saved.payload || {}),
+        });
+        clearCurrentSale();
+        showNotification("Transaksi disimpan ke pending.", "success");
+    } catch (error) {
+        showNotification("Gagal menyimpan transaksi pending.", "error");
+    }
 };
 
-const resumePendingSale = (pendingItem) => {
+const resumePendingSale = async (pendingItem) => {
     cart.value = JSON.parse(JSON.stringify(pendingItem.items || []));
     selectedCustomer.value = pendingItem.customer || null;
     form.notes = pendingItem.notes || "";
     updateFormItems();
-    pendingSales.value = pendingSales.value.filter((item) => item.id !== pendingItem.id);
-    persistPendingSales();
+    try {
+        await axios.delete(route("sales.pending.destroy", pendingItem.id));
+        pendingSales.value = pendingSales.value.filter((item) => item.id !== pendingItem.id);
+    } catch (error) {
+        showNotification("Gagal menghapus pending di server.", "warning");
+    }
     showPendingModal.value = false;
     showNotification("Transaksi pending dipulihkan.", "success");
     nextTick(() => {
@@ -666,9 +677,13 @@ const resumePendingSale = (pendingItem) => {
     });
 };
 
-const deletePendingSale = (pendingItem) => {
-    pendingSales.value = pendingSales.value.filter((item) => item.id !== pendingItem.id);
-    persistPendingSales();
+const deletePendingSale = async (pendingItem) => {
+    try {
+        await axios.delete(route("sales.pending.destroy", pendingItem.id));
+        pendingSales.value = pendingSales.value.filter((item) => item.id !== pendingItem.id);
+    } catch (error) {
+        showNotification("Gagal menghapus pending.", "error");
+    }
 };
 
 const voidSale = () => {

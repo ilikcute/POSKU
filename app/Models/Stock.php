@@ -109,15 +109,16 @@ class Stock extends Model
     public function reduceStock($quantity, $reason = 'Sale', $referenceType = null, $referenceId = null, $userId = null)
     {
         $oldQuantity = $this->quantity;
+        $actualReduced = min($quantity, $oldQuantity);
         $newQuantity = max(0, $oldQuantity - $quantity);
         
-        $this->decrement('quantity', $quantity);
+        $this->update(['quantity' => $newQuantity]);
         
         // Log stock movement
         $this->stockMovements()->create([
             'user_id' => $userId ?? auth()->id(),
             'movement_type' => 'out',
-            'quantity' => $quantity,
+            'quantity' => $actualReduced,
             'reason' => $reason,
             'reference_type' => $referenceType,
             'reference_id' => $referenceId,

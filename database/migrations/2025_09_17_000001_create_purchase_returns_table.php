@@ -19,6 +19,8 @@ return new class extends Migration
             $table->foreignId('station_id')->nullable()->constrained('stations');
             $table->decimal('total_amount', 15, 2);
             $table->decimal('final_amount', 15, 2);
+            $table->enum('payment_method', ['cash', 'card', 'transfer', 'credit'])
+                ->default('cash');
             $table->text('notes')->nullable();
             $table->timestamp('return_date');
             $table->timestamps();

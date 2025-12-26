@@ -61,6 +61,21 @@ class Sale extends Model
         return 'INV-' . $date . '-' . str_pad($sequence, 4, '0', STR_PAD_LEFT);
     }
 
+    public static function generateInvoiceNumberForUpdate(): string
+    {
+        $date = now()->format('Ymd');
+        $lastInvoice = self::whereDate('created_at', now())
+            ->lockForUpdate()
+            ->orderBy('id', 'desc')
+            ->first();
+
+        $sequence = $lastInvoice
+            ? intval(substr($lastInvoice->invoice_number, -4)) + 1
+            : 1;
+
+        return 'INV-' . $date . '-' . str_pad($sequence, 4, '0', STR_PAD_LEFT);
+    }
+
     public function user()
     {
         return $this->belongsTo(User::class);

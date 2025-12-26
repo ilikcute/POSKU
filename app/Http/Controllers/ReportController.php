@@ -186,7 +186,7 @@ class ReportController extends Controller
             ->get();
 
         $totalValue = $stocks->sum(function ($stock) {
-            $price = $stock->product->final_price ?? $stock->product->selling_price ?? 0;
+            $price = $stock->product->purchase_price ?? 0;
             return $stock->quantity * $price;
         });
 
@@ -391,7 +391,7 @@ class ReportController extends Controller
 
                 $closingQty = $openingQty + $netPeriod;
 
-                $priceDpp = (float) ($product->selling_price ?? 0);
+                $priceDpp = (float) ($product->purchase_price ?? 0);
                 $priceFinal = (float) ($product->final_price ?? $product->selling_price ?? 0);
 
                 StockMonthClosing::create([

@@ -17,6 +17,7 @@ use Inertia\Inertia;
 use Illuminate\Validation\Rule;
 use Barryvdh\DomPDF\Facade\Pdf;
 use App\Services\StationResolver;
+use Illuminate\Database\QueryException;
 
 class SaleController extends Controller
 {
@@ -152,7 +153,10 @@ class SaleController extends Controller
             ->firstOrFail();
 
         $sale = null;
-        DB::transaction(function () use ($validated, $itemsInput, $customer, $storeId, $station, &$sale) {
+        $attempts = 0;
+        while ($attempts < 3) {
+            try {
+                DB::transaction(function () use ($validated, $itemsInput, $customer, $storeId, $station, &$sale) {
             // Get customer for promotion calculation
             // Calculate totals with promotions
             $totalAmount = 0;
@@ -160,6 +164,7 @@ class SaleController extends Controller
             $totalDiscount = 0;
             $bundledItems = [];
             $items = collect();
+            $invoiceNumber = Sale::generateInvoiceNumberForUpdate();
 
             foreach ($itemsInput as $item) {
                 $product = Product::find($item['product_id']);
@@ -230,6 +235,7 @@ class SaleController extends Controller
 
             // Create sale
             $sale = Sale::create([
+                'invoice_number' => $invoiceNumber,
                 'user_id' => Auth::id(),
                 'store_id' => $storeId,
                 'station_id' => $station->id,
@@ -275,7 +281,21 @@ class SaleController extends Controller
                     );
                 }
             }
-        });
+                });
+                break;
+            } catch (QueryException $exception) {
+                if (str_contains($exception->getMessage(), 'invoice_number')) {
+                    $attempts++;
+                    usleep(100000);
+                    continue;
+                }
+                throw $exception;
+            }
+        }
+
+        if (! $sale) {
+            return back()->withErrors(['invoice_number' => 'Gagal membuat nomor invoice. Silakan coba lagi.']);
+        }
 
         return redirect()->route('sales.create')
             ->with('success', 'Sale created successfully.')

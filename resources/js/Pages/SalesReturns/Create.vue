@@ -95,6 +95,14 @@
                             placeholder="Catatan retur"></textarea>
                     </div>
                     <div class="bg-white border border-[#9c9c9c] rounded p-4">
+                        <label class="block text-xs font-semibold text-[#555] mb-2">Metode Pengembalian</label>
+                        <select v-model="form.payment_method"
+                            class="w-full border border-[#9c9c9c] bg-white rounded text-[#1f1f1f] px-3 py-2 text-xs mb-3">
+                            <option value="cash">Tunai</option>
+                            <option value="debit">Debit</option>
+                            <option value="credit">Kredit</option>
+                            <option value="transfer">Transfer</option>
+                        </select>
                         <div class="flex justify-between text-xs text-[#555]">
                             <span>Total Retur</span>
                             <span class="font-semibold text-[#1f1f1f]">{{ formatCurrency(totalAmount) }}</span>
@@ -132,6 +140,7 @@ const props = defineProps({
 const form = useForm({
     sale_id: "",
     items: [],
+    payment_method: "cash",
     notes: "",
 });
 
@@ -206,11 +215,16 @@ const submitReturn = () => {
 
     form.sale_id = selectedSaleId.value;
     form.items = items;
+    form.payment_method = selectedSale.value?.payment_method || form.payment_method || "cash";
     form.post(route("sales-returns.store"));
 };
 
 watch(selectedSaleId, (value) => {
     formError.value = "";
+    const sale = saleOptions.value.find((item) => String(item.id) === String(value));
+    if (sale?.payment_method) {
+        form.payment_method = sale.payment_method;
+    }
     fetchReturnables(value);
 });
 

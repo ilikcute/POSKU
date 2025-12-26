@@ -334,9 +334,6 @@ const deleteProduct = (productId) => {
                                         class="px-6 py-3 text-left text-xs uppercase tracking-wider font-semibold text-[#1f1f1f]">
                                         Harga Final</th>
                                     <th
-                                        class="px-6 py-3 text-left text-xs uppercase tracking-wider font-semibold text-[#1f1f1f]">
-                                        Stok</th>
-                                    <th
                                         class="px-6 py-3 text-right text-xs uppercase tracking-wider font-semibold text-[#1f1f1f]">
                                         Aksi</th>
                                 </tr>
@@ -370,12 +367,6 @@ const deleteProduct = (productId) => {
                                     </td>
                                     <td class="px-6 py-4 text-[#1f1f1f] font-medium">{{
                                         formatCurrency(product.final_price ?? 0) }}
-                                    </td>
-                                    <td class="px-6 py-4">
-                                        <span :class="getStockStatusClass(product.stock, product.min_stock_alert)"
-                                            class="font-semibold">
-                                            {{ product.stock ?? '-' }}
-                                        </span>
                                     </td>
                                     <td class="px-6 py-4">
                                         <div class="flex justify-end gap-2">
@@ -413,7 +404,6 @@ const deleteProduct = (productId) => {
                                 <tr>
                                     <th class="px-3 py-3 text-left font-semibold text-[#1f1f1f]">Produk</th>
                                     <th class="px-3 py-3 text-left font-semibold text-[#1f1f1f]">Harga</th>
-                                    <th class="px-3 py-3 text-left font-semibold text-[#1f1f1f]">Stok</th>
                                     <th class="px-3 py-3 text-left font-semibold text-[#1f1f1f]">Aksi</th>
                                 </tr>
                             </thead>
@@ -426,11 +416,6 @@ const deleteProduct = (productId) => {
                                     </td>
                                     <td class="px-3 py-3 text-[11px] font-semibold">{{
                                         formatCurrency(product.final_price ?? product.selling_price) }}</td>
-                                    <td class="px-3 py-3 text-[11px]">
-                                        <span :class="getStockStatusClass(product.stock, product.min_stock_alert)">
-                                            {{ product.stock ?? '-' }}
-                                        </span>
-                                    </td>
                                     <td class="px-3 py-3">
                                         <div class="flex flex-col gap-2">
                                             <button @click="openModal(true, product)"
@@ -500,10 +485,7 @@ const deleteProduct = (productId) => {
                             </div>
                             <div class="flex justify-between text-sm">
                                 <span class="text-[#1f1f1f]">Stok</span>
-                                <span :class="getStockStatusClass(product.stock, product.min_stock_alert)"
-                                    class="font-semibold">
-                                    {{ product.stock ?? '-' }} {{ product.unit || 'Pcs' }}
-                                </span>
+                                <span class="text-[#555]">Lihat di menu Inventory</span>
                             </div>
                         </div>
 

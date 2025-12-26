@@ -9,9 +9,19 @@ class DivisionSeeder extends Seeder
 {
     public function run(): void
     {
-        Division::create(['name' => 'Makanan']);
-        Division::create(['name' => 'Minuman']);
-        Division::create(['name' => 'Peralatan Mandi']);
-        Division::factory(5)->create();
+        $divisions = [
+            ['code' => '1', 'name' => 'BREAKFAST FOOD'],
+            ['code' => '2', 'name' => 'MILK'],
+            ['code' => '3', 'name' => 'BABY FOOD'],
+            ['code' => '4', 'name' => 'BEVERAGES'],
+            ['code' => '5', 'name' => 'BASIC FOOD'],
+        ];
+
+        foreach ($divisions as $division) {
+            Division::updateOrCreate(
+                ['code' => $division['code']],
+                ['name' => $division['name']]
+            );
+        }
     }
 }

@@ -17,6 +17,7 @@ class SalesReturn extends Model
         'station_id',
         'total_amount',
         'final_amount',
+        'payment_method',
         'notes',
         'return_date',
     ];
@@ -25,6 +26,7 @@ class SalesReturn extends Model
         'total_amount' => 'decimal:2',
         'final_amount' => 'decimal:2',
         'return_date' => 'datetime',
+        'payment_method' => 'string',
     ];
 
     protected static function boot()

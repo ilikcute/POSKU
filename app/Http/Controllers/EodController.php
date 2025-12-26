@@ -442,11 +442,31 @@ class EodController extends Controller
             ->whereBetween('start_time', [$dayStart, $dayEnd])
             ->sum('initial_cash');
 
+        $cashSalesReturn = (float) SalesReturn::query()
+            ->where('store_id', $storeId)
+            ->where('station_id', $stationId)
+            ->whereBetween('return_date', [$dayStart, $dayEnd])
+            ->where(function ($q) {
+                $q->where('payment_method', 'cash')
+                    ->orWhereNull('payment_method');
+            })
+            ->sum('final_amount');
+
+        $cashPurchaseReturn = (float) PurchaseReturn::query()
+            ->where('store_id', $storeId)
+            ->where('station_id', $stationId)
+            ->whereBetween('return_date', [$dayStart, $dayEnd])
+            ->where(function ($q) {
+                $q->where('payment_method', 'cash')
+                    ->orWhereNull('payment_method');
+            })
+            ->sum('final_amount');
+
         $expectedCash = $initialCashSum
             + $cashSales
-            - $totalSalesReturn
+            - $cashSalesReturn
             - $cashPurchase
-            + $totalPurchaseReturn;
+            + $cashPurchaseReturn;
 
         return [
             'totalSales' => $totalSales,

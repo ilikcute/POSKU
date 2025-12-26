@@ -37,6 +37,10 @@ const inputTax = ref(0);
 const inputDiscount = ref(0);
 const showReceiptModal = ref(false);
 const receiptData = ref(null);
+const productOptions = ref(props.products || []);
+const productSearch = ref('');
+const productLoading = ref(false);
+let searchTimer = null;
 
 const currentTime = ref('');
 const currentDate = ref('');
@@ -63,7 +67,7 @@ const dueDate = computed(() => {
 });
 
 const filteredProducts = computed(() => {
-    const products = props.products || [];
+    const products = productOptions.value || [];
     if (!selectedSupplier.value?.id) {
         return products;
     }
@@ -224,9 +228,46 @@ const formatCurrency = (value) =>
 const scanBarcode = () => {
     const barcode = barcodeInput.value.trim();
     if (!barcode) return;
-    const product = props.products?.find(
+    let product = productOptions.value?.find(
         (p) => p.barcode === barcode || p.product_code === barcode
     );
+
+    if (!product) {
+        axios
+            .get(route('purchases.products.lookup'), {
+                params: {
+                    code: barcode,
+                    supplier_id: selectedSupplier.value?.id || null,
+                },
+            })
+            .then((response) => {
+                product = response.data;
+                if (product && !productOptions.value.find((item) => item.id === product.id)) {
+                    productOptions.value.unshift(product);
+                }
+                if (product && canAddProduct(product)) {
+                    const basePrice = product.purchase_price ?? product.selling_price ?? 0;
+                    const taxPerItem = computeTaxPerItem(product, basePrice);
+                    addProductToCart(product, {
+                        quantity: inputQty.value,
+                        price: basePrice,
+                        tax_per_item: taxPerItem,
+                        discount_per_item: 0,
+                        replace: true,
+                    });
+                } else if (!product) {
+                    showNotice('Barang tidak ditemukan.');
+                }
+            })
+            .catch(() => {
+                showNotice('Barang tidak ditemukan.');
+            })
+            .finally(() => {
+                barcodeInput.value = '';
+            });
+        return;
+    }
+
     if (product && canAddProduct(product)) {
         const basePrice = product.purchase_price ?? product.selling_price ?? 0;
         const taxPerItem = computeTaxPerItem(product, basePrice);
@@ -245,7 +286,7 @@ const addSelectedProduct = () => {
     if (selectedProductId.value === null || selectedProductId.value === undefined || selectedProductId.value === '') {
         return;
     }
-    const product = props.products?.find(
+    const product = productOptions.value?.find(
         (p) => String(p.id) === String(selectedProductId.value)
     );
     if (!product) return;
@@ -338,7 +379,7 @@ const onAmountPaidInput = (event) => {
 };
 
 watch(selectedProductId, (value) => {
-    const product = props.products?.find((p) => p.id === Number(value));
+    const product = productOptions.value?.find((p) => p.id === Number(value));
     if (!product) return;
     inputPrice.value = product.purchase_price ?? product.selling_price ?? 0;
     inputTax.value = computeTaxPerItem(product, inputPrice.value);
@@ -348,17 +389,41 @@ watch(selectedProductId, (value) => {
 
 watch(selectedSupplier, () => {
     selectedPlanId.value = null;
+    fetchProducts(productSearch.value);
     if (!cart.value.length) return;
     cart.value = cart.value.map((item) => {
-        const product = props.products?.find((p) => p.id === item.id);
-        if (!product) return item;
-        const nextPrice = item.price ?? product.purchase_price ?? product.selling_price ?? 0;
+        const nextPrice = item.price ?? item.purchase_price ?? item.selling_price ?? 0;
         return {
             ...item,
-            tax_per_item: computeTaxPerItem(product, nextPrice),
+            tax_per_item: computeTaxPerItem(item, nextPrice),
         };
     });
     updateFormItems();
+});
+
+const fetchProducts = async (term = '') => {
+    productLoading.value = true;
+    try {
+        const response = await axios.get(route('purchases.products.search'), {
+            params: {
+                q: term || null,
+                supplier_id: selectedSupplier.value?.id || null,
+                limit: 150,
+            },
+        });
+        productOptions.value = response.data || [];
+    } catch (error) {
+        productOptions.value = [];
+    } finally {
+        productLoading.value = false;
+    }
+};
+
+watch(productSearch, (value) => {
+    clearTimeout(searchTimer);
+    searchTimer = setTimeout(() => {
+        fetchProducts(value);
+    }, 300);
 });
 
 const importPurchasePlan = async () => {
@@ -409,6 +474,7 @@ const importPurchasePlan = async () => {
 onMounted(() => {
     updateDateTime();
     setInterval(updateDateTime, 1000);
+    fetchProducts('');
 });
 </script>
 
@@ -507,6 +573,9 @@ onMounted(() => {
                     </div>
                     <div>
                         <label class="block text-[11px] uppercase tracking-wide mb-1 text-[#555]">Pilih Barang</label>
+                        <input v-model="productSearch" type="text"
+                            class="w-full bg-white border border-[#9c9c9c] rounded px-2 py-1 text-sm text-[#1f1f1f] mb-2"
+                            placeholder="Cari produk (kode / nama / barcode)" />
                         <select v-model="selectedProductId"
                             class="w-full bg-white border border-[#9c9c9c] rounded px-2 py-1 text-sm text-[#1f1f1f]">
             <option :value="null">Pilih Produk</option>
@@ -514,6 +583,9 @@ onMounted(() => {
                 {{ product.product_code ? `${product.product_code} - ${product.name}` : product.name }}
             </option>
         </select>
+                        <div v-if="productLoading" class="text-[11px] text-[#777] mt-1">
+                            Memuat daftar produk...
+                        </div>
                     </div>
                     <div>
                         <label class="block text-[11px] uppercase tracking-wide mb-1 text-[#555]">Qty</label>

@@ -19,16 +19,22 @@ class StationResolver
 
         $deviceIdentifier = DeviceHelper::getDeviceId();
 
-        $station = Station::firstOrCreate(
-            [
+        $station = Station::where('store_id', $user->store_id)
+            ->where('device_identifier', $deviceIdentifier)
+            ->first();
+
+        if (! $station) {
+            if (! config('posku.station_auto_create')) {
+                throw new RuntimeException('Station belum terdaftar. Hubungi admin untuk mendaftarkan device ini.');
+            }
+
+            $station = Station::create([
                 'store_id' => $user->store_id,
                 'device_identifier' => $deviceIdentifier,
-            ],
-            [
                 'name' => $user->name . ' Station',
                 'is_active' => true,
-            ]
-        );
+            ]);
+        }
 
         $station->forceFill(['last_seen_at' => now()])->save();
 
